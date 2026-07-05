@@ -27,28 +27,29 @@ def fetch_subscribers() -> list[dict]:
     api_key = os.environ.get("SIGNAL_PIPELINE_API_KEY")
 
     if not base_url or not api_key:
-        log.error("WEBSITE_BASE_URL or SIGNAL_PIPELINE_API_KEY not set — cannot fetch subscribers")
+        log.error("WEBSITE_BASE_URL or SIGNAL_PIPELINE_API_KEY not set")
         return []
 
     url = f"{base_url.rstrip('/')}/api/pipeline/subscribers"
     headers = {"Authorization": f"Bearer {api_key}"}
 
-    for attempt in range(2):  # 1 retry on 500
+    for attempt in range(2):
         try:
             resp = requests.get(url, headers=headers, timeout=DEFAULT_TIMEOUT)
 
             if resp.status_code == 401:
-                log.error("Subscriber API returned 401 — API key mismatch. Aborting.")
+                log.error("Subscriber API returned 401 - API key mismatch. Aborting.")
                 return []
 
             if resp.status_code >= 500:
                 if attempt == 0:
-                    log.warning("Subscriber API returned %d — retrying in %ds...",
+                    log.warning("Subscriber API returned %d - retrying in %ds...",
                                 resp.status_code, RETRY_DELAY)
                     time.sleep(RETRY_DELAY)
                     continue
                 else:
-                    log.error("Subscriber API returned %d on retry — aborting.", resp.status_code)
+                    log.error("Subscriber API returned %d on retry - aborting.",
+                              resp.status_code)
                     return []
 
             resp.raise_for_status()
@@ -56,10 +57,11 @@ def fetch_subscribers() -> list[dict]:
             subscribers = data.get("subscribers", [])
 
             if not subscribers:
-                log.warning("Subscriber API returned empty list — safety abort (0 subscribers)")
+                log.warning("Subscriber API returned empty list - safety abort")
                 return []
 
-            log.info("Fetched %d active subscriber(s) from website API", len(subscribers))
+            log.info("Fetched %d active subscriber(s) from website API",
+                     len(subscribers))
             return subscribers
 
         except requests.exceptions.Timeout:
@@ -92,7 +94,8 @@ def fetch_unsubscribe_token(email: str) -> str | None:
     params = {"email": email}
 
     try:
-        resp = requests.get(url, headers=headers, params=params, timeout=DEFAULT_TIMEOUT)
+        resp = requests.get(url, headers=headers, params=params,
+                            timeout=DEFAULT_TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
         token = data.get("token")
@@ -100,5 +103,6 @@ def fetch_unsubscribe_token(email: str) -> str | None:
             log.debug("Got unsubscribe token for %s", email)
         return token
     except Exception as e:
-        log.warning("Failed to fetch unsubscribe token for %s: %s (non-fatal)", email, e)
+        log.warning("Failed to fetch unsubscribe token for %s: %s (non-fatal)",
+                    email, e)
         return None

@@ -179,8 +179,13 @@ def _fetch_reddit(subreddit: str, max_items: int, category: str, ua: str, timeou
     return items
 
 
-def fetch_all(sources_config_path: str) -> list[RawItem]:
-    """Top-level: fetch from every configured source. Returns raw items, deduplicated by URL."""
+def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) -> list[RawItem]:
+    """Top-level: fetch from every configured source. Returns raw items, deduplicated by URL.
+
+    Args:
+        sources_config_path: Path to sources.yaml
+        history_urls: Set of URLs from recent editions (72h) to exclude.
+    """
     config = _load_sources_config(sources_config_path)
     fetch_cfg = config.get("fetch", {})
     ua = fetch_cfg.get("user_agent", "DTL Signal/1.0")
@@ -232,4 +237,9 @@ def fetch_all(sources_config_path: str) -> list[RawItem]:
         deduped.append(item)
 
     log.info("Fetched %d items total, %d after dedup", len(all_items), len(deduped))
+    # Filter out URLs from recent editions (72-hour dedup)
+    if history_urls:
+        before_history = len(deduped)
+        deduped = [item for item in deduped if item.url not in history_urls]
+        log.info("History filter removed %d previously-delivered URLs", before_history - len(deduped))
     return deduped
