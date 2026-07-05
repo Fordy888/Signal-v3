@@ -17,6 +17,7 @@ from .sources import fetch_all
 from .scoring import score_items
 from .synthesis import synthesise
 from .delivery import send_brief
+from .history import load_history, record_edition
 
 BRISBANE = ZoneInfo("Australia/Brisbane")
 
@@ -121,9 +122,13 @@ def main() -> int:
             log.error("Subscriber '%s' not found or not active", args.subscriber)
             return 1
 
+    # 0. Load edition history for cross-day deduplication
+    history_urls = load_history(root)
+    log.info("Loaded %d URLs from recent editions for cross-day dedup", len(history_urls))
+
     # 1. Fetch raw items (shared across all subscribers)
     log.info("Stage 1: Fetching sources...")
-    raw_items = fetch_all(str(root / "config" / "sources.yaml"))
+    raw_items = fetch_all(str(root / "config" / "sources.yaml"), history_urls=history_urls)
     if not raw_items:
         log.warning("No items fetched. Proceeding to graceful quiet-day briefs.")
     else:
@@ -209,6 +214,10 @@ def main() -> int:
         ok = send_brief(html_body=html, recipient_email=recipient)
         if ok:
             log.info("[%s] Delivery successful to %s", sub_id, recipient)
+            # Record delivered item URLs for cross-day dedup
+            delivered_urls = [item["url"] for item in scored if "url" in item]
+            edition_id = f"{sub_id}_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
+            record_edition(root, delivered_urls, edition_id=edition_id)
         else:
             log.error("[%s] DELIVERY FAILED to %s", sub_id, recipient)
             all_ok = False
