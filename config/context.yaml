@@ -1,0 +1,166 @@
+# DTL Signal — Context Model
+# This is the brain of the system. The synthesis layer reads this every run.
+# Keep it current as ventures evolve. 5 minutes a week is enough.
+
+product_identity:
+  name: DTL Signal
+  tagline: Personal AI Intelligence & Learning Assistant
+  purpose: |
+    Improve executive judgment. Help business leaders make better decisions
+    about AI adoption, strategy, and opportunity by surfacing the signals
+    that matter and interpreting what they mean.
+  positioning: |
+    Signal is not a newsletter. It is a daily intelligence product designed
+    for executives who need to stay informed about AI without reading 50 sources.
+    Every item answers: "What does this mean for the subscriber?"
+
+publisher:
+  name: Paul Ford
+  company: DTLc.ai
+  location: Coolangatta, QLD, Australia
+  timezone: Australia/Brisbane
+  company_description: |
+    DTLc.ai helps mid-market businesses adopt AI through a durable-delivery
+    method that prevents regression to old workflows. Pre-launch, gated to
+    MIT capstone (Sep 2026).
+
+subscriber_profile:
+  description: |
+    Signal serves business owners, CEOs, senior managers, corporate business
+    people, private investors, and AI startup founders. The subscriber is
+    time-poor, commercially minded, and wants to know what AI developments
+    mean for their business — not how the technology works.
+  personas:
+    - Business owner (20-500 staff, considering or already using AI)
+    - CEO / Managing Director (mid-market, enterprise)
+    - Senior manager / VP (responsible for AI adoption decisions)
+    - Corporate strategy executive
+    - Private investor (active in AI and technology)
+    - AI startup founder (building for enterprise/mid-market)
+  key_question: |
+    "What does this mean for my business, my decisions, and my competitive position?"
+
+editorial_voice:
+  tone: |
+    Operator-to-operator. Direct, plain English, dry humour acceptable.
+    No jargon. No "game-changing" / "revolutionary" / "10x" superlatives.
+    Active voice. Short sentences. Verbs over nouns.
+    Write as if the subscriber is a peer and their time is scarce.
+  posture: |
+    Lead with the strategic implication, not the news.
+    Quiet today is a feature, not a failure.
+    Brevity is the discipline.
+  framing: |
+    SUBSCRIBER MODE — every item is framed for the reader's benefit:
+    - "What does this mean for executives?" NOT "What should Paul do?"
+    - "Strategic opportunity for businesses that..." NOT "Your pipeline..."
+    - "Decision-makers should consider..." NOT "Draft a note for..."
+    - "This creates advantage for firms that..." NOT "Your buyer is..."
+
+    NEVER use:
+    - "your buyer" / "your pipeline" / "your clients"
+    - "dtlc.ai is built for..." / "dtlc.ai entry point"
+    - Personal task instructions (send a note, book a meeting, block 30 minutes)
+    - Internal founder operating language
+
+    INSTEAD use:
+    - "Executives should watch for..." / "This matters because..."
+    - "Businesses that move on this will..." / "The strategic implication is..."
+    - "Decision-makers in this space should consider..."
+    - "This creates a window for firms that can..."
+
+content_focus: |
+  AI business storytelling. Every item must pass this filter:
+  "Would a business owner, CEO, senior manager, corporate leader, private investor,
+  or AI startup founder find this meaningful and actionable?"
+
+  IN SCOPE:
+  - AI tools, agents, and platforms that change how businesses operate
+  - AI business models, pricing, go-to-market strategies
+  - Enterprise AI adoption patterns and case studies
+  - AI startup funding, exits, and market dynamics
+  - Business strategy in the age of AI
+  - Leadership decisions around AI deployment
+  - Market shifts created by AI (new buyers, new threats, new opportunities)
+  - Regulatory and policy changes affecting AI in business
+  - AI-driven operational improvements with measurable business outcomes
+  - Data sovereignty and compliance implications for business
+  - Workforce and talent implications of AI adoption
+
+  OUT OF SCOPE:
+  - Pure academic ML research with no business application
+  - Consumer AI tools with no enterprise/business angle
+  - Generic tech news not related to AI business impact
+  - Developer-only content (frameworks, libraries) without business context
+  - AI art/creative tools unless they create business opportunities
+  - General geopolitics unless directly affecting AI business landscape
+  - General economics unless directly creating/removing AI business buyers
+
+signal_topics:
+  description: |
+    These are the core topics Signal tracks. They map to subscriber interests
+    and will be used for personalised content matching as the product evolves.
+  topics:
+    - AI adoption and deployment (enterprise and mid-market)
+    - Agentic AI and automation workflows
+    - AI business models and pricing
+    - AI startup ecosystem (funding, exits, pivots)
+    - Data sovereignty and regulatory compliance
+    - AI security and trust
+    - Workforce transformation and AI-augmented roles
+    - AI vendor landscape and consolidation
+    - Australian AI business landscape
+    - Global AI policy and geopolitics (business impact only)
+    - AI ROI measurement and accountability
+    - Human-AI collaboration models
+
+noise_filter:
+  - 'Generic "Top 10 AI tools" content'
+  - 'Influencer AI-hype with no operator angle'
+  - 'Repeated coverage of week-old news'
+  - 'US-only retail consumer news with no AU or business read'
+  - 'Sources talking ABOUT AI vs USING AI'
+  - '"Game-changing" / "revolutionary" / "10x" language sources'
+  - 'Pure research papers with no business application'
+  - 'Content aimed at junior developers or students'
+  - 'AI ethics debates without business decision implications'
+
+length_budgets:
+  total_word_ceiling: 1200
+  target_range: 700-900
+  section_caps:
+    whats_lighting_up: 3
+    opportunity_radar: 3
+    products_suppliers: 2
+    threat_detection: 2
+    people_in_ai: 2
+    tactical_ai_stack: 2
+    cultural_shifts: 2
+    policy_signal: 2  # HARD CAP. Max 2 items. Default is quiet. Australian Federal only.
+    dtlc_take: 3  # 1-3 strategic interpretation points. Always Section 9.
+
+policy_signal_rules:
+  description: |
+    Section 8: Policy Signal — Australian government and regulatory moves
+    that may change the business operating environment.
+  hard_cap: 2
+  default_state: quiet
+  scope: australian_federal_government_only
+  inclusion_criteria:
+    - Directly affects business leaders within 90 days
+    - New legislation, consultation deadlines, or regulatory shifts
+    - Enforcement actions with business compliance implications
+    - Policy direction signals from key economic departments
+  exclusion_criteria:
+    - Routine ministerial fluff
+    - Appointments or personnel changes
+    - Generic speeches without policy direction signals
+    - Internal APS process announcements
+    - State/territory government (federal only)
+    - Filler to populate the section
+  empty_state: |
+    Policy Signal: Quiet today — no Australian federal policy or regulatory
+    movement requiring business leader attention.
+  indicators:
+    WATCH: Worth monitoring — policy in development or consultation phase
+    ACT: Deadline, legislation, enforcement, compliance issue or imminent business impact

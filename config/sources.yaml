@@ -1,0 +1,982 @@
+# DTL Signal — Sources Configuration
+# Expanded 4 July 2026 — 100 RSS sources + HackerNews.
+# Added: australian_government_policy category (Section 8: Policy Signal)
+# Added: Additional international AI, strategy, and enterprise sources.
+#
+# Metadata schema:
+#   category: Primary content category (maps to Signal sections)
+#   region: global | australia | us | europe | asia
+#   topics: List of topic tags for content matching
+#   signal_type: primary_source | analysis | aggregator | operator_voice | research
+#   status: active | probation | disabled
+#
+# Categories:
+#   ai_market_signals — Section 1
+#   opportunity_radar — Section 2
+#   product_service_ideas — Section 3
+#   threat_detection — Section 4
+#   people_to_watch — Section 5
+#   tactical_ai_stack — Section 6
+#   cultural_economic_shifts — Section 7
+#   australian_government_policy — Section 8 (Policy Signal) — MAX 2 items per edition
+#   strategy_decision_making — Cross-section (strategy, leadership, mental models)
+#   venture_capital — Cross-section (VC, markets, funding)
+#   geopolitics — Cross-section (geopolitical intelligence, policy)
+#   australian_business — Cross-section (AU-specific business, innovation)
+
+rss_feeds:
+
+  # ═══════════════════════════════════════════════════
+  # AI & EMERGING TECHNOLOGY (Section 1: What's Lighting Up)
+  # ═══════════════════════════════════════════════════
+
+  - name: OpenAI Blog
+    url: https://openai.com/blog/rss.xml
+    category: ai_market_signals
+    region: us
+    topics: [llm, agents, safety, product_launches]
+    signal_type: primary_source
+    status: active
+
+  - name: Google DeepMind Blog
+    url: https://deepmind.google/blog/rss.xml
+    category: ai_market_signals
+    region: global
+    topics: [research, llm, multimodal, science]
+    signal_type: primary_source
+    status: active
+
+  - name: Google AI Blog
+    url: https://blog.google/technology/ai/rss/
+    category: ai_market_signals
+    region: us
+    topics: [product_launches, llm, search, enterprise_ai]
+    signal_type: primary_source
+    status: active
+
+  - name: Anthropic News
+    url: https://www.anthropic.com/news/rss.xml
+    category: ai_market_signals
+    region: us
+    topics: [llm, safety, enterprise_ai, agents, research]
+    signal_type: primary_source
+    status: active
+    notes: Claude maker. Key for enterprise AI direction and safety developments.
+
+  - name: Hugging Face Blog
+    url: https://huggingface.co/blog/feed.xml
+    category: ai_market_signals
+    region: global
+    topics: [open_source, models, tools, community]
+    signal_type: primary_source
+    status: active
+
+  - name: Simon Willison
+    url: https://simonwillison.net/atom/everything/
+    category: ai_market_signals
+    region: global
+    topics: [llm, tools, agents, developer_experience, practical_ai]
+    signal_type: operator_voice
+    status: active
+
+  - name: Import AI (Jack Clark)
+    url: https://importai.substack.com/feed
+    category: ai_market_signals
+    region: us
+    topics: [ai_policy, research, industry_trends, safety]
+    signal_type: analysis
+    status: active
+
+  - name: The Gradient
+    url: https://thegradient.pub/rss/
+    category: ai_market_signals
+    region: global
+    topics: [research, ethics, industry_analysis, technical]
+    signal_type: research
+    status: active
+
+  - name: MIT Technology Review — AI
+    url: https://www.technologyreview.com/topic/artificial-intelligence/feed
+    category: ai_market_signals
+    region: us
+    topics: [ai_policy, ethics, industry_trends, research]
+    signal_type: analysis
+    status: active
+
+  - name: Wired — AI
+    url: https://www.wired.com/feed/tag/ai/latest/rss
+    category: ai_market_signals
+    region: us
+    topics: [industry_trends, culture, product_launches, society]
+    signal_type: analysis
+    status: active
+
+  - name: Ars Technica — Technology
+    url: https://feeds.arstechnica.com/arstechnica/technology-lab
+    category: ai_market_signals
+    region: us
+    topics: [infrastructure, tools, enterprise, technical]
+    signal_type: analysis
+    status: active
+
+  - name: TechCrunch — AI
+    url: https://techcrunch.com/category/artificial-intelligence/feed/
+    category: ai_market_signals
+    region: us
+    topics: [startups, funding, product_launches, enterprise_ai]
+    signal_type: aggregator
+    status: active
+
+  - name: Platformer (Casey Newton)
+    url: https://www.platformer.news/rss/
+    category: ai_market_signals
+    region: us
+    topics: [platforms, regulation, big_tech, social_media]
+    signal_type: operator_voice
+    status: active
+
+  - name: Financial Times — Artificial Intelligence
+    url: https://www.ft.com/artificial-intelligence?format=rss
+    category: ai_market_signals
+    region: global
+    topics: [enterprise_ai, markets, regulation, investment, geopolitics]
+    signal_type: analysis
+    status: active
+    notes: Premium business intelligence on AI. May require fallback if paywalled RSS.
+
+  - name: The Information
+    url: https://www.theinformation.com/feed
+    category: ai_market_signals
+    region: us
+    topics: [enterprise_ai, funding, big_tech, strategy, insider]
+    signal_type: primary_source
+    status: active
+    notes: Insider scoops on AI companies. Headlines/summaries available via RSS.
+
+  - name: Axios AI+
+    url: https://www.axios.com/technology/artificial-intelligence/feed.xml
+    category: ai_market_signals
+    region: us
+    topics: [ai_policy, enterprise_ai, funding, product_launches, regulation]
+    signal_type: aggregator
+    status: active
+    notes: Concise AI news with business angle. Good signal-to-noise ratio.
+
+  - name: One Useful Thing (Ethan Mollick)
+    url: https://www.oneusefulthing.org/feed
+    category: ai_market_signals
+    region: global
+    topics: [ai_adoption, productivity, education, enterprise_ai, practical_ai]
+    signal_type: operator_voice
+    status: active
+    notes: Wharton professor. Practical AI adoption insights for business leaders.
+
+  - name: Interconnects (Nathan Lambert)
+    url: https://www.interconnects.ai/feed
+    category: ai_market_signals
+    region: us
+    topics: [rlhf, frontier_models, open_source, research, industry_dynamics]
+    signal_type: research
+    status: active
+    notes: Technical but accessible. Good on model dynamics and industry structure.
+
+  - name: The Economist — Science & Technology
+    url: https://www.economist.com/science-and-technology/rss.xml
+    category: ai_market_signals
+    region: global
+    topics: [research, innovation, ai_policy, biotech, climate_tech]
+    signal_type: analysis
+    status: active
+
+  - name: AI For Leaders (Adam Danyal)
+    url: https://aiforleaders.substack.com/feed
+    category: ai_market_signals
+    region: global
+    topics: [enterprise_ai, leadership, seo, ai_strategy, business_adoption]
+    signal_type: operator_voice
+    status: active
+    notes: Executive-focused AI newsletter. Single-topic deep dives.
+
+  - name: The Rundown AI
+    url: https://www.therundown.ai/feed
+    category: ai_market_signals
+    region: global
+    topics: [product_launches, tools, industry_trends, enterprise_ai]
+    signal_type: aggregator
+    status: active
+    notes: 2M+ subscriber AI newsletter. Good for catching stories Signal might miss.
+
+  - name: Apple Machine Learning Research
+    url: https://machinelearning.apple.com/rss.xml
+    category: ai_market_signals
+    region: us
+    topics: [research, on_device_ai, multimodal, privacy]
+    signal_type: primary_source
+    status: active
+    notes: Apple's ML research blog. Key for on-device AI direction.
+
+  - name: Microsoft AI Blog
+    url: https://blogs.microsoft.com/ai/feed/
+    category: ai_market_signals
+    region: us
+    topics: [enterprise_ai, copilot, azure, product_launches, partnerships]
+    signal_type: primary_source
+    status: active
+    notes: Enterprise AI direction from the Copilot/Azure stack.
+
+  - name: Nvidia AI Blog
+    url: https://blogs.nvidia.com/feed/
+    category: ai_market_signals
+    region: us
+    topics: [infrastructure, gpu, enterprise_ai, robotics, autonomous]
+    signal_type: primary_source
+    status: active
+    notes: AI infrastructure leader. Key for understanding compute economics.
+
+  - name: Meta AI Blog
+    url: https://ai.meta.com/blog/rss/
+    category: ai_market_signals
+    region: us
+    topics: [open_source, llama, research, multimodal, agents]
+    signal_type: primary_source
+    status: active
+    notes: Open-source AI leader. Llama ecosystem direction.
+
+  # ═══════════════════════════════════════════════════
+  # STRATEGY & DECISION MAKING (Cross-section)
+  # ═══════════════════════════════════════════════════
+
+  - name: Stratechery (Ben Thompson)
+    url: https://stratechery.com/feed/
+    category: strategy_decision_making
+    region: global
+    topics: [tech_strategy, business_models, platforms, aggregation]
+    signal_type: analysis
+    status: active
+
+  - name: McKinsey Insights
+    url: https://www.mckinsey.com/insights/rss
+    category: strategy_decision_making
+    region: global
+    topics: [leadership, transformation, operations, workforce]
+    signal_type: research
+    status: active
+
+  - name: Farnam Street Blog
+    url: https://fs.blog/feed/
+    category: strategy_decision_making
+    region: global
+    topics: [mental_models, decision_making, leadership, learning]
+    signal_type: analysis
+    status: active
+
+  - name: Cedric Chin (Commoncog)
+    url: https://commoncog.com/feed/
+    category: strategy_decision_making
+    region: global
+    topics: [business_expertise, decision_making, operations, management]
+    signal_type: operator_voice
+    status: active
+
+  - name: Paul Graham Essays
+    url: http://www.aaronsw.com/2002/feeds/pgessays.rss
+    category: strategy_decision_making
+    region: us
+    topics: [startups, thinking, leadership, building]
+    signal_type: operator_voice
+    status: active
+
+  - name: Benedict Evans
+    url: https://www.ben-evans.com/benedictevans/rss.xml
+    category: strategy_decision_making
+    region: global
+    topics: [tech_strategy, markets, mobile, enterprise]
+    signal_type: analysis
+    status: active
+
+  - name: Bits About Money (Patrick McKenzie)
+    url: https://www.bitsaboutmoney.com/archive/rss/
+    category: strategy_decision_making
+    region: global
+    topics: [fintech, infrastructure, business_models, payments]
+    signal_type: operator_voice
+    status: active
+
+  - name: Harvard Business Review — AI
+    url: https://hbr.org/topic/subject/ai-and-machine-learning?ab=seriesnav-bigidea-ai-and-machine-learning.xml
+    category: strategy_decision_making
+    region: global
+    topics: [enterprise_ai, leadership, transformation, workforce, strategy]
+    signal_type: research
+    status: active
+    notes: Executive-level AI strategy. Agentic systems, workforce transformation.
+
+  - name: Deloitte Insights
+    url: https://www2.deloitte.com/content/www/us/en/insights/rss/deloitte-review.xml
+    category: strategy_decision_making
+    region: global
+    topics: [transformation, enterprise_ai, workforce, leadership, strategy]
+    signal_type: research
+    status: active
+    notes: Big 4 consulting research. Enterprise AI adoption patterns.
+
+  - name: Bain & Company Insights
+    url: https://www.bain.com/insights/rss/
+    category: strategy_decision_making
+    region: global
+    topics: [strategy, transformation, private_equity, operations, ai_adoption]
+    signal_type: research
+    status: active
+    notes: Strategy consulting. Good on PE-backed business transformation.
+
+  # ═══════════════════════════════════════════════════
+  # VENTURE CAPITAL & FUTURE MARKETS (Cross-section)
+  # ═══════════════════════════════════════════════════
+
+  - name: Sequoia Capital
+    url: https://www.sequoiacap.com/feed/
+    category: venture_capital
+    region: global
+    topics: [investing, startups, market_trends, founders]
+    signal_type: primary_source
+    status: active
+
+  - name: Y Combinator Blog
+    url: https://www.ycombinator.com/blog/rss/
+    category: venture_capital
+    region: us
+    topics: [startups, funding, accelerators, founders]
+    signal_type: primary_source
+    status: active
+
+  - name: CB Insights Research
+    url: https://www.cbinsights.com/research/feed/
+    category: venture_capital
+    region: global
+    topics: [market_research, funding_trends, industry_maps, emerging_tech]
+    signal_type: research
+    status: active
+
+  - name: Fred Wilson (AVC)
+    url: https://avc.com/feed/
+    category: venture_capital
+    region: us
+    topics: [investing, startups, crypto, market_cycles]
+    signal_type: operator_voice
+    status: active
+
+  - name: Matt Levine (Bloomberg)
+    url: https://www.bloomberg.com/opinion/authors/ARbTQlRLRjE/matthew-s-levine.rss
+    category: venture_capital
+    region: us
+    topics: [finance, markets, regulation, corporate_governance]
+    signal_type: operator_voice
+    status: active
+
+  - name: Aswath Damodaran
+    url: https://aswathdamodaran.blogspot.com/feeds/posts/default?alt=rss
+    category: venture_capital
+    region: global
+    topics: [valuation, markets, corporate_finance, investing]
+    signal_type: research
+    status: active
+
+  - name: a16z (Andreessen Horowitz)
+    url: https://a16z.com/feed/
+    category: venture_capital
+    region: us
+    topics: [investing, ai_startups, market_trends, enterprise, crypto]
+    signal_type: primary_source
+    status: active
+    notes: Top-tier VC. AI investment thesis and market direction.
+
+  - name: VentureBeat
+    url: https://venturebeat.com/feed/
+    category: venture_capital
+    region: us
+    topics: [enterprise_ai, funding, product_launches, startups, market_trends]
+    signal_type: aggregator
+    status: active
+    notes: Enterprise tech and AI funding coverage.
+
+  # ═══════════════════════════════════════════════════
+  # OPERATORS & BUILDERS (Section 2: Opportunity Radar)
+  # ═══════════════════════════════════════════════════
+
+  - name: How I Built This (NPR)
+    url: https://feeds.npr.org/510313/podcast.xml
+    category: opportunity_radar
+    region: us
+    topics: [founders, scaling, business_building, entrepreneurship]
+    signal_type: operator_voice
+    status: active
+
+  - name: SaaStr Blog
+    url: https://www.saastr.com/feed/
+    category: opportunity_radar
+    region: us
+    topics: [saas, scaling, revenue, go_to_market]
+    signal_type: operator_voice
+    status: active
+
+  - name: Intercom Blog
+    url: https://www.intercom.com/blog/feed/
+    category: opportunity_radar
+    region: global
+    topics: [product, customer_success, ai_tools, growth]
+    signal_type: operator_voice
+    status: active
+
+  - name: Tim Ferriss Blog
+    url: https://tim.blog/feed/
+    category: opportunity_radar
+    region: us
+    topics: [productivity, entrepreneurship, interviews, performance]
+    signal_type: operator_voice
+    status: active
+
+  - name: Daring Fireball (John Gruber)
+    url: https://daringfireball.net/feeds/main
+    category: opportunity_radar
+    region: us
+    topics: [apple, tech_industry, product_design, commentary]
+    signal_type: operator_voice
+    status: active
+
+  - name: Latent Space (AI Engineering)
+    url: https://www.latent.space/feed
+    category: opportunity_radar
+    region: global
+    topics: [ai_engineering, agents, infrastructure, startups, technical]
+    signal_type: operator_voice
+    status: active
+    notes: AI engineering podcast/blog. Deep on building AI products.
+
+  - name: Lenny's Newsletter
+    url: https://www.lennysnewsletter.com/feed
+    category: opportunity_radar
+    region: us
+    topics: [product, growth, startups, go_to_market, leadership]
+    signal_type: operator_voice
+    status: active
+    notes: Product/growth operator insights. Relevant for AI product strategy.
+
+  # ═══════════════════════════════════════════════════
+  # GEOPOLITICS & STRATEGIC INTELLIGENCE (Cross-section)
+  # ═══════════════════════════════════════════════════
+
+  - name: Foreign Affairs
+    url: https://www.foreignaffairs.com/rss.xml
+    category: geopolitics
+    region: global
+    topics: [geopolitics, foreign_policy, economics, security]
+    signal_type: research
+    status: active
+
+  - name: The Economist — Leaders
+    url: https://www.economist.com/leaders/rss.xml
+    category: geopolitics
+    region: global
+    topics: [economics, policy, geopolitics, business]
+    signal_type: analysis
+    status: active
+
+  - name: War on the Rocks
+    url: https://warontherocks.com/feed/
+    category: geopolitics
+    region: global
+    topics: [defence, security, strategy, geopolitics]
+    signal_type: research
+    status: active
+
+  - name: ASPI — The Strategist
+    url: https://www.aspistrategist.org.au/feed/
+    category: geopolitics
+    region: australia
+    topics: [defence, indo_pacific, cybersecurity, china, aukus]
+    signal_type: research
+    status: active
+
+  - name: Lowy Institute — The Interpreter
+    url: https://www.lowyinstitute.org/the-interpreter/rss.xml
+    category: geopolitics
+    region: australia
+    topics: [indo_pacific, diplomacy, trade, asia, australia_foreign_policy]
+    signal_type: research
+    status: active
+
+  - name: Rest of World
+    url: https://restofworld.org/feed/
+    category: geopolitics
+    region: global
+    topics: [emerging_markets, technology, globalisation, digital_economy]
+    signal_type: analysis
+    status: active
+
+  - name: Chartbook (Adam Tooze)
+    url: https://adamtooze.substack.com/feed
+    category: geopolitics
+    region: global
+    topics: [economics, history, geopolitics, financial_systems]
+    signal_type: research
+    status: active
+
+  - name: Politico — Technology
+    url: https://rss.politico.com/technology.xml
+    category: geopolitics
+    region: us
+    topics: [ai_policy, regulation, big_tech, government, export_controls]
+    signal_type: primary_source
+    status: active
+    notes: Breaking policy/regulation stories. First to report export control details.
+
+  # ═══════════════════════════════════════════════════
+  # AUSTRALIAN BUSINESS & INNOVATION (Cross-section)
+  # ═══════════════════════════════════════════════════
+
+  - name: SmartCompany
+    url: https://www.smartcompany.com.au/feed/
+    category: australian_business
+    region: australia
+    topics: [sme, startups, regulation, entrepreneurship]
+    signal_type: aggregator
+    status: active
+
+  - name: StartupDaily
+    url: https://www.startupdaily.net/feed/
+    category: australian_business
+    region: australia
+    topics: [startups, funding, founders, tech_ecosystem]
+    signal_type: aggregator
+    status: active
+
+  - name: Dynamic Business
+    url: https://dynamicbusiness.com/feed
+    category: australian_business
+    region: australia
+    topics: [sme, growth, leadership, operations]
+    signal_type: aggregator
+    status: active
+
+  - name: ABC News — Business
+    url: https://www.abc.net.au/news/feed/2942460/rss.xml
+    category: australian_business
+    region: australia
+    topics: [economy, markets, policy, corporate]
+    signal_type: aggregator
+    status: active
+
+  - name: The Conversation AU — Business
+    url: https://theconversation.com/au/business/articles.atom
+    category: australian_business
+    region: australia
+    topics: [economics, policy, research, workforce]
+    signal_type: research
+    status: active
+
+  - name: Guardian Australia — Business
+    url: https://www.theguardian.com/au/business/rss
+    category: australian_business
+    region: australia
+    topics: [economy, corporate, policy, markets]
+    signal_type: aggregator
+    status: active
+
+  - name: Crikey
+    url: https://www.crikey.com.au/feed/
+    category: australian_business
+    region: australia
+    topics: [media, politics, business, commentary]
+    signal_type: analysis
+    status: active
+
+  - name: InnovationAus
+    url: https://www.innovationaus.com/feed/
+    category: australian_business
+    region: australia
+    topics: [tech_policy, science, innovation, government, digital_economy]
+    signal_type: analysis
+    status: active
+    notes: Independent AU tech/science policy coverage. Translates government moves into business impact.
+
+  - name: Sifted (EU tech)
+    url: https://sifted.eu/feed
+    category: australian_business
+    region: europe
+    topics: [startups, vc, tech_ecosystem, regulation]
+    signal_type: aggregator
+    status: active
+    notes: European tech ecosystem — useful for global comparison.
+
+  # ═══════════════════════════════════════════════════
+  # AUSTRALIAN GOVERNMENT POLICY (Section 8: Policy Signal)
+  # ═══════════════════════════════════════════════════
+  # MAX 2 ITEMS PER EDITION. Default is quiet.
+  # Australian Federal Government only.
+  # Only items that directly affect business leaders.
+  # No routine ministerial fluff. No appointments. No generic speeches.
+
+  - name: DISR — Dept of Industry, Science & Resources
+    url: https://www.industry.gov.au/news.xml
+    category: australian_government_policy
+    region: australia
+    topics: [ai_policy, digital_economy, industry_policy, national_ai_centre, innovation]
+    signal_type: primary_source
+    status: active
+    notes: Home of National AI Centre, Safe & Responsible AI framework, digital economy strategy.
+
+  - name: Treasury Ministers — Media Releases
+    url: https://ministers.treasury.gov.au/media-releases/feed
+    category: australian_government_policy
+    region: australia
+    topics: [tax_policy, economic_regulation, fintech, digital_assets, business_investment]
+    signal_type: primary_source
+    status: active
+    notes: Tax, economic regulation, fintech, digital assets, business investment incentives.
+
+  - name: Attorney-General's Dept — Ministers Media
+    url: https://ministers.ag.gov.au/media-centre/feed
+    category: australian_government_policy
+    region: australia
+    topics: [privacy_act, ai_liability, data_protection, digital_identity, legislation]
+    signal_type: primary_source
+    status: active
+    notes: Privacy Act reform, AI liability, data protection, digital identity legislation.
+
+  - name: ACCC — Media Releases
+    url: https://www.accc.gov.au/media-release/feed
+    category: australian_government_policy
+    region: australia
+    topics: [competition, digital_platforms, merger_reform, consumer_protection, ai_advertising]
+    signal_type: primary_source
+    status: active
+    notes: Digital platform regulation, merger reform, AI in advertising, unfair practices.
+
+  - name: ASIC — Media Releases
+    url: https://asic.gov.au/about-asic/media-centre/rss-feeds/
+    category: australian_government_policy
+    region: australia
+    topics: [financial_services, crypto, corporate_governance, fintech, ai_compliance]
+    signal_type: primary_source
+    status: active
+    notes: AI in financial services, crypto regulation, corporate governance, fintech licensing.
+
+  - name: DTA — Digital Transformation Agency
+    url: https://www.dta.gov.au/news/feed
+    category: australian_government_policy
+    region: australia
+    topics: [digital_identity, government_ai, tech_standards, digital_services]
+    signal_type: primary_source
+    status: active
+    notes: Government AI adoption, digital identity, whole-of-government tech standards.
+
+  - name: OAIC — Privacy Commissioner
+    url: https://www.oaic.gov.au/updates/rss
+    category: australian_government_policy
+    region: australia
+    topics: [privacy, data_breach, ai_personal_information, compliance, regulation]
+    signal_type: primary_source
+    status: active
+    notes: Privacy regulation, data breach notification, AI and personal information.
+
+  - name: eSafety Commissioner
+    url: https://www.esafety.gov.au/newsroom/media-releases/feed
+    category: australian_government_policy
+    region: australia
+    topics: [online_safety, ai_content, deepfakes, platform_accountability]
+    signal_type: primary_source
+    status: active
+    notes: Online safety regulation, AI-generated content, deepfakes, platform accountability.
+
+  - name: RBA — Media Releases
+    url: https://www.rba.gov.au/rss/rss-cb-media-releases.xml
+    category: australian_government_policy
+    region: australia
+    topics: [monetary_policy, digital_currency, payments, economic_outlook]
+    signal_type: primary_source
+    status: active
+    notes: Monetary policy, CBDC, payments system regulation.
+
+  - name: RBA — Speeches
+    url: https://www.rba.gov.au/rss/rss-cb-speeches.xml
+    category: australian_government_policy
+    region: australia
+    topics: [fintech, digital_payments, economic_outlook, financial_stability]
+    signal_type: primary_source
+    status: active
+    notes: Forward guidance on fintech, digital payments, economic outlook.
+
+  - name: APRA — Media Releases
+    url: https://www.apra.gov.au/news-and-publications/rss
+    category: australian_government_policy
+    region: australia
+    topics: [prudential_regulation, ai_risk, operational_resilience, data_governance]
+    signal_type: primary_source
+    status: active
+    notes: AI risk in banking/insurance, operational resilience, data governance.
+
+  - name: Productivity Commission
+    url: https://www.pc.gov.au/news-media/rss
+    category: australian_government_policy
+    region: australia
+    topics: [productivity, workforce, regulation_reform, competition_policy, ai_workforce]
+    signal_type: research
+    status: active
+    notes: AI & workforce productivity reviews, regulation reform, competition policy.
+
+  - name: Parliament — Senate New Inquiries
+    url: https://www.aph.gov.au/senate/rss/new_inquiries
+    category: australian_government_policy
+    region: australia
+    topics: [legislation, committee_inquiries, ai_regulation, business_regulation]
+    signal_type: primary_source
+    status: active
+    notes: New committee inquiries into AI, tech, business regulation.
+
+  - name: Parliament — Senate Reports Tabled
+    url: https://www.aph.gov.au/senate/rss/reports
+    category: australian_government_policy
+    region: australia
+    topics: [legislation, policy_recommendations, committee_reports]
+    signal_type: primary_source
+    status: active
+    notes: Final reports from inquiries — the actual recommendations that become policy.
+
+  - name: Parliament — Joint Committee Inquiries
+    url: https://www.aph.gov.au/Parliamentary_Business/Committees/Joint/RSS/Inquiries
+    category: australian_government_policy
+    region: australia
+    topics: [joint_committees, ai_inquiry, tech_regulation, cross_party]
+    signal_type: primary_source
+    status: active
+    notes: Joint inquiries — often where AI/tech regulation starts.
+
+  - name: ASD/ACSC — Cyber Security Centre
+    url: https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/rss
+    category: australian_government_policy
+    region: australia
+    topics: [cybersecurity, critical_infrastructure, ai_security, threat_alerts]
+    signal_type: primary_source
+    status: active
+    notes: Cyber threat alerts, critical infrastructure, AI security standards.
+
+  - name: Dept of Employment & Workplace Relations
+    url: https://www.dewr.gov.au/newsroom/feed
+    category: australian_government_policy
+    region: australia
+    topics: [workforce, ai_workforce, skills_policy, fair_work, employment_legislation]
+    signal_type: primary_source
+    status: active
+    notes: AI & workforce legislation, skills policy, Fair Work changes.
+
+  - name: Dept of Finance — Ministers
+    url: https://www.finance.gov.au/media-centre/feed
+    category: australian_government_policy
+    region: australia
+    topics: [procurement, digital_investment, aps_modernisation, government_contracts]
+    signal_type: primary_source
+    status: active
+    notes: Government procurement (AI contracts), digital investment, APS modernisation.
+
+  - name: The Mandarin
+    url: https://www.themandarin.com.au/feed/
+    category: australian_government_policy
+    region: australia
+    topics: [government, policy, public_sector, digital_transformation, regulation]
+    signal_type: analysis
+    status: active
+    notes: Public sector + policy analysis — catches regulatory intent before it becomes legislation.
+
+  # ═══════════════════════════════════════════════════
+  # DEEP ANALYSIS & AI POLICY
+  # ═══════════════════════════════════════════════════
+
+  - name: ControlAI
+    url: https://controlai.substack.com/feed
+    category: threat_detection
+    region: global
+    topics: [ai_safety, regulation, frontier_models, cybersecurity, export_controls]
+    signal_type: analysis
+    status: active
+    notes: Deep analysis on AI safety, jailbreaks, government action. High-quality long-form.
+
+  - name: Zvi Mowshowitz (Don't Worry About the Vase)
+    url: https://thezvi.substack.com/feed
+    category: ai_market_signals
+    region: us
+    topics: [ai_safety, frontier_models, regulation, market_analysis, forecasting]
+    signal_type: analysis
+    status: active
+    notes: Exhaustive weekly AI roundups. Deep analysis on safety and market dynamics.
+
+  - name: AI Snake Oil (Arvind Narayanan)
+    url: https://www.aisnakeoil.com/feed
+    category: threat_detection
+    region: global
+    topics: [ai_hype, regulation, ethics, enterprise_risk, misinformation]
+    signal_type: research
+    status: active
+    notes: Princeton professor. Critical analysis of AI claims. Good threat detection source.
+
+  # ═══════════════════════════════════════════════════
+  # CULTURAL & ECONOMIC SHIFTS (Section 7)
+  # ═══════════════════════════════════════════════════
+
+  - name: Kottke.org
+    url: https://feeds.kottke.org/main
+    category: cultural_economic_shifts
+    region: global
+    topics: [culture, technology, design, curiosity]
+    signal_type: operator_voice
+    status: active
+
+  - name: The Atlantic — Ideas
+    url: https://www.theatlantic.com/feed/channel/ideas/
+    category: cultural_economic_shifts
+    region: us
+    topics: [culture, society, technology, politics, ideas]
+    signal_type: analysis
+    status: active
+
+  - name: Marginal Revolution
+    url: https://marginalrevolution.com/feed
+    category: cultural_economic_shifts
+    region: global
+    topics: [economics, culture, policy, innovation, education]
+    signal_type: operator_voice
+    status: active
+
+  - name: Wait But Why
+    url: https://waitbutwhy.com/feed
+    category: cultural_economic_shifts
+    region: global
+    topics: [future, technology, society, thinking, long_form]
+    signal_type: analysis
+    status: active
+
+  - name: Palladium Magazine
+    url: https://www.palladiummag.com/feed/
+    category: cultural_economic_shifts
+    region: global
+    topics: [governance, institutions, civilisation, technology, power]
+    signal_type: research
+    status: active
+
+  - name: Quartz
+    url: https://qz.com/feed
+    category: cultural_economic_shifts
+    region: global
+    topics: [business, economics, work, culture, globalisation]
+    signal_type: aggregator
+    status: active
+
+  - name: Wired — Business
+    url: https://www.wired.com/feed/category/business/latest/rss
+    category: cultural_economic_shifts
+    region: us
+    topics: [business_models, future_of_work, tech_industry, culture]
+    signal_type: analysis
+    status: active
+
+  # ═══════════════════════════════════════════════════
+  # TACTICAL AI STACK (Section 6)
+  # ═══════════════════════════════════════════════════
+
+  - name: Product Hunt
+    url: https://www.producthunt.com/feed
+    category: tactical_ai_stack
+    region: global
+    topics: [tools, launches, productivity, ai_tools]
+    signal_type: aggregator
+    status: active
+
+  - name: TLDR AI
+    url: https://tldr.tech/ai/rss
+    category: tactical_ai_stack
+    region: global
+    topics: [tools, product_launches, research, funding, practical_ai]
+    signal_type: aggregator
+    status: active
+    notes: Daily AI digest. Useful as a cross-check for coverage gaps.
+
+  - name: Superhuman AI (Zain Kahn)
+    url: https://www.superhuman.ai/feed
+    category: tactical_ai_stack
+    region: global
+    topics: [tools, productivity, prompts, workflows, ai_tools]
+    signal_type: aggregator
+    status: active
+    notes: 1.5M+ subscribers. Tactical AI tools and workflows.
+
+  - name: Ben's Bites
+    url: https://www.bensbites.com/feed
+    category: tactical_ai_stack
+    region: global
+    topics: [tools, startups, product_launches, ai_tools, workflows]
+    signal_type: aggregator
+    status: active
+    notes: Daily AI tools and startup coverage. Good for Section 6 tactical picks.
+
+  # ═══════════════════════════════════════════════════
+  # ENTERPRISE & CLOUD (Cross-section)
+  # ═══════════════════════════════════════════════════
+
+  - name: AWS Enterprise Strategy Blog
+    url: https://aws.amazon.com/blogs/enterprise-strategy/feed/
+    category: strategy_decision_making
+    region: global
+    topics: [enterprise_ai, cloud, digital_transformation, leadership, cio]
+    signal_type: primary_source
+    status: active
+    notes: Enterprise transformation from cloud leader. CIO/CTO perspective.
+
+  - name: Google Cloud Blog
+    url: https://cloud.google.com/blog/feed
+    category: ai_market_signals
+    region: global
+    topics: [enterprise_ai, cloud, infrastructure, gemini, vertex]
+    signal_type: primary_source
+    status: active
+    notes: Google Cloud AI direction. Gemini enterprise deployment.
+
+  - name: CIO Dive
+    url: https://www.ciodive.com/feeds/news/
+    category: strategy_decision_making
+    region: us
+    topics: [enterprise_ai, digital_transformation, cio, it_leadership, cloud]
+    signal_type: aggregator
+    status: active
+    notes: CIO/IT leadership news. Enterprise AI adoption patterns.
+
+# ═══════════════════════════════════════════════════
+# HACKERNEWS — always-on signal source
+# ═══════════════════════════════════════════════════
+
+hackernews:
+  enabled: true
+  tag: front_page
+  max_items: 15
+  category: ai_market_signals
+  region: global
+  topics: [technology, startups, engineering, ai, culture]
+  signal_type: aggregator
+  status: active
+
+# ═══════════════════════════════════════════════════
+# REDDIT — disabled (403 blocking since mid-2024)
+# ═══════════════════════════════════════════════════
+
+reddit:
+  enabled: false
+  notes: Reddit now blocks non-authenticated API access (403). Disabled until we implement OAuth-based access.
+  subreddits: []
+
+# ═══════════════════════════════════════════════════
+# FETCH SETTINGS
+# ═══════════════════════════════════════════════════
+
+fetch:
+  timeout_seconds: 15
+  user_agent: "DTL Signal/1.0 (Personal intelligence brief; +https://dtlc.ai)"
+  max_age_hours: 48
+  max_items_per_feed: 20

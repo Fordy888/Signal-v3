@@ -1,0 +1,29 @@
+services:
+  - type: cron
+    name: dtl-signal
+    runtime: python
+    schedule: "0 20 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m src.main
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: signal@dtlc.ai
+      - key: RECIPIENT_EMAIL
+        sync: false
+      - key: BETTERSTACK_HEARTBEAT_URL
+        sync: false
+      - key: MODEL_SCORING
+        value: claude-haiku-4-5-20251001
+      - key: MODEL_SYNTHESIS
+        value: claude-sonnet-4-6
+      - key: TZ
+        value: Australia/Brisbane
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+    plan: standard
+    region: singapore
+    maxShutdownDelaySeconds: 30

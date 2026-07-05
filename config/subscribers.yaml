@@ -1,0 +1,18 @@
+# DTL Signal — Subscriber Registry
+# Each subscriber has their own context profile and delivery email.
+# The pipeline iterates through all active subscribers per run.
+
+subscribers:
+  - id: paul_ford
+    name: Paul Ford
+    email: paul.ford@gmail.com
+    context_file: config/context.yaml
+    edition_prefix: PF
+    active: true
+
+  - id: holly_brisley
+    name: Holly Brisley
+    email: hollybrisley@me.com
+    context_file: config/context_holly.yaml
+    edition_prefix: HB
+    active: true

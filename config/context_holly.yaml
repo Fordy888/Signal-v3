@@ -1,0 +1,94 @@
+# DTL Signal — Context Model: Holly Brisley
+# Intelligence Profile for personalised Signal delivery
+
+operator:
+  name: Holly Brisley
+  location: Gold Coast, QLD, Australia
+  timezone: Australia/Brisbane
+  background: |
+    Founder/CEO of Katana Films. Small production company (1-5 people).
+    Wears many hats — creative direction, business development, production
+    management, finance, client relationships. Film and content production
+    industry. Looking to leverage AI for productivity and growth.
+
+thesis: |
+  AI should amplify creative capability, not replace creative judgment.
+  Small production companies can punch above their weight by integrating
+  AI into workflows while maintaining the human craft that clients pay for.
+  The future belongs to lean creative operators who use AI as a force multiplier.
+
+active_ventures:
+  - name: Katana Films
+    state: active production company, seeking growth
+    buyer: brands, agencies, production houses needing quality content
+    differentiator: creative taste + production craft + lean operation
+    signal_relevance: |
+      AI video/content production tools, production workflow automation,
+      creative industry AI adoption, content market shifts, direct-to-audience
+      distribution models, Australian screen industry funding and policy,
+      small business AI productivity, workforce/freelancer management,
+      brand content trends, independent production company strategy
+
+active_decisions:
+  - How to integrate AI tools into production workflow without quality loss
+  - Whether to expand team or stay lean with AI augmentation
+  - New revenue streams (direct-to-audience, AI-assisted pre-production services)
+  - Client positioning in a market where AI content is commoditising mid-tier work
+  - Balancing creative quality with production speed and cost pressure
+
+focus_areas:
+  - AI adoption in creative production
+  - Productivity tools for small creative businesses
+  - Leadership as a solo founder wearing multiple hats
+  - Risk management — protecting against AI commoditisation of mid-tier content
+  - Workforce change — when to hire vs automate vs outsource
+
+primary_objectives:
+  - Improve decision making under resource constraints
+  - Reduce operational risk in a rapidly changing industry
+  - Identify growth opportunities that leverage AI without sacrificing craft
+
+people_watchlist:
+  description: |
+    People relevant to Holly's world — creative technologists, independent
+    filmmakers using AI, production company founders, content industry operators.
+  categories:
+    - Independent filmmakers integrating AI into production
+    - Creative technologists building tools for content creators
+    - Small production company founders scaling with technology
+    - Australian screen industry leaders and policy makers
+    - Direct-to-audience content creators with sustainable models
+  named_individuals: []
+
+editorial_voice:
+  tone: |
+    Operator-to-operator. Direct, practical, creative-industry aware.
+    No jargon. No hype. Respect for craft and creative judgment.
+    Write as if Holly is a peer running a small creative business
+    and her time is extremely scarce.
+  posture: |
+    Lead with what she can DO with this information.
+    Frame everything through the lens of a small production company.
+    Quiet today is a feature, not a failure.
+    Brevity is the discipline.
+
+noise_filter:
+  - 'Enterprise-only AI tools with no small business application'
+  - 'Generic "Top 10 AI tools" content'
+  - 'Influencer content with no operator angle'
+  - 'US-only news with no Australian or creative industry relevance'
+  - 'Pure tech news with no production/creative application'
+  - '"Game-changing" / "revolutionary" language sources'
+  - 'Content about AI replacing creatives (fear-mongering without nuance)'
+
+length_budgets:
+  total_word_ceiling: 800
+  section_caps:
+    ai_market_signals: 3
+    opportunity_radar: 2
+    product_service_ideas: 2
+    threat_detection: 2
+    people_to_watch: 2
+    tactical_ai_stack: 2
+    cultural_economic_shifts: 2
+    what_would_katana_do: 3
