@@ -215,20 +215,30 @@ You MUST produce the brief using this exact HTML structure with inline styles. T
 <tr><td style="padding: 32px 40px 0 40px;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
 <td><p style="margin: 0; font-size: 24px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; font-weight: 800; letter-spacing: 3px; color: #1a1a1a; text-transform: uppercase;">DTL SIGNAL</p></td>
-<td align="right"><p style="margin: 0; font-size: 11px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #999; letter-spacing: 1px;">{EDITION_STAMP}</p></td>
+<td align="right"><p style="margin: 0; font-size: 11px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #999; letter-spacing: 1px;">Edition {EDITION_NUMBER}</p></td>
 </tr></table>
 </td></tr>
-<tr><td style="padding: 6px 40px 28px 40px;">
-<p style="margin: 0; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #999; letter-spacing: 1.5px; text-transform: uppercase;">Personal Intelligence Assistant</p>
+<tr><td style="padding: 4px 40px 0 40px;">
+<p style="margin: 0; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #999; letter-spacing: 1.5px; text-transform: uppercase;">Executive AI Intelligence Brief</p>
+</td></tr>
+<tr><td style="padding: 4px 40px 24px 40px;">
+<p style="margin: 0; font-size: 11px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #bbb;">{DAY_NAME} {DATE_FORMATTED} | 06:00 AEST</p>
 </td></tr>
 <tr><td style="padding: 0 40px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 2px solid #4ECDC4;"></td></tr></table></td></tr>
-<tr><td style="padding: 28px 40px 28px 40px;">
-<p style="margin: 0; font-size: 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 700; color: #1a1a1a; line-height: 1.35;">{HEADLINE_LINE_1}<br>{HEADLINE_LINE_2}<br><span style="color: #E8533A;">{HEADLINE_LINE_3}</span></p>
+<tr><td style="padding: 20px 40px 8px 40px;">
+<p style="margin: 0; font-size: 12px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #4ECDC4; letter-spacing: 1px; text-transform: uppercase; font-weight: 700;">Today's Signal</p>
+</td></tr>
+<tr><td style="padding: 0 40px 28px 40px;">
+<p style="margin: 0; font-size: 22px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 700; color: #1a1a1a; line-height: 1.4; font-style: italic;">{TODAYS_SIGNAL_THESIS}</p>
 </td></tr>
 <tr><td style="padding: 0 40px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid #e8e8e8;"></td></tr></table></td></tr>
 ```
 
-NOTE ON HEADLINE: Break the one-line headline into 2-3 short lines for visual impact. The final line (the "so what" or punchline) renders in coral (#E8533A). If the headline is only one sentence, break it at natural pauses. The headline uses SANS-SERIF (not serif), bold 28px.
+NOTE ON "TODAY'S SIGNAL" THESIS: This is a single punchy sentence (max 15 words) that captures the main editorial thesis of the entire edition. It should be the one insight a busy executive takes away if they read nothing else. Write it as a confident assertion, not a question. Examples:
+- "The AI market is splitting between structured operators and everyone else."
+- "Enterprise buyers are moving from experimentation budgets to operational line items."
+- "The compliance layer just became the competitive moat."
+This replaces the previous multi-line headline format. One line. One thesis. Maximum impact.
 
 **SECTION HEADINGS (for sections 1-8):**
 ```html

@@ -18,6 +18,7 @@ from .scoring import score_items
 from .synthesis import synthesise
 from .delivery import send_brief
 from .history import load_history, record_edition
+from .edition_counter import get_next_edition, increment_edition
 
 BRISBANE = ZoneInfo("Australia/Brisbane")
 
@@ -122,9 +123,11 @@ def main() -> int:
             log.error("Subscriber '%s' not found or not active", args.subscriber)
             return 1
 
-    # 0. Load edition history for cross-day deduplication
+    # 0. Load edition history and get next edition number
     history_urls = load_history(root)
     log.info("Loaded %d URLs from recent editions for cross-day dedup", len(history_urls))
+    edition_number = get_next_edition(root)
+    log.info("Next edition number: %04d", edition_number)
 
     # 1. Fetch raw items (shared across all subscribers)
     log.info("Stage 1: Fetching sources...")
@@ -165,6 +168,7 @@ def main() -> int:
                 scored_items=scored,
                 context_path=context_path,
                 synthesis_prompt_path=str(root / "prompts" / "synthesis_prompt.md"),
+                edition_number=edition_number,
             )
             log.info("Stage 3 [%s]: %d chars of HTML produced", sub_id, len(html))
         except Exception as e:
@@ -211,13 +215,16 @@ def main() -> int:
             all_ok = False
             continue
 
-        ok = send_brief(html_body=html, recipient_email=recipient)
+        ok = send_brief(html_body=html, recipient_email=recipient, edition_number=edition_number)
         if ok:
             log.info("[%s] Delivery successful to %s", sub_id, recipient)
             # Record delivered item URLs for cross-day dedup
             delivered_urls = [item["url"] for item in scored if "url" in item]
             edition_id = f"{sub_id}_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
             record_edition(root, delivered_urls, edition_id=edition_id)
+            # Increment edition counter only on successful send (not proof/dry-run)
+            increment_edition(root)
+            log.info("Edition counter incremented to %04d", edition_number)
         else:
             log.error("[%s] DELIVERY FAILED to %s", sub_id, recipient)
             all_ok = False

@@ -39,6 +39,7 @@ def synthesise(
     context_path: str,
     synthesis_prompt_path: str,
     model: str | None = None,
+    edition_number: int = 1,
 ) -> str:
     """Produce the HTML brief. Returns the HTML string."""
     client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -53,6 +54,12 @@ def synthesise(
     now = datetime.now(BRISBANE)
     today = now.strftime("%A %d %B %Y")
     timestamp = now.strftime("%Y-%m-%d %H:%M AEST")
+    day_name = now.strftime("%A")
+    date_formatted = now.strftime("%d %B %Y")
+    date_compact = now.strftime("%d.%m.%Y")
+    time_str = now.strftime("%H:%M")
+    edition_padded = f"{edition_number:04d}"
+    edition_stamp = f"PF::SIGNAL-{edition_number:03d} // {date_compact} // {time_str} AEST"
 
     prompt = (
         template
@@ -60,7 +67,13 @@ def synthesise(
         .replace("{SCORED_ITEMS}", json.dumps(items_payload, indent=2))
         .replace("{DATE}", today)
         .replace("{TIMESTAMP}", timestamp)
-        .replace("{ONE_LINE_HEADLINE}", "")  # the model fills this in
+        .replace("{ONE_LINE_HEADLINE}", "")  # deprecated, kept for compat
+        .replace("{EDITION_NUMBER}", edition_padded)
+        .replace("{EDITION_STAMP}", edition_stamp)
+        .replace("{DAY_NAME}", day_name)
+        .replace("{DATE_FORMATTED}", date_formatted)
+        .replace("{DATE_COMPACT}", date_compact)
+        .replace("{TIME}", time_str)
     )
 
     # If no items survived scoring, produce a graceful "quiet day" brief

@@ -16,6 +16,7 @@ def send_brief(
     html_body: str,
     recipient_email: str | None = None,
     subject_override: str | None = None,
+    edition_number: int | None = None,
 ) -> bool:
     """Send the brief via Resend. Returns True on success, False on failure.
 
@@ -23,7 +24,8 @@ def send_brief(
         html_body: The HTML content of the brief (already fully styled).
         recipient_email: Override recipient. Falls back to RECIPIENT_EMAIL env var.
         subject_override: Full subject line override (e.g. "[PROOF] Signal — Mon 07 Jul").
-                          If not set, uses "Signal — {date}".
+                          If not set, uses "Signal | Edition XXXX | Day DD Mon".
+        edition_number: The edition number to include in the subject line.
     """
     api_key = os.environ.get("RESEND_API_KEY")
     from_email = os.environ.get("RESEND_FROM_EMAIL", "signal@signal.dtlc.ai")
@@ -35,7 +37,12 @@ def send_brief(
 
     resend.api_key = api_key
 
-    subject = subject_override or f"Signal — {datetime.now(BRISBANE).strftime('%a %d %b')}"
+    if subject_override:
+        subject = subject_override
+    elif edition_number:
+        subject = f"Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
+    else:
+        subject = f"Signal — {datetime.now(BRISBANE).strftime('%a %d %b')}"
 
     # The synthesis prompt produces fully-styled HTML including DOCTYPE,
     # head, and body. If the html_body already contains <!DOCTYPE or <html,
@@ -53,6 +60,7 @@ def send_brief(
         r = resend.Emails.send({
             "from": f"Signal <{from_email}>",
             "to": [recipient],
+            "reply_to": "paul.ford@gmail.com",
             "subject": subject,
             "html": full_html,
         })
