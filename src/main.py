@@ -3,7 +3,7 @@
 Usage:
   python -m src.main --proof     # Proof edition → sends to PROOF_RECIPIENT_EMAIL only
   python -m src.main --send      # Broadcast edition → sends to ALL active subscribers from website API
-  python -m src.main --dry-run   # Pipeline runs but no email sent (prints to stdout)
+  python -m src.main --dry-run   # Pipeline runs but no email sent (prints to stdout + recipient list)
 """
 from __future__ import annotations
 
@@ -57,6 +57,42 @@ def ping_heartbeat() -> None:
         log.warning("Heartbeat ping failed (non-fatal): %s", e)
 
 
+def send_alert(subject: str, body: str) -> None:
+    """Send an alert email to the proof recipient (Paul) via Resend.
+    
+    Used for fail-safe notifications when something goes wrong before send.
+    Non-fatal: if alert fails, the pipeline still aborts safely.
+    """
+    try:
+        import resend
+        api_key = os.environ.get("RESEND_API_KEY")
+        alert_to = os.environ.get("PROOF_RECIPIENT_EMAIL", os.environ.get("RECIPIENT_EMAIL"))
+        from_email = os.environ.get("RESEND_FROM_EMAIL", "signal@signal.dtlc.ai")
+
+        if not api_key or not alert_to:
+            log.warning("Cannot send alert — RESEND_API_KEY or PROOF_RECIPIENT_EMAIL not set")
+            return
+
+        resend.api_key = api_key
+        resend.Emails.send({
+            "from": f"Signal Ops <{from_email}>",
+            "to": [alert_to],
+            "reply_to": alert_to,
+            "subject": f"⚠️ SIGNAL ALERT: {subject}",
+            "html": f"""<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                <h2 style="color:#dc2626;">⚠️ Signal Pipeline Alert</h2>
+                <p style="font-size:16px;color:#333;line-height:1.6;">{body}</p>
+                <p style="font-size:14px;color:#666;margin-top:24px;">
+                    This is an automated alert from the Signal pipeline.<br>
+                    Time: {datetime.now(BRISBANE).strftime('%Y-%m-%d %H:%M AEST')}
+                </p>
+            </div>""",
+        })
+        log.info("Alert email sent: %s", subject)
+    except Exception as e:
+        log.warning("Alert email failed (non-fatal): %s", e)
+
+
 def load_proof_recipient() -> str | None:
     """Get the proof recipient email (Paul's email for review)."""
     return os.environ.get("PROOF_RECIPIENT_EMAIL", os.environ.get("RECIPIENT_EMAIL"))
@@ -74,6 +110,45 @@ def load_subscribers_from_yaml(root: Path) -> list[dict]:
     active = [s for s in subscribers if s.get("active", True)]
     log.info("Loaded %d active subscriber(s) from subscribers.yaml (fallback)", len(active))
     return active
+
+
+def verify_recipient_integrity(recipients: list[dict]) -> bool:
+    """Fail-safe: verify recipient list integrity before sending.
+    
+    Checks:
+    1. All recipients have valid email addresses
+    2. No duplicates in the list
+    3. Count is within expected bounds (at least 1, sanity max 500)
+    
+    Returns True if safe to proceed, False if send should abort.
+    """
+    if not recipients:
+        log.error("FAIL-SAFE: Recipient list is empty")
+        return False
+
+    # Check all have email
+    emails = []
+    for r in recipients:
+        email = r.get("email", "").strip()
+        if not email or "@" not in email:
+            log.error("FAIL-SAFE: Invalid email found in recipient list: %s", r)
+            return False
+        emails.append(email.lower())
+
+    # Check for duplicates
+    unique_emails = set(emails)
+    if len(unique_emails) != len(emails):
+        dupes = [e for e in emails if emails.count(e) > 1]
+        log.error("FAIL-SAFE: Duplicate emails detected: %s", set(dupes))
+        return False
+
+    # Sanity bound — if list is suspiciously large, abort
+    if len(recipients) > 500:
+        log.error("FAIL-SAFE: Recipient count (%d) exceeds safety maximum (500). Aborting.", len(recipients))
+        return False
+
+    log.info("FAIL-SAFE: Recipient integrity verified — %d unique valid emails", len(recipients))
+    return True
 
 
 def main() -> int:
@@ -134,14 +209,61 @@ def main() -> int:
                 log.warning("Using %d subscriber(s) from YAML fallback", len(recipients))
             else:
                 log.error("ABORT: No subscribers from API or YAML. Cannot send to 0 people.")
+                send_alert(
+                    "Subscriber fetch failed — edition NOT sent",
+                    "The website API returned no subscribers and the YAML fallback is also empty. "
+                    "Today's edition was NOT sent. Please check WEBSITE_BASE_URL and SIGNAL_PIPELINE_API_KEY on Render."
+                )
                 return 1
         else:
             recipients = api_subscribers
             log.info("Fetched %d active subscriber(s) from website API", len(recipients))
 
     else:
-        # Dry-run mode: use YAML for display purposes
-        recipients = [{"email": "dry-run@example.com", "firstName": "DryRun"}]
+        # Dry-run mode: fetch from API to show real recipient list
+        log.info("DRY-RUN MODE: fetching subscribers from website API for display...")
+        api_subscribers = fetch_subscribers()
+        if api_subscribers:
+            recipients = api_subscribers
+        else:
+            recipients = [{"email": "dry-run-fallback@example.com", "firstName": "DryRun"}]
+
+    # ─── FAIL-SAFE: Verify recipient list before proceeding ─────────────
+    if not verify_recipient_integrity(recipients):
+        alert_msg = (
+            f"Recipient integrity check failed in {('proof' if args.proof else 'send' if args.send else 'dry-run')} mode. "
+            f"Recipient count at time of check: {len(recipients)}. "
+            f"Edition was NOT sent. Check pipeline logs on Render for details."
+        )
+        send_alert("Recipient integrity check FAILED — edition NOT sent", alert_msg)
+        return 1
+
+    # ─── FAIL-SAFE: Count verification (send mode only) ────────────────
+    if args.send:
+        # Double-fetch: verify count matches between two consecutive API calls
+        log.info("FAIL-SAFE: Double-checking subscriber count...")
+        verify_subscribers = fetch_subscribers()
+        if verify_subscribers:
+            api_count = len(recipients)
+            verify_count = len(verify_subscribers)
+            if api_count != verify_count:
+                log.error(
+                    "FAIL-SAFE ABORT: Subscriber count mismatch! "
+                    "First fetch: %d, Verification fetch: %d. "
+                    "Possible race condition or API instability. Edition NOT sent.",
+                    api_count, verify_count
+                )
+                send_alert(
+                    f"Count mismatch ({api_count} vs {verify_count}) — edition NOT sent",
+                    f"The subscriber API returned {api_count} subscribers on first call but "
+                    f"{verify_count} on verification call. This could indicate a race condition, "
+                    f"API instability, or data corruption. Today's edition was NOT sent as a safety measure. "
+                    f"Please investigate and manually trigger a re-run if appropriate."
+                )
+                return 1
+            log.info("FAIL-SAFE: Count verified — %d subscribers confirmed on both fetches", api_count)
+        else:
+            log.warning("FAIL-SAFE: Verification fetch returned empty — proceeding with original list (already validated)")
 
     # ─── Pipeline stages ────────────────────────────────────────────────
 
@@ -190,6 +312,11 @@ def main() -> int:
     has_section_9 = ("KEY INSIGHT" in html and "STRATEGIC IMPLICATION" in html and "WATCH FOR" in html)
     if not has_section_9:
         log.error("BLOCKED: Section 9 (DTLc.ai's Take) is missing or incomplete. Email will NOT be sent.")
+        send_alert(
+            "Quality gate failed — Section 9 missing",
+            "The synthesised edition is missing Section 9 (DTLc.ai's Take). "
+            "This is a required section. Edition was NOT sent."
+        )
         return 1
 
     # Save HTML if requested
@@ -200,10 +327,17 @@ def main() -> int:
             f.write(html)
         log.info("Brief saved to %s", save_path)
 
-    # ─── Dry-run: print and exit ────────────────────────────────────────
+    # ─── Dry-run: print recipient list and exit ─────────────────────────
     if args.dry_run:
         print(f"\n{'=' * 60}")
-        print(f"DRY RUN — Brief preview:")
+        print(f"DRY RUN — Edition {edition_number:04d}")
+        print(f"{'=' * 60}")
+        print(f"\nRecipient count: {len(recipients)}")
+        print(f"\nRecipient list:")
+        for i, r in enumerate(recipients, 1):
+            print(f"  {i:2d}. {r.get('firstName', '?'):15s} — {r['email']}")
+        print(f"\n{'=' * 60}")
+        print(f"Brief preview ({len(html)} chars total):")
         print("=" * 60 + "\n")
         print(html[:500] + "..." if len(html) > 500 else html)
         print(f"\n{'=' * 60}")
@@ -212,9 +346,6 @@ def main() -> int:
 
     # ─── Deliver to all recipients ──────────────────────────────────────
     log.info("Stage 4: Delivering to %d recipient(s)...", len(recipients))
-
-    # For proof mode, add [PROOF] prefix to subject
-    subject_prefix = "[PROOF] " if args.proof else ""
 
     success_count = 0
     fail_count = 0
@@ -255,11 +386,15 @@ def main() -> int:
         increment_edition(root)
         log.info("Edition counter incremented. Next edition will be %04d", edition_number + 1)
 
-    log.info("Pipeline complete in %.1f seconds. Sent: %d, Failed: %d",
-             duration, success_count, fail_count)
+    log.info("Pipeline complete in %.1f seconds. Sent: %d/%d, Failed: %d",
+             duration, success_count, len(recipients), fail_count)
 
     if fail_count > 0:
-        log.error("ONE OR MORE DELIVERIES FAILED.")
+        send_alert(
+            f"Partial delivery failure — {fail_count}/{len(recipients)} failed",
+            f"Edition {edition_number:04d} was sent to {success_count}/{len(recipients)} subscribers. "
+            f"{fail_count} delivery(ies) failed. Check Render logs for details."
+        )
         ping_heartbeat()
         return 2
 
