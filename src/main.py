@@ -19,13 +19,20 @@ from zoneinfo import ZoneInfo
 import yaml
 from dotenv import load_dotenv
 
-from .sources import fetch_all
+from .sources import fetch_all, get_source_counts
 from .scoring import score_items
 from .synthesis import synthesise
 from .delivery import send_brief
 from .history import load_history, record_edition
 from .edition_counter import get_next_edition, increment_edition
 from .subscribers import fetch_subscribers
+from .qa_gate import (
+    run_pre_send_qa,
+    create_receipt,
+    save_receipt,
+    send_receipt_email,
+    record_source_failures,
+)
 
 BRISBANE = ZoneInfo("Australia/Brisbane")
 
@@ -177,13 +184,19 @@ def main() -> int:
     log = logging.getLogger("dtl_signal")
 
     start_time = time.time()
+    mode = "proof" if args.proof else "send" if args.send else "dry-run"
     log.info("DTL Signal v3 starting (mode=%s) at %s",
-             "proof" if args.proof else "send" if args.send else "dry-run",
-             datetime.now(BRISBANE).strftime("%Y-%m-%d %H:%M AEST"))
+             mode, datetime.now(BRISBANE).strftime("%Y-%m-%d %H:%M AEST"))
 
     if not os.environ.get("ANTHROPIC_API_KEY"):
         log.error("ANTHROPIC_API_KEY not set. Configure .env or environment.")
         return 1
+
+    # ─── Get source counts for receipt ─────────────────────────────────
+    sources_config_path = str(root / "config" / "sources.yaml")
+    source_counts = get_source_counts(sources_config_path)
+    log.info("Source inventory: %d active, %d disabled, %d on probation",
+             source_counts["active"], source_counts["disabled"], source_counts["probation"])
 
     # ─── Resolve recipient list based on mode ───────────────────────────
     if args.proof:
@@ -231,7 +244,7 @@ def main() -> int:
     # ─── FAIL-SAFE: Verify recipient list before proceeding ─────────────
     if not verify_recipient_integrity(recipients):
         alert_msg = (
-            f"Recipient integrity check failed in {('proof' if args.proof else 'send' if args.send else 'dry-run')} mode. "
+            f"Recipient integrity check failed in {mode} mode. "
             f"Recipient count at time of check: {len(recipients)}. "
             f"Edition was NOT sent. Check pipeline logs on Render for details."
         )
@@ -273,13 +286,20 @@ def main() -> int:
     edition_number = get_next_edition(root)
     log.info("Next edition number: %04d", edition_number)
 
-    # 1. Fetch raw items
+    # 1. Fetch raw items (now returns tuple with failed sources)
     log.info("Stage 1: Fetching sources...")
-    raw_items = fetch_all(str(root / "config" / "sources.yaml"), history_urls=history_urls)
+    raw_items, failed_sources = fetch_all(sources_config_path, history_urls=history_urls)
     if not raw_items:
         log.warning("No items fetched. Proceeding to graceful quiet-day briefs.")
     else:
         log.info("Stage 1 complete: %d raw items fetched", len(raw_items))
+
+    # Track source health (consecutive failures)
+    degraded_sources = record_source_failures(
+        root,
+        failed_sources=failed_sources,
+        active_sources=source_counts["active_names"],
+    )
 
     # 2. Score items
     log.info("Stage 2: Scoring items...")
@@ -306,6 +326,21 @@ def main() -> int:
         log.info("Stage 3 complete: %d chars of HTML produced", len(html))
     except Exception as e:
         log.error("Synthesis failed: %s", e)
+        # Send receipt for aborted run
+        receipt = create_receipt(
+            edition_number=edition_number,
+            mode=mode,
+            sources_active=source_counts["active"],
+            sources_disabled=source_counts["disabled"],
+            sources_failed=len(failed_sources),
+            items_fetched=len(raw_items),
+            items_scored=0,
+            pipeline_result="aborted",
+            duration_seconds=time.time() - start_time,
+        )
+        receipt.qa_issues = [f"[CRITICAL] Synthesis: Generation failed with error: {e}"]
+        save_receipt(root, receipt)
+        send_receipt_email(receipt)
         return 1
 
     # Quality gate: block delivery if Section 9 (DTLc.ai's Take) is missing
@@ -317,6 +352,55 @@ def main() -> int:
             "The synthesised edition is missing Section 9 (DTLc.ai's Take). "
             "This is a required section. Edition was NOT sent."
         )
+        # Send receipt for held run
+        receipt = create_receipt(
+            edition_number=edition_number,
+            mode=mode,
+            sources_active=source_counts["active"],
+            sources_disabled=source_counts["disabled"],
+            sources_failed=len(failed_sources),
+            items_fetched=len(raw_items),
+            items_scored=len(scored),
+            pipeline_result="held",
+            duration_seconds=time.time() - start_time,
+        )
+        receipt.qa_issues = ["[CRITICAL] Content Quality: Section 9 (DTLC.ai's Take) is missing or incomplete"]
+        save_receipt(root, receipt)
+        send_receipt_email(receipt)
+        return 1
+
+    # ─── PRE-SEND QA GATE ──────────────────────────────────────────────
+    log.info("Running pre-send QA gate...")
+    should_send, qa_results = run_pre_send_qa(
+        edition_number=edition_number,
+        html=html,
+        scored_count=len(scored),
+        recipient_count=len(recipients),
+        sources_failed=len(failed_sources),
+        sources_active=source_counts["active"],
+        mode=mode,
+        root=root,
+    )
+
+    if not should_send:
+        log.error("PRE-SEND QA GATE FAILED — Edition HELD. Not sending.")
+        # Build and send receipt for held edition
+        receipt = create_receipt(
+            edition_number=edition_number,
+            mode=mode,
+            sources_active=source_counts["active"],
+            sources_disabled=source_counts["disabled"],
+            sources_failed=len(failed_sources),
+            sources_on_probation=source_counts["probation"],
+            items_fetched=len(raw_items),
+            items_scored=len(scored),
+            qa_results=qa_results,
+            degraded_sources=degraded_sources,
+            pipeline_result="held",
+            duration_seconds=time.time() - start_time,
+        )
+        save_receipt(root, receipt)
+        send_receipt_email(receipt)
         return 1
 
     # Save HTML if requested
@@ -342,6 +426,23 @@ def main() -> int:
         print(html[:500] + "..." if len(html) > 500 else html)
         print(f"\n{'=' * 60}")
         log.info("Pipeline complete (dry run) in %.1f seconds", time.time() - start_time)
+
+        # Still send receipt for dry runs (useful for testing)
+        receipt = create_receipt(
+            edition_number=edition_number,
+            mode=mode,
+            sources_active=source_counts["active"],
+            sources_disabled=source_counts["disabled"],
+            sources_failed=len(failed_sources),
+            sources_on_probation=source_counts["probation"],
+            items_fetched=len(raw_items),
+            items_scored=len(scored),
+            qa_results=qa_results,
+            degraded_sources=degraded_sources,
+            pipeline_result="success",
+            duration_seconds=time.time() - start_time,
+        )
+        save_receipt(root, receipt)
         return 0
 
     # ─── Deliver to all recipients ──────────────────────────────────────
@@ -349,6 +450,7 @@ def main() -> int:
 
     success_count = 0
     fail_count = 0
+    failed_recipient_emails: list[str] = []
 
     for i, recipient in enumerate(recipients):
         email = recipient["email"]
@@ -377,6 +479,7 @@ def main() -> int:
             log.info("  ✓ Delivered to %s", email)
         else:
             fail_count += 1
+            failed_recipient_emails.append(email)
             log.error("  ✗ FAILED to deliver to %s", email)
 
     # ─── Post-delivery bookkeeping ──────────────────────────────────────
@@ -391,15 +494,37 @@ def main() -> int:
         increment_edition(root)
         log.info("Edition counter incremented. Next edition will be %04d", edition_number + 1)
 
+    # ─── Build and send run receipt ─────────────────────────────────────
+    if fail_count > 0:
+        pipeline_result = "partial_failure"
+    else:
+        pipeline_result = "success"
+
+    receipt = create_receipt(
+        edition_number=edition_number,
+        mode=mode,
+        sources_active=source_counts["active"],
+        sources_disabled=source_counts["disabled"],
+        sources_failed=len(failed_sources),
+        sources_on_probation=source_counts["probation"],
+        items_fetched=len(raw_items),
+        items_scored=len(scored),
+        recipients_attempted=len(recipients),
+        recipients_delivered=success_count,
+        recipients_failed=fail_count,
+        failed_recipients=failed_recipient_emails,
+        qa_results=qa_results,
+        degraded_sources=degraded_sources,
+        pipeline_result=pipeline_result,
+        duration_seconds=duration,
+    )
+    save_receipt(root, receipt)
+    send_receipt_email(receipt)
+
     log.info("Pipeline complete in %.1f seconds. Sent: %d/%d, Failed: %d",
              duration, success_count, len(recipients), fail_count)
 
     if fail_count > 0:
-        send_alert(
-            f"Partial delivery failure — {fail_count}/{len(recipients)} failed",
-            f"Edition {edition_number:04d} was sent to {success_count}/{len(recipients)} subscribers. "
-            f"{fail_count} delivery(ies) failed. Check Render logs for details."
-        )
         ping_heartbeat()
         return 2
 

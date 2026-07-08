@@ -43,6 +43,51 @@ def _load_sources_config(path: str) -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
+def get_source_counts(sources_config_path: str) -> dict[str, Any]:
+    """Return source status counts for the run receipt.
+
+    Returns dict with keys: active, disabled, probation, active_names
+    """
+    config = _load_sources_config(sources_config_path)
+    feeds = config.get("rss_feeds", [])
+
+    active = 0
+    disabled = 0
+    probation = 0
+    active_names: list[str] = []
+
+    for feed in feeds:
+        status = feed.get("status", "active")
+        if status == "disabled":
+            disabled += 1
+        elif status == "probation":
+            probation += 1
+            active += 1  # probation feeds are still fetched
+            active_names.append(feed["name"])
+        else:
+            active += 1
+            active_names.append(feed["name"])
+
+    # Count HackerNews and Reddit as sources if enabled
+    hn = config.get("hackernews", {})
+    if hn.get("enabled"):
+        active += 1
+        active_names.append("HackerNews")
+
+    reddit_cfg = config.get("reddit", {})
+    if reddit_cfg.get("enabled"):
+        for sub in reddit_cfg.get("subreddits", []):
+            active += 1
+            active_names.append(f"Reddit/{sub['name']}")
+
+    return {
+        "active": active,
+        "disabled": disabled,
+        "probation": probation,
+        "active_names": active_names,
+    }
+
+
 def _fetch_rss(name: str, url: str, category: str, ua: str, timeout: int, max_age_hours: int) -> list[RawItem]:
     """Fetch and parse a single RSS feed. Resilient to failure — logs and returns []."""
     try:
@@ -179,12 +224,15 @@ def _fetch_reddit(subreddit: str, max_items: int, category: str, ua: str, timeou
     return items
 
 
-def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) -> list[RawItem]:
+def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) -> tuple[list[RawItem], list[str]]:
     """Top-level: fetch from every configured source. Returns raw items, deduplicated by URL.
 
     Args:
         sources_config_path: Path to sources.yaml
         history_urls: Set of URLs from recent editions (72h) to exclude.
+
+    Returns:
+        Tuple of (items, failed_source_names) for receipt tracking.
     """
     config = _load_sources_config(sources_config_path)
     fetch_cfg = config.get("fetch", {})
@@ -193,6 +241,7 @@ def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) ->
     max_age_hours = fetch_cfg.get("max_age_hours", 48)
 
     all_items: list[RawItem] = []
+    failed_sources: list[str] = []
 
     # RSS feeds
     for feed in config.get("rss_feeds", []):
@@ -202,36 +251,46 @@ def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) ->
             continue
         if status == "probation":
             log.info("RSS [PROBATION] %s — fetching but flagged for review", feed["name"])
-        all_items.extend(_fetch_rss(
+        items = _fetch_rss(
             name=feed["name"],
             url=feed["url"],
             category=feed["category"],
             ua=ua,
             timeout=timeout,
             max_age_hours=max_age_hours,
-        ))
+        )
+        if not items and status != "probation":
+            # Only count as failed if it returned nothing (timeout, 4xx, 5xx, parse error)
+            failed_sources.append(feed["name"])
+        all_items.extend(items)
 
     # HackerNews
     hn = config.get("hackernews", {})
     if hn.get("enabled"):
-        all_items.extend(_fetch_hackernews(
+        hn_items = _fetch_hackernews(
             max_items=hn.get("max_items", 10),
             category=hn.get("category", "ai_market_signals"),
             ua=ua,
             timeout=timeout,
-        ))
+        )
+        if not hn_items:
+            failed_sources.append("HackerNews")
+        all_items.extend(hn_items)
 
     # Reddit
     reddit_cfg = config.get("reddit", {})
     if reddit_cfg.get("enabled"):
         for sub in reddit_cfg.get("subreddits", []):
-            all_items.extend(_fetch_reddit(
+            reddit_items = _fetch_reddit(
                 subreddit=sub["name"],
                 max_items=sub.get("max_items", 5),
                 category=sub.get("category", "opportunity_radar"),
                 ua=ua,
                 timeout=timeout,
-            ))
+            )
+            if not reddit_items:
+                failed_sources.append(f"Reddit/{sub['name']}")
+            all_items.extend(reddit_items)
 
     # Deduplicate by URL
     seen: set[str] = set()
@@ -242,10 +301,15 @@ def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) ->
         seen.add(item.url)
         deduped.append(item)
 
-    log.info("Fetched %d items total, %d after dedup", len(all_items), len(deduped))
+    log.info("Fetched %d items total, %d after dedup, %d source(s) failed",
+             len(all_items), len(deduped), len(failed_sources))
+    if failed_sources:
+        log.warning("Failed sources: %s", ", ".join(failed_sources))
+
     # Filter out URLs from recent editions (72-hour dedup)
     if history_urls:
         before_history = len(deduped)
         deduped = [item for item in deduped if item.url not in history_urls]
         log.info("History filter removed %d previously-delivered URLs", before_history - len(deduped))
-    return deduped
+
+    return deduped, failed_sources
