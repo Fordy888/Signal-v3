@@ -8,6 +8,18 @@
 
 ---
 
+## Hard Operating Rule
+
+**Before any Signal work begins, the AI session must:**
+1. Read `AGENTS.md` (this file)
+2. Read `SIGNAL_CONTEXT.md`
+3. Read `CONNECTOR_MANIFEST.md`
+4. Read `EDITORIAL.md`
+
+The session must be able to summarise the current Signal operating context before touching code. If it cannot, it has not loaded sufficient context to work safely.
+
+---
+
 ## Quick Rules
 
 - Signal is a **live product**, not a prototype.
@@ -35,6 +47,15 @@
 - Do not make changes to production systems without confirming deployment.
 - Do not skip the QA gate for any reason.
 - Do not send editions with metadata mismatches (date, edition number, weekday).
+
+---
+
+## Context/Version Confirmation
+
+When making changes to Signal, every commit message or report to Paul should confirm:
+- Which context documents were read before starting.
+- Which commit was the starting point (e.g., "Starting from `93fdc21`").
+- The run receipt includes the code commit hash so every edition is traceable to a specific code version.
 
 ---
 

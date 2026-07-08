@@ -188,6 +188,17 @@ def main() -> int:
     log.info("DTL Signal v3 starting (mode=%s) at %s",
              mode, datetime.now(BRISBANE).strftime("%Y-%m-%d %H:%M AEST"))
 
+    # Get code version for traceability in run receipts
+    try:
+        import subprocess
+        code_version = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=str(root), stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        code_version = "unknown"
+    log.info("Code version: %s", code_version)
+
     if not os.environ.get("ANTHROPIC_API_KEY"):
         log.error("ANTHROPIC_API_KEY not set. Configure .env or environment.")
         return 1
@@ -360,6 +371,7 @@ def main() -> int:
             items_scored=0,
             pipeline_result="aborted",
             duration_seconds=time.time() - start_time,
+            code_version=code_version,
         )
         receipt.qa_issues = [f"[CRITICAL] Synthesis: Generation failed with error: {e}"]
         save_receipt(root, receipt)
@@ -386,6 +398,7 @@ def main() -> int:
             items_scored=len(scored),
             pipeline_result="held",
             duration_seconds=time.time() - start_time,
+            code_version=code_version,
         )
         receipt.qa_issues = ["[CRITICAL] Content Quality: Section 9 (DTLC.ai's Take) is missing or incomplete"]
         save_receipt(root, receipt)
@@ -421,6 +434,7 @@ def main() -> int:
             degraded_sources=degraded_sources,
             pipeline_result="held",
             duration_seconds=time.time() - start_time,
+            code_version=code_version,
         )
         save_receipt(root, receipt)
         send_receipt_email(receipt)
@@ -464,6 +478,7 @@ def main() -> int:
             degraded_sources=degraded_sources,
             pipeline_result="success",
             duration_seconds=time.time() - start_time,
+            code_version=code_version,
         )
         save_receipt(root, receipt)
         return 0
@@ -540,6 +555,7 @@ def main() -> int:
         degraded_sources=degraded_sources,
         pipeline_result=pipeline_result,
         duration_seconds=duration,
+        code_version=code_version,
     )
     save_receipt(root, receipt)
     send_receipt_email(receipt)

@@ -86,6 +86,9 @@ class RunReceipt:
     duration_seconds: float = 0.0
     pipeline_result: str = ""  # "success" | "partial_failure" | "held" | "aborted"
 
+    # Traceability
+    code_version: str = ""  # Git commit hash that produced this edition
+
     def plain_english_summary(self) -> str:
         """Plain-English summary for Paul. One glance tells you if everything is OK."""
         edition = f"Edition {self.edition_number:04d}"
@@ -137,6 +140,10 @@ class RunReceipt:
                 f" Early warning: {len(self.degraded_sources)} source(s) have failed "
                 f"3+ days in a row ({', '.join(self.degraded_sources)}) — consider disabling or replacing."
             )
+
+        # Add code version for traceability
+        if self.code_version:
+            summary += f" Code version: {self.code_version}."
 
         return summary
 
@@ -568,6 +575,7 @@ def create_receipt(
     degraded_sources: list[str] | None = None,
     duration_seconds: float = 0.0,
     pipeline_result: str = "success",
+    code_version: str = "",
 ) -> RunReceipt:
     """Create a structured run receipt."""
     now = datetime.now(BRISBANE)
@@ -613,6 +621,7 @@ def create_receipt(
         degraded_sources=degraded_sources or [],
         duration_seconds=duration_seconds,
         pipeline_result=pipeline_result,
+        code_version=code_version,
     )
 
 

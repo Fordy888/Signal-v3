@@ -118,7 +118,7 @@ After every run, paul.ford@gmail.com receives a receipt. Format:
 ## Current State (as of 9 July 2026)
 
 - **Edition count:** 0013 delivered (0014 next)
-- **Active subscribers:** 15 (fetched live from API)
+- **Active subscribers:** Fetched live from API (do not hardcode — count changes as subscribers join/leave)
 - **Active sources:** 95 RSS feeds + HackerNews
 - **Disabled sources:** 13 (broken government feeds)
 - **Known gaps:** Section 4 (Threat Detection) thin, Sections 3 & 5 have no dedicated sources
@@ -146,6 +146,16 @@ src/synthesis.py           ← Edition generation.
 src/edition_counter.py     ← Edition numbering.
 render.yaml                ← Render deployment configuration.
 ```
+
+---
+
+## Keeping This Document Current
+
+Any material change to Signal — QA gate logic, subscriber handling, source governance, domains, delivery, alerts, or editorial rules — must update the relevant context file (`SIGNAL_CONTEXT.md`, `CONNECTOR_MANIFEST.md`, or `EDITORIAL.md`) in the same commit as the code change.
+
+When starting work on Signal, confirm:
+1. Which context documents were read.
+2. Which commit/version is the starting point.
 
 ---
 
