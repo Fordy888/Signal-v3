@@ -196,6 +196,12 @@ def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) ->
 
     # RSS feeds
     for feed in config.get("rss_feeds", []):
+        # Skip disabled feeds entirely (saves time and avoids noise in logs)
+        status = feed.get("status", "active")
+        if status == "disabled":
+            continue
+        if status == "probation":
+            log.info("RSS [PROBATION] %s — fetching but flagged for review", feed["name"])
         all_items.extend(_fetch_rss(
             name=feed["name"],
             url=feed["url"],

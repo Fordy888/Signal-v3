@@ -350,9 +350,14 @@ def main() -> int:
     success_count = 0
     fail_count = 0
 
-    for recipient in recipients:
+    for i, recipient in enumerate(recipients):
         email = recipient["email"]
         first_name = recipient.get("firstName", "")
+
+        # Rate limit: Resend free tier allows max 2 requests/second.
+        # Wait 700ms between sends to stay safely under the limit.
+        if i > 0:
+            time.sleep(0.7)
 
         log.info("  Sending to: %s (%s)", email, first_name or "no name")
 
@@ -379,7 +384,7 @@ def main() -> int:
 
     if args.send and success_count > 0:
         # Record delivered URLs for cross-day dedup
-        delivered_urls = [item["url"] for item in scored if "url" in item]
+        delivered_urls = [item.raw.url for item in scored if hasattr(item, 'raw') and item.raw.url]
         edition_id = f"edition_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
         record_edition(root, delivered_urls, edition_id=edition_id)
         # Increment edition counter only on successful broadcast (not proof)

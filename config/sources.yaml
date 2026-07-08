@@ -2,6 +2,10 @@
 # Expanded 4 July 2026 — 100 RSS sources + HackerNews.
 # Added: australian_government_policy category (Section 8: Policy Signal)
 # Added: Additional international AI, strategy, and enterprise sources.
+# Updated 9 July 2026 — Disabled 14 broken government feeds (geo-blocked/404/403).
+#   Fixed URLs: APRA (/rss.xml), Parliament Joint Inquiries (/house/rss/joint_inquiries).
+#   Added: Tech Council of Australia, Government News, The Conversation AU, Parliament House Inquiries.
+#   Applied Source Quality Scoring Criteria (see docs/source-scoring-criteria.md).
 #
 # Metadata schema:
 #   category: Primary content category (maps to Signal sections)
@@ -596,8 +600,8 @@ rss_feeds:
     region: australia
     topics: [tech_policy, science, innovation, government, digital_economy]
     signal_type: analysis
-    status: active
-    notes: Independent AU tech/science policy coverage. Translates government moves into business impact.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — Returns 403 Forbidden. Blocks all automated access including browser UA. Score: Disqualified (Technical Reliability 1/5). Coverage replaced by Tech Council of Australia + Government News."
 
   - name: Sifted (EU tech)
     url: https://sifted.eu/feed
@@ -622,8 +626,8 @@ rss_feeds:
     region: australia
     topics: [ai_policy, digital_economy, industry_policy, national_ai_centre, innovation]
     signal_type: primary_source
-    status: active
-    notes: Home of National AI Centre, Safe & Responsible AI framework, digital economy strategy.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — Geo-blocks non-AU IP addresses (timeout/000 from Render US). Score: Disqualified. Coverage via Tech Council + The Mandarin."
 
   - name: Treasury Ministers — Media Releases
     url: https://ministers.treasury.gov.au/media-releases/feed
@@ -631,8 +635,8 @@ rss_feeds:
     region: australia
     topics: [tax_policy, economic_regulation, fintech, digital_assets, business_investment]
     signal_type: primary_source
-    status: active
-    notes: Tax, economic regulation, fintech, digital assets, business investment incentives.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — URL returns 404 Not Found. Score: Disqualified. Coverage via The Conversation AU Politics."
 
   - name: Attorney-General's Dept — Ministers Media
     url: https://ministers.ag.gov.au/media-centre/feed
@@ -640,8 +644,8 @@ rss_feeds:
     region: australia
     topics: [privacy_act, ai_liability, data_protection, digital_identity, legislation]
     signal_type: primary_source
-    status: active
-    notes: Privacy Act reform, AI liability, data protection, digital identity legislation.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — Geo-blocks non-AU IP addresses (timeout/000). Score: Disqualified. Coverage via The Conversation AU Politics."
 
   - name: ACCC — Media Releases
     url: https://www.accc.gov.au/media-release/feed
@@ -649,8 +653,8 @@ rss_feeds:
     region: australia
     topics: [competition, digital_platforms, merger_reform, consumer_protection, ai_advertising]
     signal_type: primary_source
-    status: active
-    notes: Digital platform regulation, merger reform, AI in advertising, unfair practices.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — Returns 403 Forbidden. Blocks automated access. Score: Disqualified. No accessible alternative feed."
 
   - name: ASIC — Media Releases
     url: https://asic.gov.au/about-asic/media-centre/rss-feeds/
@@ -658,8 +662,8 @@ rss_feeds:
     region: australia
     topics: [financial_services, crypto, corporate_governance, fintech, ai_compliance]
     signal_type: primary_source
-    status: active
-    notes: AI in financial services, crypto regulation, corporate governance, fintech licensing.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — URL returns 404 (is a web page, not an RSS feed). Score: Disqualified. No accessible alternative feed."
 
   - name: DTA — Digital Transformation Agency
     url: https://www.dta.gov.au/news/feed
@@ -667,8 +671,8 @@ rss_feeds:
     region: australia
     topics: [digital_identity, government_ai, tech_standards, digital_services]
     signal_type: primary_source
-    status: active
-    notes: Government AI adoption, digital identity, whole-of-government tech standards.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — Geo-blocks non-AU IP addresses (timeout/000). Score: Disqualified. Coverage via Government News + Tech Council."
 
   - name: OAIC — Privacy Commissioner
     url: https://www.oaic.gov.au/updates/rss
@@ -676,8 +680,8 @@ rss_feeds:
     region: australia
     topics: [privacy, data_breach, ai_personal_information, compliance, regulation]
     signal_type: primary_source
-    status: active
-    notes: Privacy regulation, data breach notification, AI and personal information.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — URL returns 404 Not Found. Score: Disqualified. Coverage via The Conversation AU."
 
   - name: eSafety Commissioner
     url: https://www.esafety.gov.au/newsroom/media-releases/feed
@@ -685,8 +689,8 @@ rss_feeds:
     region: australia
     topics: [online_safety, ai_content, deepfakes, platform_accountability]
     signal_type: primary_source
-    status: active
-    notes: Online safety regulation, AI-generated content, deepfakes, platform accountability.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — Geo-blocks non-AU IP addresses (timeout/000). Score: Disqualified. Coverage via The Conversation AU Technology."
 
   - name: RBA — Media Releases
     url: https://www.rba.gov.au/rss/rss-cb-media-releases.xml
@@ -706,14 +710,14 @@ rss_feeds:
     status: active
     notes: Forward guidance on fintech, digital payments, economic outlook.
 
-  - name: APRA — Media Releases
-    url: https://www.apra.gov.au/news-and-publications/rss
+  - name: APRA — Prudential Regulation Authority
+    url: https://www.apra.gov.au/rss.xml
     category: australian_government_policy
     region: australia
     topics: [prudential_regulation, ai_risk, operational_resilience, data_governance]
     signal_type: primary_source
     status: active
-    notes: AI risk in banking/insurance, operational resilience, data governance.
+    notes: "URL corrected 9 Jul 2026 (was /news-and-publications/rss → now /rss.xml). Score: 25/30 Gold. AI risk in banking/insurance, operational resilience, data governance."
 
   - name: Productivity Commission
     url: https://www.pc.gov.au/news-media/rss
@@ -721,8 +725,8 @@ rss_feeds:
     region: australia
     topics: [productivity, workforce, regulation_reform, competition_policy, ai_workforce]
     signal_type: research
-    status: active
-    notes: AI & workforce productivity reviews, regulation reform, competition policy.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — URL returns 404 Not Found. Score: Disqualified. Coverage via The Conversation AU."
 
   - name: Parliament — Senate New Inquiries
     url: https://www.aph.gov.au/senate/rss/new_inquiries
@@ -743,13 +747,13 @@ rss_feeds:
     notes: Final reports from inquiries — the actual recommendations that become policy.
 
   - name: Parliament — Joint Committee Inquiries
-    url: https://www.aph.gov.au/Parliamentary_Business/Committees/Joint/RSS/Inquiries
+    url: https://www.aph.gov.au/house/rss/joint_inquiries
     category: australian_government_policy
     region: australia
     topics: [joint_committees, ai_inquiry, tech_regulation, cross_party]
     signal_type: primary_source
     status: active
-    notes: Joint inquiries — often where AI/tech regulation starts.
+    notes: "URL corrected 9 Jul 2026 (was /Parliamentary_Business/Committees/Joint/RSS/Inquiries → now /house/rss/joint_inquiries). Score: 28/30 Gold. Joint inquiries — often where AI/tech regulation starts."
 
   - name: ASD/ACSC — Cyber Security Centre
     url: https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/rss
@@ -757,8 +761,8 @@ rss_feeds:
     region: australia
     topics: [cybersecurity, critical_infrastructure, ai_security, threat_alerts]
     signal_type: primary_source
-    status: active
-    notes: Cyber threat alerts, critical infrastructure, AI security standards.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — Geo-blocks non-AU IP addresses (timeout/000). Score: Disqualified."
 
   - name: Dept of Employment & Workplace Relations
     url: https://www.dewr.gov.au/newsroom/feed
@@ -766,8 +770,8 @@ rss_feeds:
     region: australia
     topics: [workforce, ai_workforce, skills_policy, fair_work, employment_legislation]
     signal_type: primary_source
-    status: active
-    notes: AI & workforce legislation, skills policy, Fair Work changes.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — Geo-blocks non-AU IP addresses (timeout/000). Score: Disqualified. Coverage via The Mandarin."
 
   - name: Dept of Finance — Ministers
     url: https://www.finance.gov.au/media-centre/feed
@@ -775,8 +779,8 @@ rss_feeds:
     region: australia
     topics: [procurement, digital_investment, aps_modernisation, government_contracts]
     signal_type: primary_source
-    status: active
-    notes: Government procurement (AI contracts), digital investment, APS modernisation.
+    status: disabled
+    notes: "DISABLED 9 Jul 2026 — Geo-blocks non-AU IP addresses (timeout/000). Score: Disqualified. Coverage via Government News."
 
   - name: The Mandarin
     url: https://www.themandarin.com.au/feed/
@@ -786,6 +790,44 @@ rss_feeds:
     signal_type: analysis
     status: active
     notes: Public sector + policy analysis — catches regulatory intent before it becomes legislation.
+
+  # --- NEW SOURCES ADDED 9 Jul 2026 (replacing broken government feeds) ---
+
+  - name: Tech Council of Australia
+    url: https://techcouncil.com.au/feed/
+    category: australian_government_policy
+    region: australia
+    topics: [tech_policy, workforce, ai_regulation, digital_economy, industry_advocacy]
+    signal_type: analysis
+    status: active
+    notes: "Added 9 Jul 2026. Score: 24/30 Silver. Peak industry body advising government on tech policy. Covers AI regulation, workforce, digital economy strategy."
+
+  - name: Government News
+    url: https://www.governmentnews.com.au/feed/
+    category: australian_government_policy
+    region: australia
+    topics: [digital_government, procurement, public_sector_tech, policy_implementation]
+    signal_type: analysis
+    status: active
+    notes: "Added 9 Jul 2026. Score: 23/30 Silver. Covers digital government, procurement, policy implementation. Replaces DTA + Dept of Finance coverage."
+
+  - name: The Conversation AU — Politics & Policy
+    url: https://theconversation.com/au/politics/articles.atom
+    category: australian_government_policy
+    region: australia
+    topics: [policy_analysis, regulation, legislation, privacy, ai_governance]
+    signal_type: research
+    status: active
+    notes: "Added 9 Jul 2026. Score: 23/30 Silver. Academic experts analysing AU policy. Covers privacy, AI governance, regulation. Replaces AG/Treasury/OAIC coverage."
+
+  - name: Parliament — House Inquiries
+    url: https://www.aph.gov.au/house/rss/house_inquiries
+    category: australian_government_policy
+    region: australia
+    topics: [house_committees, legislation, regulation, business_regulation]
+    signal_type: primary_source
+    status: active
+    notes: "Added 9 Jul 2026. Score: 26/30 Gold. House of Representatives committee inquiries. Complements Senate + Joint inquiry feeds."
 
   # ═══════════════════════════════════════════════════
   # DEEP ANALYSIS & AI POLICY
