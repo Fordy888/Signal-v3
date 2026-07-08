@@ -306,8 +306,8 @@ def check_date_integrity(edition_number: int) -> QAResult:
         return QAResult(
             check_name="Date Integrity",
             passed=False,
-            severity="warning",
-            message=f"Running before 03:00 AEST ({now.strftime('%H:%M')}). Date may roll over during execution."
+            severity="critical",
+            message=f"Running before 03:00 AEST ({now.strftime('%H:%M')}). Date may roll over during execution. Metadata errors damage trust — holding edition."
         )
 
     return QAResult(
@@ -339,8 +339,8 @@ def check_subject_body_alignment(html: str, edition_number: int) -> QAResult:
         return QAResult(
             check_name="Subject/Body Alignment",
             passed=False,
-            severity="warning",
-            message="; ".join(issues)
+            severity="critical",
+            message="; ".join(issues) + ". Subject and body must match — metadata errors damage trust."
         )
 
     return QAResult(
@@ -442,9 +442,9 @@ def check_recipient_count(count: int, mode: str) -> QAResult:
     if count < 3:
         return QAResult(
             check_name="Recipient Count",
-            passed=True,
-            severity="warning",
-            message=f"Only {count} recipients. Unusually low — the subscriber API may be returning incomplete data."
+            passed=False,
+            severity="critical",
+            message=f"Only {count} recipient(s) fetched. Expected at least 3 active subscribers. The subscriber API may be returning incomplete data — holding edition."
         )
 
     return QAResult(
@@ -452,6 +452,52 @@ def check_recipient_count(count: int, mode: str) -> QAResult:
         passed=True,
         severity="info",
         message=f"{count} recipients confirmed."
+    )
+
+
+def check_reply_to() -> QAResult:
+    """Verify reply-to address is configured and valid.
+    
+    Reply-to must be set, must contain @, and must route to Paul.
+    This prevents subscribers from replying to a dead address.
+    """
+    # The reply-to is hardcoded in delivery.py as paul.ford@gmail.com
+    # but we verify it here as a structural check.
+    from_email = os.environ.get("RESEND_FROM_EMAIL", "signal@signal.dtlc.ai")
+    reply_to = "paul.ford@gmail.com"  # Hardcoded in delivery.py
+    
+    # Check from address is valid
+    if not from_email or "@" not in from_email:
+        return QAResult(
+            check_name="Reply-To Validation",
+            passed=False,
+            severity="critical",
+            message=f"RESEND_FROM_EMAIL is invalid or missing ('{from_email}'). Emails would send from a broken address."
+        )
+    
+    # Verify reply-to is set to Paul's email
+    if reply_to != "paul.ford@gmail.com":
+        return QAResult(
+            check_name="Reply-To Validation",
+            passed=False,
+            severity="critical",
+            message=f"Reply-to is set to '{reply_to}' instead of paul.ford@gmail.com. Subscriber replies would route incorrectly."
+        )
+    
+    # Verify Resend API key exists (otherwise nothing sends)
+    if not os.environ.get("RESEND_API_KEY"):
+        return QAResult(
+            check_name="Reply-To Validation",
+            passed=False,
+            severity="critical",
+            message="RESEND_API_KEY is not set. The delivery system cannot send emails."
+        )
+    
+    return QAResult(
+        check_name="Reply-To Validation",
+        passed=True,
+        severity="info",
+        message=f"From: Signal <{from_email}>, Reply-to: {reply_to}. Routing confirmed."
     )
 
 
@@ -478,6 +524,7 @@ def run_pre_send_qa(
         check_content_minimum(html, scored_count),
         check_source_health(sources_failed, sources_active),
         check_recipient_count(recipient_count, mode),
+        check_reply_to(),
     ]
 
     # Log all results

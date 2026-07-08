@@ -251,14 +251,16 @@ def main() -> int:
         send_alert("Recipient integrity check FAILED — edition NOT sent", alert_msg)
         return 1
 
-    # ─── FAIL-SAFE: Count verification (send mode only) ────────────────
+    # ─── FAIL-SAFE: Verify against live subscriber source of truth ──────
     if args.send:
-        # Double-fetch: verify count matches between two consecutive API calls
-        log.info("FAIL-SAFE: Double-checking subscriber count...")
+        # Double-fetch: verify count AND email set match between two consecutive API calls
+        log.info("FAIL-SAFE: Verifying recipients against live subscriber source of truth...")
         verify_subscribers = fetch_subscribers()
         if verify_subscribers:
             api_count = len(recipients)
             verify_count = len(verify_subscribers)
+
+            # Count check
             if api_count != verify_count:
                 log.error(
                     "FAIL-SAFE ABORT: Subscriber count mismatch! "
@@ -274,7 +276,28 @@ def main() -> int:
                     f"Please investigate and manually trigger a re-run if appropriate."
                 )
                 return 1
-            log.info("FAIL-SAFE: Count verified — %d subscribers confirmed on both fetches", api_count)
+
+            # Email-level match: ensure the same set of emails in both fetches
+            first_emails = set(r["email"].lower().strip() for r in recipients)
+            verify_emails = set(r["email"].lower().strip() for r in verify_subscribers)
+            if first_emails != verify_emails:
+                added = verify_emails - first_emails
+                removed = first_emails - verify_emails
+                log.error(
+                    "FAIL-SAFE ABORT: Subscriber email set mismatch! "
+                    "Added: %s, Removed: %s. Edition NOT sent.",
+                    added or "none", removed or "none"
+                )
+                send_alert(
+                    "Subscriber list changed between fetches — edition NOT sent",
+                    f"The subscriber API returned different email sets between two consecutive calls. "
+                    f"Added: {added or 'none'}. Removed: {removed or 'none'}. "
+                    f"This suggests the subscriber list is being modified during the send window. "
+                    f"Today's edition was NOT sent. Please investigate."
+                )
+                return 1
+
+            log.info("FAIL-SAFE: Source of truth verified — %d subscribers confirmed (count + email match)", api_count)
         else:
             log.warning("FAIL-SAFE: Verification fetch returned empty — proceeding with original list (already validated)")
 
