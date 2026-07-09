@@ -240,6 +240,35 @@ NOTE ON "TODAY'S SIGNAL" THESIS: This is a single punchy sentence (max 15 words)
 - "The compliance layer just became the competitive moat."
 This replaces the previous multi-line headline format. One line. One thesis. Maximum impact.
 
+**TODAY'S 3 EXECUTIVE ACTIONS (immediately after Today's Signal thesis, before Section 1):**
+```html
+<tr><td style="padding: 20px 40px 8px 40px;">
+<p style="margin: 0; font-size: 12px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #E8533A; letter-spacing: 1px; text-transform: uppercase; font-weight: 700;">Today's 3 Executive Actions</p>
+</td></tr>
+<tr><td style="padding: 4px 40px 20px 40px;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="padding: 6px 0;"><p style="margin: 0; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333;"><span style="font-weight: 700; color: #E8533A;">1.</span> {ACTION_1}</p></td></tr>
+<tr><td style="padding: 6px 0;"><p style="margin: 0; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333;"><span style="font-weight: 700; color: #E8533A;">2.</span> {ACTION_2}</p></td></tr>
+<tr><td style="padding: 6px 0;"><p style="margin: 0; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333;"><span style="font-weight: 700; color: #E8533A;">3.</span> {ACTION_3}</p></td></tr>
+</table>
+</td></tr>
+<tr><td style="padding: 0 40px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid #e8e8e8;"></td></tr></table></td></tr>
+```
+
+NOTE ON "TODAY'S 3 EXECUTIVE ACTIONS": These are three SHORT, SPECIFIC, ACTIONABLE takeaways distilled from the entire edition. Each action should be one sentence (max 15 words). They tell the reader exactly what to DO based on today's signals. They are NOT summaries — they are directives.
+
+Examples of GOOD executive actions:
+- "Ask your CFO how AI spend is being measured before next quarter."
+- "Audit which workflows still depend on a single vendor's API."
+- "Brief your team on the new compliance requirements before they ship."
+
+Examples of BAD executive actions (too vague, too long, or not actionable):
+- "Think about AI strategy." (too vague)
+- "Consider the implications of today's developments for your business." (not specific)
+- "AI is changing fast so stay informed." (not an action)
+
+The actions should reference specific items from today's edition. They are the "if you do nothing else today, do these three things" list.
+
 **SECTION HEADINGS (for sections 1-8):**
 ```html
 <tr><td style="padding: 28px 40px 6px 40px;">

@@ -115,14 +115,14 @@ After every run, paul.ford@gmail.com receives a receipt. Format:
 
 ---
 
-## Current State (as of 9 July 2026)
+## Current State (as of 10 July 2026)
 
 - **Edition count:** 0013 delivered (0014 next)
 - **Active subscribers:** Fetched live from API (do not hardcode — count changes as subscribers join/leave)
 - **Active sources:** 95 RSS feeds + HackerNews
 - **Disabled sources:** 13 (broken government feeds)
 - **Known gaps:** Section 4 (Threat Detection) thin, Sections 3 & 5 have no dedicated sources
-- **Recent fixes:** Rate limiting, TypeError crash, source governance, QA gate
+- **Recent fixes:** Rate limiting, TypeError crash, source governance, QA gate, date/day correction, edition counter injection, Executive Actions section
 
 ---
 
@@ -146,6 +146,26 @@ src/synthesis.py           ← Edition generation.
 src/edition_counter.py     ← Edition numbering.
 render.yaml                ← Render deployment configuration.
 ```
+
+---
+
+## Post-Synthesis Corrections (added 10 July 2026)
+
+The pipeline now applies two post-synthesis corrections to the HTML output:
+
+1. **Date/Day Correction** — The LLM occasionally hallucates the wrong day-of-week in the header date line. After synthesis, a regex replaces any incorrect weekday + date combination with the computed correct values from pipeline runtime. This makes it impossible for the LLM to produce a date/day mismatch.
+
+2. **Edition Counter Injection** — If the LLM drops the edition number from the HTML header, the pipeline injects it post-synthesis as a right-aligned element next to "DTL SIGNAL".
+
+These corrections run in `src/synthesis.py` after the HTML is generated and before it is passed to delivery.
+
+---
+
+## Today's 3 Executive Actions (added 10 July 2026)
+
+Every edition now includes a "Today's 3 Executive Actions" section positioned between the Today's Signal thesis and Section 1. These are three short, specific, actionable takeaways (max 15 words each) distilled from the edition's content. They tell the reader exactly what to do based on today's signals.
+
+Styled in coral (#E8533A) with numbered items. Instructions and examples are in `prompts/synthesis_prompt.md`.
 
 ---
 

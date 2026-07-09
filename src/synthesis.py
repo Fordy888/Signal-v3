@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime
 from typing import Any
@@ -178,6 +179,35 @@ def synthesise(
 
     # Strip any hallucinated "// reply to refine" text
     html = html.replace("// reply to refine", "")
+
+    # ─── POST-SYNTHESIS DATE CORRECTION ─────────────────────────────────
+    # The LLM sometimes hallucates the wrong day-of-week in the header date line.
+    # Force-correct it to match the computed values from pipeline runtime.
+    # Pattern matches any weekday name followed by the date in the header line
+    # e.g., "Thursday 10 July 2026 | 06:00 AEST" → "Friday 10 July 2026 | 06:00 AEST"
+    weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    wrong_day_pattern = "|".join(w for w in weekdays if w != day_name)
+    # Fix the header date line: any wrong weekday + our date → correct weekday + date
+    date_line_pattern = rf'({"|".join(weekdays)})\s+{re.escape(date_formatted)}'
+    html = re.sub(date_line_pattern, f'{day_name} {date_formatted}', html)
+    log.info("Post-synthesis date correction applied: %s %s", day_name, date_formatted)
+
+    # ─── EDITION COUNTER VERIFICATION ──────────────────────────────────
+    # Ensure the edition number appears in the HTML header.
+    # The template has "Edition {EDITION_NUMBER}" but the LLM might drop it.
+    if f"Edition {edition_padded}" not in html:
+        log.warning("Edition counter missing from HTML output — injecting it.")
+        # Try to inject after "DTL SIGNAL" text
+        dtl_signal_pos = html.find("DTL SIGNAL")
+        if dtl_signal_pos > 0:
+            # Find the next </td> after DTL SIGNAL and inject edition counter
+            next_td = html.find("</td>", dtl_signal_pos)
+            if next_td > 0:
+                inject_html = f'<td align="right"><p style="margin: 0; font-size: 11px; font-family: \'SF Mono\', \'Fira Code\', \'Courier New\', monospace; color: #999; letter-spacing: 1px;">Edition {edition_padded}</p></td>'
+                # Check if there's already a right-aligned td for edition
+                if "align=\"right\"" not in html[dtl_signal_pos:dtl_signal_pos+500]:
+                    html = html[:next_td + 5] + inject_html + html[next_td + 5:]
+                    log.info("Edition counter injected into header.")
 
     log.info("Synthesis: produced %d chars of HTML (stop_reason=%s, has_section_9=%s)", len(html), stop_reason, has_section_9)
     return html
