@@ -86,6 +86,14 @@ class RunReceipt:
     duration_seconds: float = 0.0
     pipeline_result: str = ""  # "success" | "partial_failure" | "held" | "aborted"
 
+    # Subscriber insights
+    subscribers_total: int = 0
+    subscribers_business: int = 0
+    subscribers_personal: int = 0
+    subscribers_new_today: int = 0
+    subscriber_emails_business: list[str] = field(default_factory=list)
+    subscriber_emails_personal: list[str] = field(default_factory=list)
+
     # Traceability
     code_version: str = ""  # Git commit hash that produced this edition
 
@@ -139,6 +147,14 @@ class RunReceipt:
             summary += (
                 f" Early warning: {len(self.degraded_sources)} source(s) have failed "
                 f"3+ days in a row ({', '.join(self.degraded_sources)}) — consider disabling or replacing."
+            )
+
+        # Add subscriber insights
+        if self.subscribers_total > 0:
+            new_str = f" ({self.subscribers_new_today} new today)" if self.subscribers_new_today > 0 else ""
+            summary += (
+                f" Subscribers: {self.subscribers_total} active "
+                f"({self.subscribers_business} business / {self.subscribers_personal} personal){new_str}."
             )
 
         # Add code version for traceability
@@ -217,6 +233,8 @@ class RunReceipt:
         <tr><td style="padding:6px 0;color:#666;">Duration</td><td style="padding:6px 0;">{self.duration_seconds:.0f} seconds</td></tr>
     </table>
 
+    {self._subscriber_insights_html()}
+
     {issues_html}
     {failed_html}
     {degraded_html}
@@ -230,6 +248,31 @@ class RunReceipt:
         This is an automated operational receipt from the Signal pipeline.
     </p>
 </body></html>"""
+
+    def _subscriber_insights_html(self) -> str:
+        """Render subscriber insights section for the receipt email."""
+        if self.subscribers_total == 0:
+            return ""
+
+        new_badge = ""
+        if self.subscribers_new_today > 0:
+            new_badge = (
+                f"<span style='display:inline-block;background:#16a34a;color:#fff;"
+                f"padding:2px 8px;border-radius:10px;font-size:12px;margin-left:8px;'>"
+                f"+{self.subscribers_new_today} new today</span>"
+            )
+
+        html = (
+            f"<div style='margin-bottom:16px;padding:12px;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;'>"
+            f"<strong style='font-size:14px;'>Subscriber Insights</strong>{new_badge}"
+            f"<table style='width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;'>"
+            f"<tr><td style='padding:4px 0;color:#666;width:160px;'>Total active</td><td>{self.subscribers_total}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Business emails</td><td>{self.subscribers_business}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Personal emails</td><td>{self.subscribers_personal}</td></tr>"
+            f"</table>"
+            f"</div>"
+        )
+        return html
 
     def _get_action_text(self) -> str:
         """Determine plain-English action text based on issues."""
@@ -558,6 +601,75 @@ def run_pre_send_qa(
 # RUN RECEIPT
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SUBSCRIBER CLASSIFICATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Common personal email domains
+PERSONAL_DOMAINS = {
+    "gmail.com", "googlemail.com", "yahoo.com", "yahoo.com.au",
+    "hotmail.com", "hotmail.com.au", "outlook.com", "live.com",
+    "icloud.com", "me.com", "mac.com", "aol.com",
+    "protonmail.com", "proton.me", "fastmail.com",
+    "msn.com", "bigpond.com", "bigpond.net.au",
+    "optusnet.com.au", "internode.on.net",
+}
+
+
+def classify_subscribers(recipients: list[dict]) -> dict:
+    """Classify subscribers into business vs personal based on email domain.
+
+    Also detects new subscribers (signed up in the last 24 hours).
+
+    Returns dict with: total, business, personal, new_today,
+    business_emails (list), personal_emails (list).
+    """
+    from datetime import timedelta
+
+    now = datetime.now(BRISBANE)
+    yesterday = now - timedelta(hours=24)
+
+    business_emails = []
+    personal_emails = []
+    new_today = 0
+
+    for r in recipients:
+        email = r.get("email", "").strip().lower()
+        if not email or "@" not in email:
+            continue
+
+        domain = email.split("@", 1)[1]
+
+        if domain in PERSONAL_DOMAINS:
+            personal_emails.append(email)
+        else:
+            business_emails.append(email)
+
+        # Check if subscriber is new (signed up in last 24h)
+        subscribed_at = r.get("subscribedAt")
+        if subscribed_at:
+            try:
+                if isinstance(subscribed_at, str):
+                    # Parse ISO format from API
+                    sub_dt = datetime.fromisoformat(subscribed_at.replace("Z", "+00:00"))
+                    sub_dt = sub_dt.astimezone(BRISBANE)
+                else:
+                    sub_dt = subscribed_at
+                if sub_dt >= yesterday:
+                    new_today += 1
+            except (ValueError, TypeError):
+                pass
+
+    return {
+        "total": len(business_emails) + len(personal_emails),
+        "business": len(business_emails),
+        "personal": len(personal_emails),
+        "new_today": new_today,
+        "business_emails": business_emails,
+        "personal_emails": personal_emails,
+    }
+
+
 def create_receipt(
     edition_number: int,
     mode: str,
@@ -576,6 +688,7 @@ def create_receipt(
     duration_seconds: float = 0.0,
     pipeline_result: str = "success",
     code_version: str = "",
+    subscriber_insights: dict | None = None,
 ) -> RunReceipt:
     """Create a structured run receipt."""
     now = datetime.now(BRISBANE)
@@ -596,6 +709,9 @@ def create_receipt(
                 qa_issues.append(f"[WARNING] {r.check_name}: {r.message}")
 
     sources_total = sources_active + sources_disabled
+
+    # Populate subscriber insights if provided
+    si = subscriber_insights or {}
 
     return RunReceipt(
         edition_number=edition_number,
@@ -621,6 +737,12 @@ def create_receipt(
         degraded_sources=degraded_sources or [],
         duration_seconds=duration_seconds,
         pipeline_result=pipeline_result,
+        subscribers_total=si.get("total", 0),
+        subscribers_business=si.get("business", 0),
+        subscribers_personal=si.get("personal", 0),
+        subscribers_new_today=si.get("new_today", 0),
+        subscriber_emails_business=si.get("business_emails", []),
+        subscriber_emails_personal=si.get("personal_emails", []),
         code_version=code_version,
     )
 

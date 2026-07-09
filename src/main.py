@@ -32,6 +32,7 @@ from .qa_gate import (
     save_receipt,
     send_receipt_email,
     record_source_failures,
+    classify_subscribers,
 )
 
 BRISBANE = ZoneInfo("Australia/Brisbane")
@@ -538,6 +539,12 @@ def main() -> int:
     else:
         pipeline_result = "success"
 
+    # Classify subscribers for insights in the receipt
+    sub_insights = classify_subscribers(recipients)
+    log.info("Subscriber insights: %d total (%d business / %d personal), %d new today",
+             sub_insights["total"], sub_insights["business"],
+             sub_insights["personal"], sub_insights["new_today"])
+
     receipt = create_receipt(
         edition_number=edition_number,
         mode=mode,
@@ -556,6 +563,7 @@ def main() -> int:
         pipeline_result=pipeline_result,
         duration_seconds=duration,
         code_version=code_version,
+        subscriber_insights=sub_insights,
     )
     save_receipt(root, receipt)
     send_receipt_email(receipt)

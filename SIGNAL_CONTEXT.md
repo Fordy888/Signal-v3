@@ -149,6 +149,20 @@ render.yaml                ← Render deployment configuration.
 
 ---
 
+## Run Receipt — Subscriber Insights
+
+Every run receipt now includes a **Subscriber Insights** section:
+- **Total active** — live count from the subscriber API
+- **Business emails** — subscribers using company/custom domains
+- **Personal emails** — subscribers using gmail, hotmail, icloud, etc.
+- **New today** — subscribers who signed up in the last 24 hours
+
+Classification uses a known set of personal email domains (gmail.com, me.com, hotmail.com, etc.). Any domain not in that list is classified as business.
+
+This appears in both the plain-English summary line and the HTML email receipt.
+
+---
+
 ## Keeping This Document Current
 
 Any material change to Signal — QA gate logic, subscriber handling, source governance, domains, delivery, alerts, or editorial rules — must update the relevant context file (`SIGNAL_CONTEXT.md`, `CONNECTOR_MANIFEST.md`, or `EDITORIAL.md`) in the same commit as the code change.
