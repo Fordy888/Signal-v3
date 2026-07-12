@@ -1,4 +1,5 @@
 services:
+  # ─── PRODUCTION: Daily edition to all subscribers ───
   - type: cron
     name: dtl-signal
     runtime: python
@@ -19,6 +20,38 @@ services:
       - key: SIGNAL_PIPELINE_API_KEY
         sync: false
       - key: BETTERSTACK_HEARTBEAT_URL
+        sync: false
+      - key: MODEL_SCORING
+        value: claude-haiku-4-5-20251001
+      - key: MODEL_SYNTHESIS
+        value: claude-sonnet-4-6
+      - key: TZ
+        value: Australia/Brisbane
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+    plan: standard
+    region: singapore
+    maxShutdownDelaySeconds: 30
+
+  # ─── PROOF: Manual trigger only — sends to Paul only ───
+  - type: cron
+    name: dtl-signal-proof
+    runtime: python
+    schedule: "0 0 1 1 *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m src.main --proof
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: signal@signal.dtlc.ai
+      - key: PROOF_RECIPIENT_EMAIL
+        value: paul.ford@gmail.com
+      - key: WEBSITE_BASE_URL
+        sync: false
+      - key: SIGNAL_PIPELINE_API_KEY
         sync: false
       - key: MODEL_SCORING
         value: claude-haiku-4-5-20251001
