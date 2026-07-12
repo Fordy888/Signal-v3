@@ -14,19 +14,32 @@
 #   signal_type: primary_source | analysis | aggregator | operator_voice | research
 #   status: active | probation | disabled
 #
-# Categories:
-#   ai_market_signals — Section 1
-#   opportunity_radar — Section 2
-#   product_service_ideas — Section 3
-#   threat_detection — Section 4
-#   people_to_watch — Section 5
-#   tactical_ai_stack — Section 6
-#   cultural_economic_shifts — Section 7
-#   australian_government_policy — Section 8 (Policy Signal) — MAX 2 items per edition
-#   strategy_decision_making — Cross-section (strategy, leadership, mental models)
-#   venture_capital — Cross-section (VC, markets, funding)
-#   geopolitics — Cross-section (geopolitical intelligence, policy)
-#   australian_business — Cross-section (AU-specific business, innovation)
+# Categories (v4.0 — business-impact taxonomy):
+#   NOTE: Source categories below are INPUT labels for scoring/routing.
+#   The synthesis prompt maps items to 8 business-impact SECTIONS:
+#     Section 1: Strategy & Leadership
+#     Section 2: Sales & Marketing
+#     Section 3: Customer Experience
+#     Section 4: Operations & Workflow
+#     Section 5: People & Capability
+#     Section 6: Data & Systems
+#     Section 7: Governance & Risk (WATCH/ACT indicators, default quiet)
+#     Section 8: Finance & Commercial Performance (default quiet)
+#     Section 9: DTLc.ai's Take (strategic interpretation)
+#
+#   Legacy source categories (still used as input labels):
+#   ai_market_signals — feeds into Strategy & Leadership, Sales & Marketing
+#   opportunity_radar — feeds into multiple sections based on content
+#   product_service_ideas — feeds into Operations & Workflow, Sales & Marketing
+#   threat_detection — feeds into Governance & Risk
+#   people_to_watch — feeds into People & Capability
+#   tactical_ai_stack — feeds into Operations & Workflow, Data & Systems
+#   cultural_economic_shifts — feeds into People & Capability, Customer Experience
+#   australian_government_policy — feeds into Governance & Risk
+#   strategy_decision_making — feeds into Strategy & Leadership
+#   venture_capital — feeds into Finance & Commercial Performance
+#   geopolitics — feeds into Governance & Risk, Strategy & Leadership
+#   australian_business — feeds into multiple sections based on content
 
 rss_feeds:
 

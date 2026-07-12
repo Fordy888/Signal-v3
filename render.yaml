@@ -4,15 +4,19 @@ services:
     runtime: python
     schedule: "0 20 * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m src.main
+    startCommand: python -m src.main --send
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM_EMAIL
-        value: signal@dtlc.ai
-      - key: RECIPIENT_EMAIL
+        value: signal@signal.dtlc.ai
+      - key: PROOF_RECIPIENT_EMAIL
+        sync: false
+      - key: WEBSITE_BASE_URL
+        sync: false
+      - key: SIGNAL_PIPELINE_API_KEY
         sync: false
       - key: BETTERSTACK_HEARTBEAT_URL
         sync: false
