@@ -485,6 +485,7 @@ def main() -> int:
         return 0
 
     # ─── Deliver to all recipients ──────────────────────────────────────
+    from .delivery import INTER_SEND_DELAY_S
     log.info("Stage 4: Delivering to %d recipient(s)...", len(recipients))
 
     success_count = 0
@@ -495,10 +496,10 @@ def main() -> int:
         email = recipient["email"]
         first_name = recipient.get("firstName", "")
 
-        # Rate limit: Resend free tier allows max 2 requests/second.
-        # Wait 700ms between sends to stay safely under the limit.
+        # Pre-emptive throttle: wait between sends to avoid hitting Resend rate limit.
+        # The delivery module also has retry/backoff if 429 is still returned.
         if i > 0:
-            time.sleep(0.7)
+            time.sleep(INTER_SEND_DELAY_S)
 
         log.info("  Sending to: %s (%s)", email, first_name or "no name")
 
@@ -521,52 +522,80 @@ def main() -> int:
             failed_recipient_emails.append(email)
             log.error("  ✗ FAILED to deliver to %s", email)
 
-    # ─── Post-delivery bookkeeping ──────────────────────────────────────
+    # ─── Post-delivery bookkeeping (crash-safe) ─────────────────────────
+    # Wrapped in try/except to ensure a receipt is ALWAYS generated,
+    # even if bookkeeping (URL recording, counter increment) fails.
     duration = time.time() - start_time
+    bookkeeping_error = None
 
-    if args.send and success_count > 0:
-        # Record delivered URLs for cross-day dedup
-        delivered_urls = [item.raw.url for item in scored if hasattr(item, 'raw') and item.raw.url]
-        edition_id = f"edition_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
-        record_edition(root, delivered_urls, edition_id=edition_id)
-        # Increment edition counter only on successful broadcast (not proof)
-        increment_edition(root)
-        log.info("Edition counter incremented. Next edition will be %04d", edition_number + 1)
+    try:
+        if args.send and success_count > 0:
+            # Record delivered URLs for cross-day dedup
+            delivered_urls = []
+            for item in scored:
+                try:
+                    url = item.raw.url if hasattr(item, 'raw') else item.get('url', '') if isinstance(item, dict) else ''
+                    if url:
+                        delivered_urls.append(url)
+                except (AttributeError, TypeError):
+                    continue
+            edition_id = f"edition_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
+            record_edition(root, delivered_urls, edition_id=edition_id)
+            # Increment edition counter only on successful broadcast (not proof)
+            increment_edition(root)
+            log.info("Edition counter incremented. Next edition will be %04d", edition_number + 1)
+    except Exception as e:
+        bookkeeping_error = str(e)
+        log.error("Post-delivery bookkeeping failed (non-fatal): %s", e)
 
-    # ─── Build and send run receipt ─────────────────────────────────────
-    if fail_count > 0:
-        pipeline_result = "partial_failure"
-    else:
-        pipeline_result = "success"
+    # ─── Build and send run receipt (ALWAYS runs) ───────────────────────
+    try:
+        if fail_count > 0:
+            pipeline_result = "partial_failure"
+        elif bookkeeping_error:
+            pipeline_result = "delivered_bookkeeping_error"
+        else:
+            pipeline_result = "success"
 
-    # Classify subscribers for insights in the receipt
-    sub_insights = classify_subscribers(recipients)
-    log.info("Subscriber insights: %d total (%d business / %d personal), %d new today",
-             sub_insights["total"], sub_insights["business"],
-             sub_insights["personal"], sub_insights["new_today"])
+        # Classify subscribers for insights in the receipt
+        sub_insights = classify_subscribers(recipients)
+        log.info("Subscriber insights: %d total (%d business / %d personal), %d new today",
+                 sub_insights["total"], sub_insights["business"],
+                 sub_insights["personal"], sub_insights["new_today"])
 
-    receipt = create_receipt(
-        edition_number=edition_number,
-        mode=mode,
-        sources_active=source_counts["active"],
-        sources_disabled=source_counts["disabled"],
-        sources_failed=len(failed_sources),
-        sources_on_probation=source_counts["probation"],
-        items_fetched=len(raw_items),
-        items_scored=len(scored),
-        recipients_attempted=len(recipients),
-        recipients_delivered=success_count,
-        recipients_failed=fail_count,
-        failed_recipients=failed_recipient_emails,
-        qa_results=qa_results,
-        degraded_sources=degraded_sources,
-        pipeline_result=pipeline_result,
-        duration_seconds=duration,
-        code_version=code_version,
-        subscriber_insights=sub_insights,
-    )
-    save_receipt(root, receipt)
-    send_receipt_email(receipt)
+        qa_issues = qa_results.get("issues", []) if isinstance(qa_results, dict) else []
+        if bookkeeping_error:
+            qa_issues.append(f"[WARN] Post-delivery bookkeeping error: {bookkeeping_error}")
+        if isinstance(qa_results, dict):
+            qa_results["issues"] = qa_issues
+
+        receipt = create_receipt(
+            edition_number=edition_number,
+            mode=mode,
+            sources_active=source_counts["active"],
+            sources_disabled=source_counts["disabled"],
+            sources_failed=len(failed_sources),
+            sources_on_probation=source_counts["probation"],
+            items_fetched=len(raw_items),
+            items_scored=len(scored),
+            recipients_attempted=len(recipients),
+            recipients_delivered=success_count,
+            recipients_failed=fail_count,
+            failed_recipients=failed_recipient_emails,
+            qa_results=qa_results,
+            degraded_sources=degraded_sources,
+            pipeline_result=pipeline_result,
+            duration_seconds=duration,
+            code_version=code_version,
+            subscriber_insights=sub_insights,
+        )
+        save_receipt(root, receipt)
+        send_receipt_email(receipt)
+    except Exception as e:
+        log.error("CRITICAL: Receipt generation failed: %s", e)
+        # Last-resort alert — at minimum log the delivery outcome
+        log.error("DELIVERY SUMMARY: %d/%d sent, %d failed. Failed: %s",
+                  success_count, len(recipients), fail_count, failed_recipient_emails)
 
     log.info("Pipeline complete in %.1f seconds. Sent: %d/%d, Failed: %d",
              duration, success_count, len(recipients), fail_count)
