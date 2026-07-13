@@ -366,13 +366,13 @@ def main() -> int:
         send_receipt_email(receipt)
         return 1
 
-    # Quality gate: block delivery if Section 9 (DTLc.ai's Take) is missing
-    has_section_9 = ("KEY INSIGHT" in html and "STRATEGIC IMPLICATION" in html and "WATCH FOR" in html)
-    if not has_section_9:
-        log.error("BLOCKED: Section 9 (DTLc.ai's Take) is missing or incomplete.")
+    # Quality gate: block delivery if Executive Read section is missing
+    has_executive_read = ("EXECUTIVE READ" in html and "What to Watch" in html)
+    if not has_executive_read:
+        log.error("BLOCKED: Executive Read section is missing or incomplete.")
         send_alert(
-            "Quality gate failed — Section 9 missing",
-            "The synthesised edition is missing Section 9 (DTLc.ai's Take). Edition NOT sent."
+            "Quality gate failed — Executive Read missing",
+            "The synthesised edition is missing the Executive Read (strategic interpretation). Edition NOT sent."
         )
         receipt = create_receipt(
             edition_number=edition_number,
@@ -388,7 +388,7 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
         )
-        receipt.qa_issues = ["[CRITICAL] Content Quality: Section 9 (DTLC.ai's Take) is missing or incomplete"]
+        receipt.qa_issues = ["[CRITICAL] Content Quality: Executive Read section is missing or incomplete"]
         save_receipt(root, receipt)
         send_receipt_email(receipt)
         return 1

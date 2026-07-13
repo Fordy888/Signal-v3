@@ -1,6 +1,17 @@
 """Edition counter for Signal pipeline.
 Tracks the current edition number in data/edition_counter.json.
 Increments only on successful send (not proof).
+
+NOTE: On Render's ephemeral cron filesystem, the counter file does NOT persist
+between job runs. The DEFAULT_START value is the authoritative fallback.
+After each successful live send, update DEFAULT_START to match the edition
+that was just sent. This ensures the next run always produces the correct
+edition number regardless of filesystem state.
+
+Edition history:
+  - Editions 001-012: pre-counter (manual tracking)
+  - Edition 013: first edition with counter (sent Saturday 12 Jul 2026)
+  - Edition 014: next scheduled (Monday 14 Jul 2026)
 """
 from __future__ import annotations
 import json
@@ -10,7 +21,7 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 COUNTER_FILE = "data/edition_counter.json"
-DEFAULT_START = 12  # ~12 editions sent before this counter was introduced
+DEFAULT_START = 13  # Last successfully sent edition. Next = DEFAULT_START + 1 = 014.
 
 
 def get_next_edition(root: Path) -> int:

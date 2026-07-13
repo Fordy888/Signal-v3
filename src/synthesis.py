@@ -77,10 +77,10 @@ def synthesise(
         .replace("{TIME}", time_str)
     )
 
-    # If no items survived scoring, produce a graceful "quiet day" brief
+    # If no items survived scoring, produce a graceful quiet-day brief
     if not items_payload:
         log.warning("No items survived scoring — producing minimal quiet-day brief")
-        prompt += "\n\nNOTE: No items survived the scoring filter today. Produce a minimal 'Quiet today across all sections' brief, with Section 9 (DTLc.ai's Take) still attempting one strategic interpretation from the Context Model alone."
+        prompt += "\n\nNOTE: No items survived the scoring filter today. Produce a minimal edition with Today's Signal thesis noting a quiet day, no Top Signals items, and the Executive Read section providing one strategic interpretation from the Context Model alone."
 
     # Retry with exponential backoff
     resp = None
@@ -112,11 +112,11 @@ def synthesise(
             text_parts.append(block.text)
     html = "\n".join(text_parts).strip()
 
-    # --- Section 9 (DTLc.ai's Take) completeness check with retry ---
-    has_section_9_content = ("KEY INSIGHT" in html and "STRATEGIC IMPLICATION" in html and "WATCH FOR" in html)
-    if not has_section_9_content:
-        log.warning("Section 9 incomplete on first attempt — retrying synthesis with explicit instruction...")
-        retry_prompt = prompt + "\n\nCRITICAL: Your previous output was missing Section 9 content. You MUST include the full DTLc.ai's TAKE section with KEY INSIGHT, STRATEGIC IMPLICATION, and WATCH FOR. Do not truncate."
+    # --- Executive Read completeness check with retry ---
+    has_executive_read = ("EXECUTIVE READ" in html and "What to Watch" in html)
+    if not has_executive_read:
+        log.warning("Executive Read section incomplete on first attempt — retrying synthesis...")
+        retry_prompt = prompt + "\n\nCRITICAL: Your previous output was missing the EXECUTIVE READ section. You MUST include the full Executive Read box with STRATEGIC INTERPRETATION paragraph and 'What to Watch' bullets. Do not truncate."
         try:
             retry_resp = client.messages.create(
                 model=model_id,
@@ -128,14 +128,14 @@ def synthesise(
                 if getattr(block, "type", None) == "text":
                     retry_parts.append(block.text)
             retry_html = "\n".join(retry_parts).strip()
-            if "KEY INSIGHT" in retry_html and "STRATEGIC IMPLICATION" in retry_html:
-                log.info("Section 9 retry successful — using retried output.")
+            if "EXECUTIVE READ" in retry_html and "What to Watch" in retry_html:
+                log.info("Executive Read retry successful — using retried output.")
                 html = retry_html
                 stop_reason = getattr(retry_resp, "stop_reason", None)
             else:
-                log.warning("Section 9 retry also incomplete — using original output.")
+                log.warning("Executive Read retry also incomplete — using original output.")
         except Exception as e:
-            log.warning("Section 9 retry failed: %s — using original output.", e)
+            log.warning("Executive Read retry failed: %s — using original output.", e)
 
     # Defensive: if model wrapped in markdown fence, strip it
     if html.startswith("```"):
@@ -143,12 +143,12 @@ def synthesise(
         # Drop opening and closing fence lines
         html = "\n".join(line for line in lines if not line.startswith("```"))
 
-    # Validate completeness — check for Section 9 and proper HTML closure
-    has_section_9 = "DTLc.ai" in html and ("KEY INSIGHT" in html or "STRATEGIC INTERPRETATION" in html)
+    # Validate completeness — check for Executive Read and proper HTML closure
+    has_executive_read_final = "EXECUTIVE READ" in html and "What to Watch" in html
     has_closing = "</table>" in html[-200:] if len(html) > 200 else "</table>" in html
 
-    if not has_section_9:
-        log.warning("Section 9 (DTLc.ai's Take) is MISSING from output — likely truncated.")
+    if not has_executive_read_final:
+        log.warning("Executive Read section is MISSING from output — likely truncated.")
 
     # Auto-repair: if HTML is truncated mid-tag, close it cleanly
     if stop_reason == "max_tokens" or not has_closing:
