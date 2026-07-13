@@ -192,10 +192,10 @@ rss_feeds:
     url: https://www.interconnects.ai/feed
     category: ai_market_signals
     region: us
-    topics: [rlhf, frontier_models, open_source, research, industry_dynamics]
+    topics: [open_models, policy, regulation, frontier_models, industry_dynamics]
     signal_type: research
     status: active
-    notes: Technical but accessible. Good on model dynamics and industry structure.
+    notes: Key voice on policy and regulatory threats facing open models. Covers open-source viability, government intervention risk, and the shifting dynamics between open and closed model ecosystems.
 
   - name: The Economist — Science & Technology
     url: https://www.economist.com/science-and-technology/rss.xml

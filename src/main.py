@@ -81,7 +81,7 @@ def send_alert(subject: str, body: str) -> None:
 
         resend.api_key = api_key
         resend.Emails.send({
-            "from": f"Signal Ops <{from_email}>",
+            "from": f"DTL Signal Ops <{from_email}>",
             "to": [alert_to],
             "reply_to": alert_to,
             "subject": f"⚠️ SIGNAL ALERT: {subject}",
@@ -89,7 +89,7 @@ def send_alert(subject: str, body: str) -> None:
                 <h2 style="color:#dc2626;">⚠️ Signal Pipeline Alert</h2>
                 <p style="font-size:16px;color:#333;line-height:1.6;">{body}</p>
                 <p style="font-size:14px;color:#666;margin-top:24px;">
-                    This is an automated alert from the Signal pipeline.<br>
+                    This is an automated alert from the DTL Signal pipeline.<br>
                     Time: {datetime.now(BRISBANE).strftime('%Y-%m-%d %H:%M AEST')}
                 </p>
             </div>""",
@@ -532,11 +532,11 @@ def main() -> int:
         if edition_type == "weekly_wrap":
             week_ending = datetime.now(BRISBANE).strftime('%d %B %Y')
             if args.proof:
-                subject_override = f"[PROOF] Signal Weekly Wrap | Week Ending {week_ending}"
+                subject_override = f"[PROOF] DTL Signal Weekly Wrap | Week Ending {week_ending}"
             else:
-                subject_override = f"Signal Weekly Wrap | Week Ending {week_ending}"
+                subject_override = f"DTL Signal Weekly Wrap | Week Ending {week_ending}"
         elif args.proof:
-            subject_override = f"[PROOF] Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
+            subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
 
         ok = send_brief(
             html_body=html,

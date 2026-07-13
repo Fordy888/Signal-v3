@@ -49,9 +49,9 @@ def send_brief(
     if subject_override:
         subject = subject_override
     elif edition_number:
-        subject = f"Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
+        subject = f"DTL Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
     else:
-        subject = f"Signal — {datetime.now(BRISBANE).strftime('%a %d %b')}"
+        subject = f"DTL Signal — {datetime.now(BRISBANE).strftime('%a %d %b')}"
 
     # The synthesis prompt produces fully-styled HTML including DOCTYPE,
     # head, and body. If the html_body already contains <!DOCTYPE or <html,
@@ -66,7 +66,7 @@ def send_brief(
 </body></html>"""
 
     payload = {
-        "from": f"Signal <{from_email}>",
+        "from": f"DTL Signal <{from_email}>",
         "to": [recipient],
         "reply_to": "paul.ford@gmail.com",
         "subject": subject,

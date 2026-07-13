@@ -289,7 +289,7 @@ class RunReceipt:
 <html><head><meta charset="utf-8"></head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;">
     <div style="border-bottom:2px solid {status_color};padding-bottom:12px;margin-bottom:20px;">
-        <h2 style="margin:0;font-size:18px;">Signal Run Receipt — {"Weekly Wrap" if self.edition_type == "weekly_wrap" else f"Edition {self.edition_number:04d}"}</h2>
+        <h2 style="margin:0;font-size:18px;">DTL Signal Run Receipt — {"Weekly Wrap" if self.edition_type == "weekly_wrap" else f"Edition {self.edition_number:04d}"}</h2>
         <p style="margin:4px 0 0;font-size:13px;color:#666;">{now_str}</p>
     </div>
 
@@ -298,7 +298,7 @@ class RunReceipt:
     </div>
 
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px;">
-        <tr><td style="padding:6px 0;color:#666;width:180px;">Edition type</td><td style="padding:6px 0;">{"Weekly Wrap" if self.edition_type == "weekly_wrap" else "Daily Signal"}</td></tr>
+        <tr><td style="padding:6px 0;color:#666;width:180px;"><strong>Edition type</strong></td><td style="padding:6px 0;"><strong style="display:inline-block;padding:2px 10px;border-radius:4px;font-size:13px;background:{('#E6A817' if self.edition_type == 'weekly_wrap' else '#10b981')};color:#fff;">{('WEEKLY WRAP' if self.edition_type == 'weekly_wrap' else 'DAILY SIGNAL')}</strong></td></tr>
         <tr><td style="padding:6px 0;color:#666;width:180px;">Subscribers</td><td style="padding:6px 0;">{self.recipients_delivered}/{self.recipients_attempted} delivered</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Sources succeeded</td><td style="padding:6px 0;">{self.sources_succeeded}/{self.sources_active}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Sources failed</td><td style="padding:6px 0;">{self.sources_failed}</td></tr>
@@ -322,7 +322,7 @@ class RunReceipt:
     </div>
 
     <p style="margin-top:24px;font-size:12px;color:#9ca3af;">
-        This is an automated operational receipt from the Signal pipeline.
+        This is an automated operational receipt from the DTL Signal pipeline.
     </p>
 </body></html>"""
 
@@ -1049,7 +1049,7 @@ def send_receipt_email(receipt: RunReceipt) -> None:
         resend.api_key = api_key
 
         # Subject line reflects status clearly
-        edition_label = "Signal Weekly Wrap" if receipt.edition_type == "weekly_wrap" else f"Signal {receipt.edition_number:04d}"
+        edition_label = "DTL Signal Weekly Wrap" if receipt.edition_type == "weekly_wrap" else f"DTL Signal {receipt.edition_number:04d}"
         if receipt.pipeline_result == "success":
             subject = f"✓ {edition_label} — Delivered ({receipt.recipients_delivered}/{receipt.recipients_attempted})"
         elif receipt.pipeline_result == "held":
@@ -1062,7 +1062,7 @@ def send_receipt_email(receipt: RunReceipt) -> None:
             subject = f"{edition_label} — Run Receipt"
 
         resend.Emails.send({
-            "from": f"Signal Ops <{from_email}>",
+            "from": f"DTL Signal Ops <{from_email}>",
             "to": [ALERT_RECIPIENT],
             "reply_to": ALERT_RECIPIENT,
             "subject": subject,
