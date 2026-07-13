@@ -209,5 +209,5 @@ def synthesise(
                     html = html[:next_td + 5] + inject_html + html[next_td + 5:]
                     log.info("Edition counter injected into header.")
 
-    log.info("Synthesis: produced %d chars of HTML (stop_reason=%s, has_section_9=%s)", len(html), stop_reason, has_section_9)
+    log.info("Synthesis: produced %d chars of HTML (stop_reason=%s, has_executive_read=%s)", len(html), stop_reason, has_executive_read_final)
     return html

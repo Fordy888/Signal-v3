@@ -354,7 +354,7 @@ def main() -> int:
             sources_disabled=source_counts["disabled"],
             sources_failed=len(failed_sources),
             items_fetched=len(raw_items),
-            items_scored=0,
+            items_scored=len(scored),
             pipeline_result="aborted",
             duration_seconds=time.time() - start_time,
             code_version=code_version,

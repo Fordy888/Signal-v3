@@ -460,7 +460,7 @@ def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) ->
         )
         all_results.append(fetch_result)
 
-        if not fetch_result.success and status != "probation":
+        if not fetch_result.success:
             failed_sources.append(feed["name"])
         all_items.extend(items)
 

@@ -361,7 +361,7 @@ class RunReceipt:
             if "edition number" in issue.lower() or "counter" in issue.lower():
                 return "The edition counter may be corrupted. Check data/edition_counter.json on Render."
             if "content" in issue.lower() or "html" in issue.lower() or "generation" in issue.lower():
-                return "The edition failed to generate properly. Check ANTHROPIC_API_KEY and synthesis logs on Render."
+                return "The edition failed to generate properly. Check synthesis logs on Render for the specific error (code bug, prompt issue, or API timeout)."
             if "source" in issue.lower() or "readiness" in issue.lower():
                 return "Content readiness check failed. Review the source failure summary below — some sources may need User-Agent fixes, replacements, or disabling."
             if "category" in issue.lower() or "coverage" in issue.lower():
@@ -564,11 +564,29 @@ def check_content_readiness(
             f"Critical categories completely failed: {', '.join(empty_critical)}"
         )
 
-    # Build coverage detail string for receipt
+    # Build coverage detail string for receipt — map source categories to business-impact sections
+    # Aggregate by business-impact section for display
+    section_coverage: dict[str, int] = {}
+    BUSINESS_SECTIONS = [
+        "Strategy & Leadership", "Sales & Marketing", "Customer Experience",
+        "Operations & Workflow", "People & Capability", "Data & Systems",
+        "Governance & Risk", "Finance & Commercial Performance",
+    ]
+    for section in BUSINESS_SECTIONS:
+        section_coverage[section] = 0
+    for cat, count in category_coverage.items():
+        mapped_sections = CATEGORY_TO_SECTIONS.get(cat, [])
+        for section in mapped_sections:
+            if section in section_coverage:
+                section_coverage[section] += count
+            elif section == "Multiple sections":
+                # Distribute evenly across all sections
+                for s in BUSINESS_SECTIONS:
+                    section_coverage[s] += max(1, count // len(BUSINESS_SECTIONS))
     coverage_parts = []
-    for cat, count in sorted(category_coverage.items()):
-        status = "✓" if count > 0 else "✗"
-        coverage_parts.append(f"{status} {cat}: {count} items")
+    for section, count in section_coverage.items():
+        status = "\u2713" if count > 0 else "\u2717"
+        coverage_parts.append(f"{status} {section}: {count}")
 
     # Determine result
     if issues:
@@ -910,17 +928,31 @@ def create_receipt(
     sources_total = sources_active + sources_disabled
     sources_succeeded = sources_active - sources_failed
 
-    # Build category coverage detail
+    # Build category coverage detail — display business-impact sections, not source categories
     category_coverage_detail = ""
     categories_with_items = 0
-    categories_total = 0
+    categories_total = 8  # 8 business-impact sections
+    BUSINESS_SECTIONS = [
+        "Strategy & Leadership", "Sales & Marketing", "Customer Experience",
+        "Operations & Workflow", "People & Capability", "Data & Systems",
+        "Governance & Risk", "Finance & Commercial Performance",
+    ]
     if category_coverage:
-        categories_total = len(category_coverage)
-        categories_with_items = sum(1 for c in category_coverage.values() if c > 0)
+        # Map source categories to business-impact sections
+        section_counts: dict[str, int] = {s: 0 for s in BUSINESS_SECTIONS}
+        for cat, count in category_coverage.items():
+            mapped = CATEGORY_TO_SECTIONS.get(cat, [])
+            for section in mapped:
+                if section in section_counts:
+                    section_counts[section] += count
+                elif section == "Multiple sections":
+                    for s in BUSINESS_SECTIONS:
+                        section_counts[s] += max(1, count // len(BUSINESS_SECTIONS))
+        categories_with_items = sum(1 for c in section_counts.values() if c > 0)
         parts = []
-        for cat, count in sorted(category_coverage.items()):
-            icon = "✓" if count > 0 else "✗"
-            parts.append(f"{icon} {cat.replace('_', ' ').title()}: {count}")
+        for section, count in section_counts.items():
+            icon = "\u2713" if count > 0 else "\u2717"
+            parts.append(f"{icon} {section}: {count}")
         category_coverage_detail = " | ".join(parts)
 
     # Build failed source summary
