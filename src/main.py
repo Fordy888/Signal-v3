@@ -33,6 +33,8 @@ from .qa_gate import (
     send_receipt_email,
     record_source_failures,
     classify_subscribers,
+    build_category_coverage,
+    build_failed_source_summary,
 )
 
 BRISBANE = ZoneInfo("Australia/Brisbane")
@@ -54,8 +56,8 @@ def setup_logging(log_dir: Path) -> None:
 def ping_heartbeat() -> None:
     """Ping BetterStack heartbeat on successful completion."""
     url = os.environ.get("BETTERSTACK_HEARTBEAT_URL")
-    if not url:
-        log.warning("BETTERSTACK_HEARTBEAT_URL not set — skipping heartbeat")
+    if not url or len(url) < 10 or not url.startswith("http"):
+        log.warning("BETTERSTACK_HEARTBEAT_URL not set or invalid — skipping heartbeat")
         return
     try:
         import requests
@@ -66,11 +68,7 @@ def ping_heartbeat() -> None:
 
 
 def send_alert(subject: str, body: str) -> None:
-    """Send an alert email to the proof recipient (Paul) via Resend.
-    
-    Used for fail-safe notifications when something goes wrong before send.
-    Non-fatal: if alert fails, the pipeline still aborts safely.
-    """
+    """Send an alert email to the proof recipient (Paul) via Resend."""
     try:
         import resend
         api_key = os.environ.get("RESEND_API_KEY")
@@ -121,20 +119,11 @@ def load_subscribers_from_yaml(root: Path) -> list[dict]:
 
 
 def verify_recipient_integrity(recipients: list[dict]) -> bool:
-    """Fail-safe: verify recipient list integrity before sending.
-    
-    Checks:
-    1. All recipients have valid email addresses
-    2. No duplicates in the list
-    3. Count is within expected bounds (at least 1, sanity max 500)
-    
-    Returns True if safe to proceed, False if send should abort.
-    """
+    """Fail-safe: verify recipient list integrity before sending."""
     if not recipients:
         log.error("FAIL-SAFE: Recipient list is empty")
         return False
 
-    # Check all have email
     emails = []
     for r in recipients:
         email = r.get("email", "").strip()
@@ -143,14 +132,12 @@ def verify_recipient_integrity(recipients: list[dict]) -> bool:
             return False
         emails.append(email.lower())
 
-    # Check for duplicates
     unique_emails = set(emails)
     if len(unique_emails) != len(emails):
         dupes = [e for e in emails if emails.count(e) > 1]
         log.error("FAIL-SAFE: Duplicate emails detected: %s", set(dupes))
         return False
 
-    # Sanity bound — if list is suspiciously large, abort
     if len(recipients) > 500:
         log.error("FAIL-SAFE: Recipient count (%d) exceeds safety maximum (500). Aborting.", len(recipients))
         return False
@@ -226,7 +213,6 @@ def main() -> int:
         api_subscribers = fetch_subscribers()
 
         if not api_subscribers:
-            # Safety: if API returns empty, fall back to YAML as last resort
             log.warning("Website API returned no subscribers — trying YAML fallback")
             yaml_subs = load_subscribers_from_yaml(root)
             if yaml_subs:
@@ -265,31 +251,25 @@ def main() -> int:
 
     # ─── FAIL-SAFE: Verify against live subscriber source of truth ──────
     if args.send:
-        # Double-fetch: verify count AND email set match between two consecutive API calls
         log.info("FAIL-SAFE: Verifying recipients against live subscriber source of truth...")
         verify_subscribers = fetch_subscribers()
         if verify_subscribers:
             api_count = len(recipients)
             verify_count = len(verify_subscribers)
 
-            # Count check
             if api_count != verify_count:
                 log.error(
                     "FAIL-SAFE ABORT: Subscriber count mismatch! "
-                    "First fetch: %d, Verification fetch: %d. "
-                    "Possible race condition or API instability. Edition NOT sent.",
+                    "First fetch: %d, Verification fetch: %d.",
                     api_count, verify_count
                 )
                 send_alert(
                     f"Count mismatch ({api_count} vs {verify_count}) — edition NOT sent",
                     f"The subscriber API returned {api_count} subscribers on first call but "
-                    f"{verify_count} on verification call. This could indicate a race condition, "
-                    f"API instability, or data corruption. Today's edition was NOT sent as a safety measure. "
-                    f"Please investigate and manually trigger a re-run if appropriate."
+                    f"{verify_count} on verification call. Today's edition was NOT sent."
                 )
                 return 1
 
-            # Email-level match: ensure the same set of emails in both fetches
             first_emails = set(r["email"].lower().strip() for r in recipients)
             verify_emails = set(r["email"].lower().strip() for r in verify_subscribers)
             if first_emails != verify_emails:
@@ -302,16 +282,13 @@ def main() -> int:
                 )
                 send_alert(
                     "Subscriber list changed between fetches — edition NOT sent",
-                    f"The subscriber API returned different email sets between two consecutive calls. "
-                    f"Added: {added or 'none'}. Removed: {removed or 'none'}. "
-                    f"This suggests the subscriber list is being modified during the send window. "
-                    f"Today's edition was NOT sent. Please investigate."
+                    f"Added: {added or 'none'}. Removed: {removed or 'none'}. Edition NOT sent."
                 )
                 return 1
 
-            log.info("FAIL-SAFE: Source of truth verified — %d subscribers confirmed (count + email match)", api_count)
+            log.info("FAIL-SAFE: Source of truth verified — %d subscribers confirmed", api_count)
         else:
-            log.warning("FAIL-SAFE: Verification fetch returned empty — proceeding with original list (already validated)")
+            log.warning("FAIL-SAFE: Verification fetch returned empty — proceeding with original list")
 
     # ─── Pipeline stages ────────────────────────────────────────────────
 
@@ -321,13 +298,18 @@ def main() -> int:
     edition_number = get_next_edition(root)
     log.info("Next edition number: %04d", edition_number)
 
-    # 1. Fetch raw items (now returns tuple with failed sources)
+    # 1. Fetch raw items (returns tuple with failed sources AND detailed fetch results)
     log.info("Stage 1: Fetching sources...")
-    raw_items, failed_sources = fetch_all(sources_config_path, history_urls=history_urls)
+    raw_items, failed_sources, fetch_results = fetch_all(sources_config_path, history_urls=history_urls)
     if not raw_items:
         log.warning("No items fetched. Proceeding to graceful quiet-day briefs.")
     else:
         log.info("Stage 1 complete: %d raw items fetched", len(raw_items))
+
+    # Log fetch diagnostics
+    sources_succeeded = sum(1 for r in fetch_results if r.success)
+    log.info("Source fetch summary: %d succeeded, %d failed out of %d attempted",
+             sources_succeeded, len(failed_sources), len(fetch_results))
 
     # Track source health (consecutive failures)
     degraded_sources = record_source_failures(
@@ -343,6 +325,10 @@ def main() -> int:
         scoring_prompt_path=str(root / "prompts" / "scoring_prompt.md"),
     )
     log.info("Stage 2 complete: %d items survived scoring", len(scored))
+
+    # Build category coverage for QA gate
+    category_coverage = build_category_coverage(scored)
+    log.info("Category coverage: %s", {k: v for k, v in category_coverage.items() if v > 0})
 
     # 3. Synthesise brief (one edition for all subscribers — same content)
     log.info("Stage 3: Synthesising brief...")
@@ -361,7 +347,6 @@ def main() -> int:
         log.info("Stage 3 complete: %d chars of HTML produced", len(html))
     except Exception as e:
         log.error("Synthesis failed: %s", e)
-        # Send receipt for aborted run
         receipt = create_receipt(
             edition_number=edition_number,
             mode=mode,
@@ -373,6 +358,8 @@ def main() -> int:
             pipeline_result="aborted",
             duration_seconds=time.time() - start_time,
             code_version=code_version,
+            category_coverage=category_coverage,
+            fetch_results=fetch_results,
         )
         receipt.qa_issues = [f"[CRITICAL] Synthesis: Generation failed with error: {e}"]
         save_receipt(root, receipt)
@@ -382,13 +369,11 @@ def main() -> int:
     # Quality gate: block delivery if Section 9 (DTLc.ai's Take) is missing
     has_section_9 = ("KEY INSIGHT" in html and "STRATEGIC IMPLICATION" in html and "WATCH FOR" in html)
     if not has_section_9:
-        log.error("BLOCKED: Section 9 (DTLc.ai's Take) is missing or incomplete. Email will NOT be sent.")
+        log.error("BLOCKED: Section 9 (DTLc.ai's Take) is missing or incomplete.")
         send_alert(
             "Quality gate failed — Section 9 missing",
-            "The synthesised edition is missing Section 9 (DTLc.ai's Take). "
-            "This is a required section. Edition was NOT sent."
+            "The synthesised edition is missing Section 9 (DTLc.ai's Take). Edition NOT sent."
         )
-        # Send receipt for held run
         receipt = create_receipt(
             edition_number=edition_number,
             mode=mode,
@@ -400,6 +385,8 @@ def main() -> int:
             pipeline_result="held",
             duration_seconds=time.time() - start_time,
             code_version=code_version,
+            category_coverage=category_coverage,
+            fetch_results=fetch_results,
         )
         receipt.qa_issues = ["[CRITICAL] Content Quality: Section 9 (DTLC.ai's Take) is missing or incomplete"]
         save_receipt(root, receipt)
@@ -417,11 +404,12 @@ def main() -> int:
         sources_active=source_counts["active"],
         mode=mode,
         root=root,
+        scored_items=scored,
+        fetch_results=fetch_results,
     )
 
     if not should_send:
         log.error("PRE-SEND QA GATE FAILED — Edition HELD. Not sending.")
-        # Build and send receipt for held edition
         receipt = create_receipt(
             edition_number=edition_number,
             mode=mode,
@@ -436,6 +424,8 @@ def main() -> int:
             pipeline_result="held",
             duration_seconds=time.time() - start_time,
             code_version=code_version,
+            category_coverage=category_coverage,
+            fetch_results=fetch_results,
         )
         save_receipt(root, receipt)
         send_receipt_email(receipt)
@@ -465,7 +455,6 @@ def main() -> int:
         print(f"\n{'=' * 60}")
         log.info("Pipeline complete (dry run) in %.1f seconds", time.time() - start_time)
 
-        # Still send receipt for dry runs (useful for testing)
         receipt = create_receipt(
             edition_number=edition_number,
             mode=mode,
@@ -480,6 +469,8 @@ def main() -> int:
             pipeline_result="success",
             duration_seconds=time.time() - start_time,
             code_version=code_version,
+            category_coverage=category_coverage,
+            fetch_results=fetch_results,
         )
         save_receipt(root, receipt)
         return 0
@@ -496,8 +487,6 @@ def main() -> int:
         email = recipient["email"]
         first_name = recipient.get("firstName", "")
 
-        # Pre-emptive throttle: wait between sends to avoid hitting Resend rate limit.
-        # The delivery module also has retry/backoff if 429 is still returned.
         if i > 0:
             time.sleep(INTER_SEND_DELAY_S)
 
@@ -523,14 +512,11 @@ def main() -> int:
             log.error("  ✗ FAILED to deliver to %s", email)
 
     # ─── Post-delivery bookkeeping (crash-safe) ─────────────────────────
-    # Wrapped in try/except to ensure a receipt is ALWAYS generated,
-    # even if bookkeeping (URL recording, counter increment) fails.
     duration = time.time() - start_time
     bookkeeping_error = None
 
     try:
         if args.send and success_count > 0:
-            # Record delivered URLs for cross-day dedup
             delivered_urls = []
             for item in scored:
                 try:
@@ -541,7 +527,6 @@ def main() -> int:
                     continue
             edition_id = f"edition_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
             record_edition(root, delivered_urls, edition_id=edition_id)
-            # Increment edition counter only on successful broadcast (not proof)
             increment_edition(root)
             log.info("Edition counter incremented. Next edition will be %04d", edition_number + 1)
     except Exception as e:
@@ -563,12 +548,6 @@ def main() -> int:
                  sub_insights["total"], sub_insights["business"],
                  sub_insights["personal"], sub_insights["new_today"])
 
-        qa_issues = qa_results.get("issues", []) if isinstance(qa_results, dict) else []
-        if bookkeeping_error:
-            qa_issues.append(f"[WARN] Post-delivery bookkeeping error: {bookkeeping_error}")
-        if isinstance(qa_results, dict):
-            qa_results["issues"] = qa_issues
-
         receipt = create_receipt(
             edition_number=edition_number,
             mode=mode,
@@ -588,12 +567,17 @@ def main() -> int:
             duration_seconds=duration,
             code_version=code_version,
             subscriber_insights=sub_insights,
+            category_coverage=category_coverage,
+            fetch_results=fetch_results,
         )
+
+        if bookkeeping_error:
+            receipt.qa_issues.append(f"[WARNING] Post-delivery bookkeeping error: {bookkeeping_error}")
+
         save_receipt(root, receipt)
         send_receipt_email(receipt)
     except Exception as e:
         log.error("CRITICAL: Receipt generation failed: %s", e)
-        # Last-resort alert — at minimum log the delivery outcome
         log.error("DELIVERY SUMMARY: %d/%d sent, %d failed. Failed: %s",
                   success_count, len(recipients), fail_count, failed_recipient_emails)
 

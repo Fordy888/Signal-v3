@@ -2,13 +2,18 @@
 
 This module provides:
 1. Pre-send validation (metadata integrity, content checks)
-2. Structured run receipts (logged + emailed to Paul)
-3. Source health tracking (consecutive failure counting)
-4. Plain-English alerts that answer: what failed, was it held or sent,
+2. Content-readiness gate (replaces blunt source-percentage threshold)
+3. Structured run receipts (logged + emailed to Paul)
+4. Source health tracking (consecutive failure counting)
+5. Plain-English alerts that answer: what failed, was it held or sent,
    what's the impact, what action is required, is tomorrow safe.
 
-All checks are non-destructive: they return pass/fail with reasons.
-The caller (main.py) decides whether to hold or proceed.
+v4.1 — QA gate redesigned from blunt percentage to content-readiness:
+  - At least 30 reliable sources must succeed
+  - At least 25 quality items must be scored
+  - Coverage across main business-impact categories required
+  - No critical source category completely empty
+  - Receipt shows source health, item count, category coverage, failed-source summary
 """
 from __future__ import annotations
 
@@ -29,6 +34,44 @@ RECEIPT_FILE = "data/run_receipts.json"
 SOURCE_HEALTH_FILE = "data/source_health.json"
 MAX_RECEIPTS = 30  # Keep last 30 run receipts
 ALERT_RECIPIENT = "paul.ford@gmail.com"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONTENT-READINESS THRESHOLDS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Minimum number of sources that must succeed for a viable edition
+MIN_SOURCES_SUCCEEDED = 30
+
+# Minimum number of scored items required
+MIN_SCORED_ITEMS = 25
+
+# Minimum number of distinct source categories that must have at least 1 scored item
+MIN_CATEGORY_COVERAGE = 4
+
+# Critical categories — if ALL sources in these categories fail, hold the edition.
+# These map to the most important business-impact sections.
+CRITICAL_SOURCE_CATEGORIES = [
+    "ai_market_signals",       # Feeds Strategy & Leadership, Sales & Marketing
+    "strategy_decision_making", # Feeds Strategy & Leadership
+    "opportunity_radar",        # Feeds multiple sections
+]
+
+# Category-to-section mapping for coverage reporting
+CATEGORY_TO_SECTIONS = {
+    "ai_market_signals": ["Strategy & Leadership", "Sales & Marketing"],
+    "opportunity_radar": ["Multiple sections"],
+    "product_service_ideas": ["Operations & Workflow", "Sales & Marketing"],
+    "threat_detection": ["Governance & Risk"],
+    "people_to_watch": ["People & Capability"],
+    "tactical_ai_stack": ["Operations & Workflow", "Data & Systems"],
+    "cultural_economic_shifts": ["People & Capability", "Customer Experience"],
+    "australian_government_policy": ["Governance & Risk"],
+    "strategy_decision_making": ["Strategy & Leadership"],
+    "venture_capital": ["Finance & Commercial Performance"],
+    "geopolitics": ["Governance & Risk", "Strategy & Leadership"],
+    "australian_business": ["Multiple sections"],
+}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -63,9 +106,16 @@ class RunReceipt:
     sources_active: int = 0
     sources_disabled: int = 0
     sources_failed: int = 0
+    sources_succeeded: int = 0
     sources_on_probation: int = 0
     items_fetched: int = 0
     items_scored: int = 0
+
+    # Content readiness
+    categories_with_items: int = 0
+    categories_total: int = 0
+    category_coverage_detail: str = ""
+    failed_source_summary: str = ""
 
     # Delivery
     recipients_attempted: int = 0
@@ -105,10 +155,9 @@ class RunReceipt:
             summary = (
                 f"{edition}: QA passed. "
                 f"Delivered to {self.recipients_delivered}/{self.recipients_attempted} active subscribers. "
-                f"Sources fetched: {self.sources_active}. "
-                f"Failed sources: {self.sources_failed}. "
-                f"Disabled sources skipped: {self.sources_disabled}. "
-                f"Delivery failures: {self.recipients_failed}. "
+                f"Sources: {self.sources_succeeded}/{self.sources_active} succeeded. "
+                f"Items scored: {self.items_scored}. "
+                f"Category coverage: {self.categories_with_items}/{self.categories_total}. "
                 f"Status: Safe."
             )
         elif self.pipeline_result == "held":
@@ -123,8 +172,7 @@ class RunReceipt:
                 f"{edition}: Sent with issues. "
                 f"Delivered to {self.recipients_delivered}/{self.recipients_attempted} subscribers. "
                 f"{self.recipients_failed} delivery failure(s): {', '.join(self.failed_recipients)}. "
-                f"Sources fetched: {self.sources_active}. "
-                f"Failed sources: {self.sources_failed}. "
+                f"Sources: {self.sources_succeeded}/{self.sources_active} succeeded. "
                 f"Status: Edition delivered but needs attention."
             )
         elif self.pipeline_result == "aborted":
@@ -146,7 +194,7 @@ class RunReceipt:
         if self.degraded_sources:
             summary += (
                 f" Early warning: {len(self.degraded_sources)} source(s) have failed "
-                f"3+ days in a row ({', '.join(self.degraded_sources)}) — consider disabling or replacing."
+                f"3+ days in a row ({', '.join(self.degraded_sources[:5])}) — consider disabling or replacing."
             )
 
         # Add subscriber insights
@@ -208,9 +256,33 @@ class RunReceipt:
         if self.degraded_sources:
             degraded_html = "<div style='margin-top:12px;padding:12px;background:#eff6ff;border-radius:6px;'>"
             degraded_html += f"<strong>Sources failing consistently (3+ days):</strong><ul style='margin:8px 0;padding-left:20px;'>"
-            for src in self.degraded_sources:
+            for src in self.degraded_sources[:10]:
                 degraded_html += f"<li>{src}</li>"
+            if len(self.degraded_sources) > 10:
+                degraded_html += f"<li>... and {len(self.degraded_sources) - 10} more</li>"
             degraded_html += "</ul><p style='margin:8px 0 0;font-size:13px;color:#666;'>These should be reviewed — they may need to be disabled or replaced.</p></div>"
+
+        # Build content readiness section (new in v4.1)
+        readiness_html = ""
+        if self.category_coverage_detail or self.failed_source_summary:
+            readiness_html = "<div style='margin-top:16px;padding:12px;background:#f0f9ff;border-radius:6px;border:1px solid #bae6fd;'>"
+            readiness_html += "<strong style='font-size:14px;'>Content Readiness</strong>"
+            readiness_html += "<table style='width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;'>"
+            readiness_html += f"<tr><td style='padding:4px 0;color:#666;width:180px;'>Sources succeeded</td><td>{self.sources_succeeded}/{self.sources_active}</td></tr>"
+            readiness_html += f"<tr><td style='padding:4px 0;color:#666;'>Items scored</td><td>{self.items_scored}</td></tr>"
+            readiness_html += f"<tr><td style='padding:4px 0;color:#666;'>Category coverage</td><td>{self.categories_with_items}/{self.categories_total} categories</td></tr>"
+            readiness_html += "</table>"
+            if self.category_coverage_detail:
+                readiness_html += f"<p style='margin:8px 0 0;font-size:12px;color:#555;'>{self.category_coverage_detail}</p>"
+            readiness_html += "</div>"
+
+        # Build failed source summary section (new in v4.1)
+        failed_sources_html = ""
+        if self.failed_source_summary:
+            failed_sources_html = "<div style='margin-top:12px;padding:12px;background:#fef3c7;border-radius:6px;border:1px solid #fcd34d;'>"
+            failed_sources_html += "<strong style='font-size:13px;'>Failed Sources Summary</strong>"
+            failed_sources_html += f"<p style='margin:8px 0 0;font-size:12px;color:#555;white-space:pre-line;'>{self.failed_source_summary}</p>"
+            failed_sources_html += "</div>"
 
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
@@ -226,15 +298,18 @@ class RunReceipt:
 
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px;">
         <tr><td style="padding:6px 0;color:#666;width:180px;">Subscribers</td><td style="padding:6px 0;">{self.recipients_delivered}/{self.recipients_attempted} delivered</td></tr>
-        <tr><td style="padding:6px 0;color:#666;">Sources active</td><td style="padding:6px 0;">{self.sources_active}</td></tr>
+        <tr><td style="padding:6px 0;color:#666;">Sources succeeded</td><td style="padding:6px 0;">{self.sources_succeeded}/{self.sources_active}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Sources failed</td><td style="padding:6px 0;">{self.sources_failed}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Sources disabled (skipped)</td><td style="padding:6px 0;">{self.sources_disabled}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Items scored</td><td style="padding:6px 0;">{self.items_scored}</td></tr>
+        <tr><td style="padding:6px 0;color:#666;">Category coverage</td><td style="padding:6px 0;">{self.categories_with_items}/{self.categories_total}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Duration</td><td style="padding:6px 0;">{self.duration_seconds:.0f} seconds</td></tr>
     </table>
 
     {self._subscriber_insights_html()}
 
+    {readiness_html}
+    {failed_sources_html}
     {issues_html}
     {failed_html}
     {degraded_html}
@@ -287,8 +362,10 @@ class RunReceipt:
                 return "The edition counter may be corrupted. Check data/edition_counter.json on Render."
             if "content" in issue.lower() or "html" in issue.lower() or "generation" in issue.lower():
                 return "The edition failed to generate properly. Check ANTHROPIC_API_KEY and synthesis logs on Render."
-            if "source" in issue.lower():
-                return "Too many sources failed. This may be a network issue on Render's side, or multiple feeds have gone offline."
+            if "source" in issue.lower() or "readiness" in issue.lower():
+                return "Content readiness check failed. Review the source failure summary below — some sources may need User-Agent fixes, replacements, or disabling."
+            if "category" in issue.lower() or "coverage" in issue.lower():
+                return "Category coverage is too thin. Check which source categories are failing and whether feeds need replacing."
 
         return "Review the pipeline logs on Render for details."
 
@@ -301,8 +378,10 @@ class RunReceipt:
                 return "Tomorrow's edition may have the same issue. The counter needs manual correction."
             if "content" in issue.lower() or "generation" in issue.lower():
                 return "Tomorrow's edition may work if this was a temporary API issue. Monitor the next run."
-            if "source" in issue.lower() and "50%" in issue.lower():
-                return "If this is a network issue, it may resolve on its own. If sources are permanently broken, they need replacing."
+            if "source" in issue.lower() or "readiness" in issue.lower():
+                return "If source failures are persistent (networking/blocking), they will recur tomorrow. Review the failure report and consider disabling broken sources."
+            if "category" in issue.lower():
+                return "Category coverage issues will persist until failing sources are fixed or replaced."
 
         return "Uncertain — monitor tomorrow's run closely."
 
@@ -427,39 +506,101 @@ def check_content_minimum(html: str, scored_count: int) -> QAResult:
     )
 
 
-def check_source_health(sources_failed: int, sources_active: int) -> QAResult:
-    """Check if too many sources failed this run."""
-    if sources_active == 0:
-        return QAResult(
-            check_name="Source Health",
-            passed=False,
-            severity="critical",
-            message="Zero active sources. The pipeline has nothing to work with."
+def check_content_readiness(
+    sources_succeeded: int,
+    sources_active: int,
+    scored_count: int,
+    category_coverage: dict[str, int],
+    fetch_results: list | None = None,
+) -> QAResult:
+    """Content-readiness gate — replaces the old blunt source-percentage check.
+
+    A send is allowed only if:
+    1. At least 30 reliable sources succeed
+    2. At least 25 quality items are scored
+    3. Coverage across at least 4 source categories
+    4. No critical source category is completely empty (all sources in that category failed)
+
+    This makes more sense than a blunt percentage because Signal is meant to be
+    short and sharp — 31 sources producing 45 scored items may be enough for a
+    strong edition, but only if coverage is balanced and sources are credible.
+    """
+    issues = []
+    warnings = []
+
+    # Check 1: Minimum sources succeeded
+    if sources_succeeded < MIN_SOURCES_SUCCEEDED:
+        issues.append(
+            f"Only {sources_succeeded}/{sources_active} sources succeeded "
+            f"(minimum: {MIN_SOURCES_SUCCEEDED})"
         )
 
-    failure_rate = sources_failed / sources_active if sources_active > 0 else 1.0
-
-    if failure_rate > 0.5:
-        return QAResult(
-            check_name="Source Health",
-            passed=False,
-            severity="critical",
-            message=f"{sources_failed} out of {sources_active} sources failed ({failure_rate:.0%}). This suggests a network issue or multiple broken feeds."
+    # Check 2: Minimum scored items
+    if scored_count < MIN_SCORED_ITEMS:
+        issues.append(
+            f"Only {scored_count} items scored (minimum: {MIN_SCORED_ITEMS})"
         )
 
-    if failure_rate > 0.25:
+    # Check 3: Category coverage
+    categories_with_items = sum(1 for count in category_coverage.values() if count > 0)
+    total_categories = len(category_coverage)
+    if categories_with_items < MIN_CATEGORY_COVERAGE:
+        issues.append(
+            f"Only {categories_with_items}/{total_categories} categories have content "
+            f"(minimum: {MIN_CATEGORY_COVERAGE})"
+        )
+
+    # Check 4: Critical categories not completely empty
+    empty_critical = []
+    if fetch_results:
+        for critical_cat in CRITICAL_SOURCE_CATEGORIES:
+            # Check if ANY source in this category succeeded
+            cat_results = [r for r in fetch_results if r.category == critical_cat]
+            if cat_results and all(not r.success for r in cat_results):
+                empty_critical.append(critical_cat)
+
+    if empty_critical:
+        issues.append(
+            f"Critical categories completely failed: {', '.join(empty_critical)}"
+        )
+
+    # Build coverage detail string for receipt
+    coverage_parts = []
+    for cat, count in sorted(category_coverage.items()):
+        status = "✓" if count > 0 else "✗"
+        coverage_parts.append(f"{status} {cat}: {count} items")
+
+    # Determine result
+    if issues:
+        message = "Content readiness FAILED: " + "; ".join(issues)
+        if warnings:
+            message += f". Warnings: {'; '.join(warnings)}"
         return QAResult(
-            check_name="Source Health",
+            check_name="Content Readiness",
+            passed=False,
+            severity="critical",
+            message=message,
+        )
+
+    # Passed but may have warnings
+    message = (
+        f"Content ready: {sources_succeeded}/{sources_active} sources, "
+        f"{scored_count} items scored, "
+        f"{categories_with_items}/{total_categories} categories covered."
+    )
+    if warnings:
+        return QAResult(
+            check_name="Content Readiness",
             passed=True,
             severity="warning",
-            message=f"{sources_failed} out of {sources_active} sources failed ({failure_rate:.0%}). Above normal but edition is still viable."
+            message=message + f" Warnings: {'; '.join(warnings)}",
         )
 
     return QAResult(
-        check_name="Source Health",
+        check_name="Content Readiness",
         passed=True,
         severity="info",
-        message=f"{sources_failed}/{sources_active} sources failed ({failure_rate:.0%}). Within normal range."
+        message=message,
     )
 
 
@@ -506,17 +647,10 @@ def check_recipient_count(count: int, mode: str) -> QAResult:
 
 
 def check_reply_to() -> QAResult:
-    """Verify reply-to address is configured and valid.
-    
-    Reply-to must be set, must contain @, and must route to Paul.
-    This prevents subscribers from replying to a dead address.
-    """
-    # The reply-to is hardcoded in delivery.py as paul.ford@gmail.com
-    # but we verify it here as a structural check.
+    """Verify reply-to address is configured and valid."""
     from_email = os.environ.get("RESEND_FROM_EMAIL", "signal@signal.dtlc.ai")
     reply_to = "paul.ford@gmail.com"  # Hardcoded in delivery.py
-    
-    # Check from address is valid
+
     if not from_email or "@" not in from_email:
         return QAResult(
             check_name="Reply-To Validation",
@@ -524,8 +658,7 @@ def check_reply_to() -> QAResult:
             severity="critical",
             message=f"RESEND_FROM_EMAIL is invalid or missing ('{from_email}'). Emails would send from a broken address."
         )
-    
-    # Verify reply-to is set to Paul's email
+
     if reply_to != "paul.ford@gmail.com":
         return QAResult(
             check_name="Reply-To Validation",
@@ -533,8 +666,7 @@ def check_reply_to() -> QAResult:
             severity="critical",
             message=f"Reply-to is set to '{reply_to}' instead of paul.ford@gmail.com. Subscriber replies would route incorrectly."
         )
-    
-    # Verify Resend API key exists (otherwise nothing sends)
+
     if not os.environ.get("RESEND_API_KEY"):
         return QAResult(
             check_name="Reply-To Validation",
@@ -542,13 +674,71 @@ def check_reply_to() -> QAResult:
             severity="critical",
             message="RESEND_API_KEY is not set. The delivery system cannot send emails."
         )
-    
+
     return QAResult(
         check_name="Reply-To Validation",
         passed=True,
         severity="info",
         message=f"From: Signal <{from_email}>, Reply-to: {reply_to}. Routing confirmed."
     )
+
+
+def build_category_coverage(scored_items: list, fetch_results: list | None = None) -> dict[str, int]:
+    """Build a category coverage map from scored items.
+
+    Returns dict mapping source category -> number of scored items in that category.
+    """
+    # All known source categories
+    all_categories = list(CATEGORY_TO_SECTIONS.keys())
+    coverage: dict[str, int] = {cat: 0 for cat in all_categories}
+
+    for item in scored_items:
+        # ScoredItem has a .raw attribute which is a RawItem with .category
+        try:
+            if hasattr(item, 'raw') and hasattr(item.raw, 'category'):
+                cat = item.raw.category
+            elif hasattr(item, 'category'):
+                cat = item.category
+            elif isinstance(item, dict):
+                cat = item.get('category', '')
+            else:
+                continue
+
+            if cat in coverage:
+                coverage[cat] += 1
+            else:
+                coverage[cat] = coverage.get(cat, 0) + 1
+        except (AttributeError, TypeError):
+            continue
+
+    return coverage
+
+
+def build_failed_source_summary(fetch_results: list) -> str:
+    """Build a concise failed-source summary for the receipt email.
+
+    Groups failures by error type and shows top failing domains.
+    """
+    if not fetch_results:
+        return ""
+
+    failed = [r for r in fetch_results if not r.success]
+    if not failed:
+        return ""
+
+    # Group by error type
+    by_type: dict[str, list] = {}
+    for r in failed:
+        error_type = r.error_type or "unknown"
+        by_type.setdefault(error_type, []).append(r)
+
+    lines = [f"Total failed: {len(failed)} sources"]
+    for error_type, results in sorted(by_type.items(), key=lambda x: -len(x[1])):
+        names = [r.name for r in results[:5]]
+        extra = f" (+{len(results) - 5} more)" if len(results) > 5 else ""
+        lines.append(f"  {error_type}: {len(results)} — {', '.join(names)}{extra}")
+
+    return "\n".join(lines)
 
 
 def run_pre_send_qa(
@@ -560,6 +750,8 @@ def run_pre_send_qa(
     sources_active: int,
     mode: str,
     root: Path,
+    scored_items: list | None = None,
+    fetch_results: list | None = None,
 ) -> tuple[bool, list[QAResult]]:
     """Run all pre-send QA checks.
 
@@ -567,12 +759,24 @@ def run_pre_send_qa(
         (should_send, results) — should_send is False if any critical check failed.
         If should_send is False, the edition MUST be held. No exceptions.
     """
+    # Calculate sources succeeded
+    sources_succeeded = sources_active - sources_failed
+
+    # Build category coverage from scored items
+    category_coverage = build_category_coverage(scored_items or [])
+
     results = [
         check_edition_number(edition_number, root),
         check_date_integrity(edition_number),
         check_subject_body_alignment(html, edition_number),
         check_content_minimum(html, scored_count),
-        check_source_health(sources_failed, sources_active),
+        check_content_readiness(
+            sources_succeeded=sources_succeeded,
+            sources_active=sources_active,
+            scored_count=scored_count,
+            category_coverage=category_coverage,
+            fetch_results=fetch_results,
+        ),
         check_recipient_count(recipient_count, mode),
         check_reply_to(),
     ]
@@ -617,13 +821,7 @@ PERSONAL_DOMAINS = {
 
 
 def classify_subscribers(recipients: list[dict]) -> dict:
-    """Classify subscribers into business vs personal based on email domain.
-
-    Also detects new subscribers (signed up in the last 24 hours).
-
-    Returns dict with: total, business, personal, new_today,
-    business_emails (list), personal_emails (list).
-    """
+    """Classify subscribers into business vs personal based on email domain."""
     from datetime import timedelta
 
     now = datetime.now(BRISBANE)
@@ -650,7 +848,6 @@ def classify_subscribers(recipients: list[dict]) -> dict:
         if subscribed_at:
             try:
                 if isinstance(subscribed_at, str):
-                    # Parse ISO format from API
                     sub_dt = datetime.fromisoformat(subscribed_at.replace("Z", "+00:00"))
                     sub_dt = sub_dt.astimezone(BRISBANE)
                 else:
@@ -689,6 +886,8 @@ def create_receipt(
     pipeline_result: str = "success",
     code_version: str = "",
     subscriber_insights: dict | None = None,
+    category_coverage: dict[str, int] | None = None,
+    fetch_results: list | None = None,
 ) -> RunReceipt:
     """Create a structured run receipt."""
     now = datetime.now(BRISBANE)
@@ -709,6 +908,23 @@ def create_receipt(
                 qa_issues.append(f"[WARNING] {r.check_name}: {r.message}")
 
     sources_total = sources_active + sources_disabled
+    sources_succeeded = sources_active - sources_failed
+
+    # Build category coverage detail
+    category_coverage_detail = ""
+    categories_with_items = 0
+    categories_total = 0
+    if category_coverage:
+        categories_total = len(category_coverage)
+        categories_with_items = sum(1 for c in category_coverage.values() if c > 0)
+        parts = []
+        for cat, count in sorted(category_coverage.items()):
+            icon = "✓" if count > 0 else "✗"
+            parts.append(f"{icon} {cat.replace('_', ' ').title()}: {count}")
+        category_coverage_detail = " | ".join(parts)
+
+    # Build failed source summary
+    failed_source_summary = build_failed_source_summary(fetch_results) if fetch_results else ""
 
     # Populate subscriber insights if provided
     si = subscriber_insights or {}
@@ -723,9 +939,14 @@ def create_receipt(
         sources_active=sources_active,
         sources_disabled=sources_disabled,
         sources_failed=sources_failed,
+        sources_succeeded=sources_succeeded,
         sources_on_probation=sources_on_probation,
         items_fetched=items_fetched,
         items_scored=items_scored,
+        categories_with_items=categories_with_items,
+        categories_total=categories_total,
+        category_coverage_detail=category_coverage_detail,
+        failed_source_summary=failed_source_summary,
         recipients_attempted=recipients_attempted,
         recipients_delivered=recipients_delivered,
         recipients_failed=recipients_failed,
@@ -778,10 +999,7 @@ def save_receipt(root: Path, receipt: RunReceipt) -> None:
 
 
 def send_receipt_email(receipt: RunReceipt) -> None:
-    """Email the run receipt to Paul. Always sends — success or failure.
-
-    Uses Resend API. Non-fatal if email fails (receipt is still saved locally).
-    """
+    """Email the run receipt to Paul. Always sends — success or failure."""
     try:
         import resend
 
@@ -824,11 +1042,7 @@ def send_receipt_email(receipt: RunReceipt) -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def record_source_failures(root: Path, failed_sources: list[str], active_sources: list[str]) -> list[str]:
-    """Track consecutive failures per source. Returns sources that have failed 3+ times.
-
-    This enables early warning: if a source fails 3 runs in a row, it should be
-    flagged for investigation (and potentially moved to probation/disabled).
-    """
+    """Track consecutive failures per source. Returns sources that have failed 3+ times."""
     health_path = root / SOURCE_HEALTH_FILE
     health_path.parent.mkdir(parents=True, exist_ok=True)
 

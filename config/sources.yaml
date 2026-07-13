@@ -77,8 +77,8 @@ rss_feeds:
     region: us
     topics: [llm, safety, enterprise_ai, agents, research]
     signal_type: primary_source
-    status: active
-    notes: Claude maker. Key for enterprise AI direction and safety developments.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — RSS URL returns 404. Feed URL has changed. Need to find new endpoint."
 
   - name: Hugging Face Blog
     url: https://huggingface.co/blog/feed.xml
@@ -176,8 +176,8 @@ rss_feeds:
     region: us
     topics: [ai_policy, enterprise_ai, funding, product_launches, regulation]
     signal_type: aggregator
-    status: active
-    notes: Concise AI news with business angle. Good signal-to-noise ratio.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — Returns 403 Forbidden. Axios blocks RSS scraping."
 
   - name: One Useful Thing (Ethan Mollick)
     url: https://www.oneusefulthing.org/feed
@@ -220,8 +220,8 @@ rss_feeds:
     region: global
     topics: [product_launches, tools, industry_trends, enterprise_ai]
     signal_type: aggregator
-    status: active
-    notes: 2M+ subscriber AI newsletter. Good for catching stories Signal might miss.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — RSS URL returns 404. Feed endpoint no longer exists."
 
   - name: Apple Machine Learning Research
     url: https://machinelearning.apple.com/rss.xml
@@ -238,8 +238,8 @@ rss_feeds:
     region: us
     topics: [enterprise_ai, copilot, azure, product_launches, partnerships]
     signal_type: primary_source
-    status: active
-    notes: Enterprise AI direction from the Copilot/Azure stack.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — Returns 410 Gone. Feed permanently removed by Microsoft."
 
   - name: Nvidia AI Blog
     url: https://blogs.nvidia.com/feed/
@@ -256,8 +256,8 @@ rss_feeds:
     region: us
     topics: [open_source, llama, research, multimodal, agents]
     signal_type: primary_source
-    status: active
-    notes: Open-source AI leader. Llama ecosystem direction.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — Returns 400 Bad Request. RSS endpoint broken."
 
   # ═══════════════════════════════════════════════════
   # STRATEGY & DECISION MAKING (Cross-section)
@@ -325,8 +325,8 @@ rss_feeds:
     region: global
     topics: [enterprise_ai, leadership, transformation, workforce, strategy]
     signal_type: research
-    status: active
-    notes: Executive-level AI strategy. Agentic systems, workforce transformation.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — URL is not a valid RSS feed (returns HTML page). Parse error. Need correct RSS endpoint."
 
   - name: Deloitte Insights
     url: https://www2.deloitte.com/content/www/us/en/insights/rss/deloitte-review.xml
@@ -334,8 +334,8 @@ rss_feeds:
     region: global
     topics: [transformation, enterprise_ai, workforce, leadership, strategy]
     signal_type: research
-    status: active
-    notes: Big 4 consulting research. Enterprise AI adoption patterns.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — RSS URL returns 404. Feed endpoint removed."
 
   - name: Bain & Company Insights
     url: https://www.bain.com/insights/rss/
@@ -343,8 +343,8 @@ rss_feeds:
     region: global
     topics: [strategy, transformation, private_equity, operations, ai_adoption]
     signal_type: research
-    status: active
-    notes: Strategy consulting. Good on PE-backed business transformation.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — RSS URL returns 404. Feed endpoint removed."
 
   # ═══════════════════════════════════════════════════
   # VENTURE CAPITAL & FUTURE MARKETS (Cross-section)
@@ -404,8 +404,8 @@ rss_feeds:
     region: us
     topics: [investing, ai_startups, market_trends, enterprise, crypto]
     signal_type: primary_source
-    status: active
-    notes: Top-tier VC. AI investment thesis and market direction.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — RSS URL returns 404. Feed endpoint has changed."
 
   - name: VentureBeat
     url: https://venturebeat.com/feed/
@@ -765,7 +765,7 @@ rss_feeds:
     region: australia
     topics: [joint_committees, ai_inquiry, tech_regulation, cross_party]
     signal_type: primary_source
-    status: active
+    status: probation
     notes: "URL corrected 9 Jul 2026 (was /Parliamentary_Business/Committees/Joint/RSS/Inquiries → now /house/rss/joint_inquiries). Score: 28/30 Gold. Joint inquiries — often where AI/tech regulation starts."
 
   - name: ASD/ACSC — Cyber Security Centre
@@ -839,7 +839,7 @@ rss_feeds:
     region: australia
     topics: [house_committees, legislation, regulation, business_regulation]
     signal_type: primary_source
-    status: active
+    status: probation
     notes: "Added 9 Jul 2026. Score: 26/30 Gold. House of Representatives committee inquiries. Complements Senate + Joint inquiry feeds."
 
   # ═══════════════════════════════════════════════════
@@ -951,8 +951,8 @@ rss_feeds:
     region: global
     topics: [tools, product_launches, research, funding, practical_ai]
     signal_type: aggregator
-    status: active
-    notes: Daily AI digest. Useful as a cross-check for coverage gaps.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — RSS URL returns 404. Feed endpoint no longer exists."
 
   - name: Superhuman AI (Zain Kahn)
     url: https://www.superhuman.ai/feed
@@ -960,8 +960,8 @@ rss_feeds:
     region: global
     topics: [tools, productivity, prompts, workflows, ai_tools]
     signal_type: aggregator
-    status: active
-    notes: 1.5M+ subscribers. Tactical AI tools and workflows.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — RSS URL returns 404. Feed endpoint no longer exists."
 
   - name: Ben's Bites
     url: https://www.bensbites.com/feed
@@ -991,8 +991,8 @@ rss_feeds:
     region: global
     topics: [enterprise_ai, cloud, infrastructure, gemini, vertex]
     signal_type: primary_source
-    status: active
-    notes: Google Cloud AI direction. Gemini enterprise deployment.
+    status: disabled
+    notes: "DISABLED 13 Jul 2026 — Feed returns malformed XML (parse error). Google may have changed feed format."
 
   - name: CIO Dive
     url: https://www.ciodive.com/feeds/news/
