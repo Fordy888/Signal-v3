@@ -41,6 +41,7 @@ def synthesise(
     synthesis_prompt_path: str,
     model: str | None = None,
     edition_number: int = 1,
+    edition_type: str = "daily",
 ) -> str:
     """Produce the HTML brief. Returns the HTML string."""
     client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -112,11 +113,19 @@ def synthesise(
             text_parts.append(block.text)
     html = "\n".join(text_parts).strip()
 
-    # --- Executive Read completeness check with retry ---
-    has_executive_read = ("EXECUTIVE READ" in html and "What to Watch" in html)
-    if not has_executive_read:
-        log.warning("Executive Read section incomplete on first attempt — retrying synthesis...")
-        retry_prompt = prompt + "\n\nCRITICAL: Your previous output was missing the EXECUTIVE READ section. You MUST include the full Executive Read box with STRATEGIC INTERPRETATION paragraph and 'What to Watch' bullets. Do not truncate."
+    # --- Key section completeness check with retry ---
+    if edition_type == "weekly_wrap":
+        has_key_section = ("THE PATTERN" in html and "EXECUTIVE TAKEAWAY" in html)
+        section_label = "THE PATTERN + EXECUTIVE TAKEAWAY"
+        retry_instruction = "\n\nCRITICAL: Your previous output was missing THE PATTERN BEHIND THE HEADLINES and/or EXECUTIVE TAKEAWAY sections. You MUST include both. Do not truncate."
+    else:
+        has_key_section = ("EXECUTIVE READ" in html and "What to Watch" in html)
+        section_label = "EXECUTIVE READ + What to Watch"
+        retry_instruction = "\n\nCRITICAL: Your previous output was missing the EXECUTIVE READ section. You MUST include the full Executive Read box with STRATEGIC INTERPRETATION paragraph and 'What to Watch' bullets. Do not truncate."
+
+    if not has_key_section:
+        log.warning("%s incomplete on first attempt — retrying synthesis...", section_label)
+        retry_prompt = prompt + retry_instruction
         try:
             retry_resp = client.messages.create(
                 model=model_id,
@@ -128,14 +137,18 @@ def synthesise(
                 if getattr(block, "type", None) == "text":
                     retry_parts.append(block.text)
             retry_html = "\n".join(retry_parts).strip()
-            if "EXECUTIVE READ" in retry_html and "What to Watch" in retry_html:
-                log.info("Executive Read retry successful — using retried output.")
+            if edition_type == "weekly_wrap":
+                retry_has_key = ("THE PATTERN" in retry_html and "EXECUTIVE TAKEAWAY" in retry_html)
+            else:
+                retry_has_key = ("EXECUTIVE READ" in retry_html and "What to Watch" in retry_html)
+            if retry_has_key:
+                log.info("%s retry successful — using retried output.", section_label)
                 html = retry_html
                 stop_reason = getattr(retry_resp, "stop_reason", None)
             else:
-                log.warning("Executive Read retry also incomplete — using original output.")
+                log.warning("%s retry also incomplete — using original output.", section_label)
         except Exception as e:
-            log.warning("Executive Read retry failed: %s — using original output.", e)
+            log.warning("%s retry failed: %s — using original output.", section_label, e)
 
     # Defensive: if model wrapped in markdown fence, strip it
     if html.startswith("```"):
@@ -143,12 +156,15 @@ def synthesise(
         # Drop opening and closing fence lines
         html = "\n".join(line for line in lines if not line.startswith("```"))
 
-    # Validate completeness — check for Executive Read and proper HTML closure
-    has_executive_read_final = "EXECUTIVE READ" in html and "What to Watch" in html
+    # Validate completeness — check for key sections and proper HTML closure
+    if edition_type == "weekly_wrap":
+        has_executive_read_final = "THE PATTERN" in html and "EXECUTIVE TAKEAWAY" in html
+    else:
+        has_executive_read_final = "EXECUTIVE READ" in html and "What to Watch" in html
     has_closing = "</table>" in html[-200:] if len(html) > 200 else "</table>" in html
 
     if not has_executive_read_final:
-        log.warning("Executive Read section is MISSING from output — likely truncated.")
+        log.warning("%s is MISSING from output — likely truncated.", section_label)
 
     # Auto-repair: if HTML is truncated mid-tag, close it cleanly
     if stop_reason == "max_tokens" or not has_closing:

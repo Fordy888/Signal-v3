@@ -157,6 +157,9 @@ def main() -> int:
                             help="Dry run: pipeline runs but no email sent")
     parser.add_argument("--save-html", type=str, default=None,
                         help="Also save the brief to this file path")
+    parser.add_argument("--force-type", type=str, choices=["daily", "weekly_wrap"],
+                        default=None,
+                        help="Override day-of-week detection (for testing)")
     args = parser.parse_args()
 
     # Locate project root (parent of src/)
@@ -186,6 +189,23 @@ def main() -> int:
     except Exception:
         code_version = "unknown"
     log.info("Code version: %s", code_version)
+
+    # ─── DAY-OF-WEEK ROUTING ──────────────────────────────────────────
+    now_brisbane = datetime.now(BRISBANE)
+    day_of_week = now_brisbane.weekday()  # 0=Mon, 5=Sat, 6=Sun
+
+    if args.force_type:
+        edition_type = args.force_type
+        log.info("Edition type forced via --force-type: %s", edition_type)
+    elif day_of_week == 6:  # Sunday
+        log.info("Sunday — no edition scheduled. Exiting cleanly.")
+        return 0
+    elif day_of_week == 5:  # Saturday
+        edition_type = "weekly_wrap"
+        log.info("Saturday detected — running Signal Weekly Wrap")
+    else:
+        edition_type = "daily"
+        log.info("Weekday detected — running Daily Signal")
 
     if not os.environ.get("ANTHROPIC_API_KEY"):
         log.error("ANTHROPIC_API_KEY not set. Configure .env or environment.")
@@ -337,12 +357,19 @@ def main() -> int:
         log.error("Context file not found: %s", context_path)
         return 1
 
+    # Select prompt based on edition type
+    if edition_type == "weekly_wrap":
+        synthesis_prompt_path = str(root / "prompts" / "weekly_wrap_prompt.md")
+    else:
+        synthesis_prompt_path = str(root / "prompts" / "synthesis_prompt.md")
+
     try:
         html = synthesise(
             scored_items=scored,
             context_path=context_path,
-            synthesis_prompt_path=str(root / "prompts" / "synthesis_prompt.md"),
+            synthesis_prompt_path=synthesis_prompt_path,
             edition_number=edition_number,
+            edition_type=edition_type,
         )
         log.info("Stage 3 complete: %d chars of HTML produced", len(html))
     except Exception as e:
@@ -360,19 +387,26 @@ def main() -> int:
             code_version=code_version,
             category_coverage=category_coverage,
             fetch_results=fetch_results,
+            edition_type=edition_type,
         )
         receipt.qa_issues = [f"[CRITICAL] Synthesis: Generation failed with error: {e}"]
         save_receipt(root, receipt)
         send_receipt_email(receipt)
         return 1
 
-    # Quality gate: block delivery if Executive Read section is missing
-    has_executive_read = ("EXECUTIVE READ" in html and "What to Watch" in html)
-    if not has_executive_read:
-        log.error("BLOCKED: Executive Read section is missing or incomplete.")
+    # Quality gate: block delivery if key synthesis section is missing
+    if edition_type == "weekly_wrap":
+        has_key_section = ("THE PATTERN" in html and "EXECUTIVE TAKEAWAY" in html)
+        gate_label = "Weekly Wrap key sections (THE PATTERN + EXECUTIVE TAKEAWAY)"
+    else:
+        has_key_section = ("EXECUTIVE READ" in html and "What to Watch" in html)
+        gate_label = "Executive Read section"
+
+    if not has_key_section:
+        log.error("BLOCKED: %s is missing or incomplete.", gate_label)
         send_alert(
-            "Quality gate failed — Executive Read missing",
-            "The synthesised edition is missing the Executive Read (strategic interpretation). Edition NOT sent."
+            f"Quality gate failed — {gate_label} missing",
+            f"The synthesised edition is missing {gate_label}. Edition NOT sent."
         )
         receipt = create_receipt(
             edition_number=edition_number,
@@ -387,8 +421,9 @@ def main() -> int:
             code_version=code_version,
             category_coverage=category_coverage,
             fetch_results=fetch_results,
+            edition_type=edition_type,
         )
-        receipt.qa_issues = ["[CRITICAL] Content Quality: Executive Read section is missing or incomplete"]
+        receipt.qa_issues = [f"[CRITICAL] Content Quality: {gate_label} is missing or incomplete"]
         save_receipt(root, receipt)
         send_receipt_email(receipt)
         return 1
@@ -426,11 +461,11 @@ def main() -> int:
             code_version=code_version,
             category_coverage=category_coverage,
             fetch_results=fetch_results,
+            edition_type=edition_type,
         )
         save_receipt(root, receipt)
         send_receipt_email(receipt)
         return 1
-
     # Save HTML if requested
     if args.save_html:
         save_path = Path(args.save_html)
@@ -471,6 +506,7 @@ def main() -> int:
             code_version=code_version,
             category_coverage=category_coverage,
             fetch_results=fetch_results,
+            edition_type=edition_type,
         )
         save_receipt(root, receipt)
         return 0
@@ -493,7 +529,13 @@ def main() -> int:
         log.info("  Sending to: %s (%s)", email, first_name or "no name")
 
         subject_override = None
-        if args.proof:
+        if edition_type == "weekly_wrap":
+            week_ending = datetime.now(BRISBANE).strftime('%d %B %Y')
+            if args.proof:
+                subject_override = f"[PROOF] Signal Weekly Wrap | Week Ending {week_ending}"
+            else:
+                subject_override = f"Signal Weekly Wrap | Week Ending {week_ending}"
+        elif args.proof:
             subject_override = f"[PROOF] Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
 
         ok = send_brief(
@@ -569,6 +611,7 @@ def main() -> int:
             subscriber_insights=sub_insights,
             category_coverage=category_coverage,
             fetch_results=fetch_results,
+            edition_type=edition_type,
         )
 
         if bookkeeping_error:

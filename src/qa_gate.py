@@ -146,6 +146,7 @@ class RunReceipt:
 
     # Traceability
     code_version: str = ""  # Git commit hash that produced this edition
+    edition_type: str = "daily"  # "daily" or "weekly_wrap" — for analytics distinction
 
     def plain_english_summary(self) -> str:
         """Plain-English summary for Paul. One glance tells you if everything is OK."""
@@ -288,7 +289,7 @@ class RunReceipt:
 <html><head><meta charset="utf-8"></head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;">
     <div style="border-bottom:2px solid {status_color};padding-bottom:12px;margin-bottom:20px;">
-        <h2 style="margin:0;font-size:18px;">Signal Run Receipt — Edition {self.edition_number:04d}</h2>
+        <h2 style="margin:0;font-size:18px;">Signal Run Receipt — {"Weekly Wrap" if self.edition_type == "weekly_wrap" else f"Edition {self.edition_number:04d}"}</h2>
         <p style="margin:4px 0 0;font-size:13px;color:#666;">{now_str}</p>
     </div>
 
@@ -297,6 +298,7 @@ class RunReceipt:
     </div>
 
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px;">
+        <tr><td style="padding:6px 0;color:#666;width:180px;">Edition type</td><td style="padding:6px 0;">{"Weekly Wrap" if self.edition_type == "weekly_wrap" else "Daily Signal"}</td></tr>
         <tr><td style="padding:6px 0;color:#666;width:180px;">Subscribers</td><td style="padding:6px 0;">{self.recipients_delivered}/{self.recipients_attempted} delivered</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Sources succeeded</td><td style="padding:6px 0;">{self.sources_succeeded}/{self.sources_active}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Sources failed</td><td style="padding:6px 0;">{self.sources_failed}</td></tr>
@@ -906,6 +908,7 @@ def create_receipt(
     subscriber_insights: dict | None = None,
     category_coverage: dict[str, int] | None = None,
     fetch_results: list | None = None,
+    edition_type: str = "daily",
 ) -> RunReceipt:
     """Create a structured run receipt."""
     now = datetime.now(BRISBANE)
@@ -997,6 +1000,7 @@ def create_receipt(
         subscriber_emails_business=si.get("business_emails", []),
         subscriber_emails_personal=si.get("personal_emails", []),
         code_version=code_version,
+        edition_type=edition_type,
     )
 
 
@@ -1045,16 +1049,17 @@ def send_receipt_email(receipt: RunReceipt) -> None:
         resend.api_key = api_key
 
         # Subject line reflects status clearly
+        edition_label = "Signal Weekly Wrap" if receipt.edition_type == "weekly_wrap" else f"Signal {receipt.edition_number:04d}"
         if receipt.pipeline_result == "success":
-            subject = f"✓ Signal {receipt.edition_number:04d} — Delivered ({receipt.recipients_delivered}/{receipt.recipients_attempted})"
+            subject = f"✓ {edition_label} — Delivered ({receipt.recipients_delivered}/{receipt.recipients_attempted})"
         elif receipt.pipeline_result == "held":
-            subject = f"⚠️ Signal {receipt.edition_number:04d} — HELD (QA failed)"
+            subject = f"⚠️ {edition_label} — HELD (QA failed)"
         elif receipt.pipeline_result == "partial_failure":
-            subject = f"⚠️ Signal {receipt.edition_number:04d} — Sent with {receipt.recipients_failed} failure(s)"
+            subject = f"⚠️ {edition_label} — Sent with {receipt.recipients_failed} failure(s)"
         elif receipt.pipeline_result == "aborted":
-            subject = f"🚨 Signal {receipt.edition_number:04d} — ABORTED"
+            subject = f"🚨 {edition_label} — ABORTED"
         else:
-            subject = f"Signal {receipt.edition_number:04d} — Run Receipt"
+            subject = f"{edition_label} — Run Receipt"
 
         resend.Emails.send({
             "from": f"Signal Ops <{from_email}>",
