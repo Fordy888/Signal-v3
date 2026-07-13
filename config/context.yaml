@@ -115,6 +115,27 @@ signal_topics:
     - AI ROI measurement and accountability
     - Human-AI collaboration models
 
+editorial_accuracy:
+  description: |
+    These rules govern how Signal interprets and frames source material.
+    Sharp writing is encouraged. Fabrication is not. The goal is precision
+    with personality — never dull, never dishonest.
+  rules:
+    - Do not create precise numerical comparisons unless the source explicitly makes that comparison.
+    - Do not upgrade "testing," "using," "turning to," or "adding" into "switching," "abandoning," or "defecting."
+    - Avoid hyperbolic framing when the evidence supports a more measured statement.
+    - Headlines must not make a stronger claim than the underlying source.
+    - When evidence is uncertain, use accurate language such as "may," "could," "some companies," or "turning to."
+  negative_examples:
+    - avoid: "Agentic systems are burning tokens 100x faster than prices are falling."
+      better: "Higher token consumption can absorb the savings from lower inference prices."
+    - avoid: "Fortune 500 is defecting to Chinese models."
+      better: "Major enterprises are turning to Chinese AI models."
+  principle: |
+    Signal earns trust through precision. Subscribers act on what we write.
+    Every claim must be defensible against the source. Personality comes from
+    the editorial lens — not from inflating the evidence.
+
 noise_filter:
   - 'Generic "Top 10 AI tools" content'
   - 'Influencer AI-hype with no operator angle'
