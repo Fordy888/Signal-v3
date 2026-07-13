@@ -40,9 +40,9 @@ THE BRIEF YOU MUST PRODUCE
 Produce DTL Signal as ONE short brief in clean inline-styled HTML (for email rendering).
 
 **Hard limits:**
-- Total ceiling: 500 words. Most days should land 350-450 words.
+- No arbitrary word count. The editorial standard is quality and reading time: no filler, every item must earn its place, and the edition must remain comfortably readable by an executive in under five minutes.
 - Maximum 5-8 items total. Not per section — TOTAL across the entire edition.
-- This is a 3-minute read. If it takes longer, you've failed.
+- This is a sub-5-minute read. Every item must earn its place.
 
 **STRUCTURE — flat, not sectioned:**
 
