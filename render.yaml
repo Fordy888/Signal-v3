@@ -33,6 +33,31 @@ services:
     region: singapore
     maxShutdownDelaySeconds: 30
 
+  # ─── SUBSCRIBER UPDATE: One-off — Tue 14 Jul 2026 at 3:00 PM AEST (05:00 UTC) ───
+  # After sending, change schedule to "0 0 1 1 *" to disable, or remove this service.
+  - type: cron
+    name: dtl-signal-subscriber-update
+    runtime: python
+    schedule: "0 5 14 7 *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python send_subscriber_update.py --send
+    envVars:
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: paul@signal.dtlc.ai
+      - key: WEBSITE_BASE_URL
+        sync: false
+      - key: SIGNAL_PIPELINE_API_KEY
+        sync: false
+      - key: TZ
+        value: Australia/Brisbane
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+    plan: standard
+    region: singapore
+    maxShutdownDelaySeconds: 30
+
   # ─── PROOF: Manual trigger only — sends to Paul only ───
   - type: cron
     name: dtl-signal-proof
