@@ -42,7 +42,7 @@ def send_brief(
 
     if not (api_key and recipient):
         log.error("Email config missing — set RESEND_API_KEY and RECIPIENT_EMAIL")
-        return False
+        return None
 
     resend.api_key = api_key
 
@@ -80,7 +80,7 @@ def send_brief(
             r = resend.Emails.send(payload)
             email_id = r.get("id") if isinstance(r, dict) else getattr(r, "id", None)
             log.info("Brief sent via Resend (id=%s) to %s", email_id, recipient)
-            return True
+            return email_id or True
         except Exception as e:
             error_msg = str(e).lower()
             is_rate_limit = "too many requests" in error_msg or "429" in error_msg or "rate" in error_msg
@@ -101,8 +101,8 @@ def send_brief(
                     )
                 else:
                     log.error("Resend delivery failed for %s: %s", recipient, e)
-                return False
+                return None
 
     # Should not reach here, but safety net
     log.error("Resend delivery failed for %s: exhausted all retry attempts", recipient)
-    return False
+    return None

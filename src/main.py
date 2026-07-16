@@ -23,6 +23,7 @@ from .sources import fetch_all, get_source_counts
 from .scoring import score_items
 from .synthesis import synthesise
 from .delivery import send_brief
+from .attribution import report_send_results, resolve_subscriber_ids
 from .history import load_history, record_edition
 from .edition_counter import get_next_edition, increment_edition
 from .subscribers import fetch_subscribers
@@ -518,6 +519,7 @@ def main() -> int:
     success_count = 0
     fail_count = 0
     failed_recipient_emails: list[str] = []
+    delivery_map: list[tuple[str, str]] = []  # (email, resend_message_id)
 
     for i, recipient in enumerate(recipients):
         email = recipient["email"]
@@ -538,15 +540,17 @@ def main() -> int:
         elif args.proof:
             subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
 
-        ok = send_brief(
+        result = send_brief(
             html_body=html,
             recipient_email=email,
             subject_override=subject_override,
             edition_number=edition_number,
         )
 
-        if ok:
+        if result:
             success_count += 1
+            if isinstance(result, str):
+                delivery_map.append((email, result))
             log.info("  ✓ Delivered to %s", email)
         else:
             fail_count += 1
@@ -574,6 +578,35 @@ def main() -> int:
     except Exception as e:
         bookkeeping_error = str(e)
         log.error("Post-delivery bookkeeping failed (non-fatal): %s", e)
+
+    # ─── Stage 5: DTL PL Attribution ───────────────────────────────────
+    if delivery_map and success_count > 0:
+        log.info("Stage 5: Reporting %d delivery(s) to DTL PL...", len(delivery_map))
+        try:
+            email_to_id = resolve_subscriber_ids(recipients)
+            attribution_results = []
+            for email_addr, msg_id in delivery_map:
+                sub_id = email_to_id.get(email_addr.lower().strip())
+                if sub_id:
+                    attribution_results.append({
+                        "subscriberId": sub_id,
+                        "resendMessageId": msg_id,
+                    })
+                else:
+                    log.warning("  No subscriber ID found for %s — skipping attribution", email_addr)
+            if attribution_results:
+                edition_id = f"edition_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
+                report_ok = report_send_results(edition_id, attribution_results)
+                if report_ok:
+                    log.info("  ✓ DTL PL attribution complete: %d mappings reported", len(attribution_results))
+                else:
+                    log.warning("  ✗ DTL PL attribution failed (non-fatal)")
+            else:
+                log.warning("  No subscriber IDs resolved — attribution skipped")
+        except Exception as e:
+            log.error("Stage 5 (DTL PL attribution) failed (non-fatal): %s", e)
+    elif success_count > 0:
+        log.info("Stage 5: No message IDs captured — attribution skipped (Resend may not have returned IDs)")
 
     # ─── Build and send run receipt (ALWAYS runs) ───────────────────────
     try:
