@@ -75,11 +75,13 @@ Every item MUST follow this exact structure:
 **Action tag:** ACT / WATCH / NOTE (as a pill badge)
 **Category tag:** One of the 8 business-impact categories (small, dimmed)
 **Headline:** One sharp sentence. Max 8 words.
-**What happened:** One sentence. Include hyperlinked source.
-**Why it matters:** One sentence. Commercial/strategic implication.
-**Signal:** One sentence. The actionable takeaway.
+**What happened:** 40-60 words MAXIMUM. One or two sentences. Include hyperlinked source. Hook the reader — give enough to intrigue, NOT enough to satisfy. The goal is click-through.
+**Why it matters:** 40-60 words MAXIMUM. One or two sentences. Commercial/strategic implication.
+**Signal:** 40-60 words MAXIMUM. One sentence. The actionable takeaway.
 
-No item should become a mini-article. Each item should be scannable in under 20 seconds.
+**SECTION LENGTH RULE — NON-NEGOTIABLE:** All three sections (What happened, Why it matters, Signal) must be approximately EQUAL LENGTH. No section should be more than 50% longer than any other. If "What happened" is 50 words, "Why it matters" and "Signal" must each be at least 35 words. This creates visual balance and punchy, scannable items.
+
+No item should become a mini-article. Each item should be scannable in under 15 seconds. Provoke the reader to click the source link — do NOT give them everything.
 
 ═══════════════════════════════════════════════════
 EDITORIAL VOICE — non-negotiable

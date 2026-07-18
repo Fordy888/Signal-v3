@@ -61,9 +61,11 @@ Each of the Five Biggest Stories MUST follow this exact structure:
 **Action tag:** ACT / WATCH / NOTE (as a pill badge)
 **Category tag:** One of the 8 business-impact categories (small, dimmed)
 **Headline:** One sharp sentence. Max 10 words.
-**What happened:** 2-3 sentences. Include hyperlinked source(s). May reference multiple developments that built on each other during the week.
-**Why it matters:** 1-2 sentences. Commercial/strategic implication at the weekly level.
-**Signal:** One sentence. The actionable takeaway for executives.
+**What happened:** 40-60 words MAXIMUM. One or two sentences. Include hyperlinked source(s). Establish what shifted — enough to hook, NOT a full summary. Provoke click-through.
+**Why it matters:** 40-60 words MAXIMUM. One or two sentences. Commercial/strategic implication at the weekly level.
+**Signal:** 40-60 words MAXIMUM. One sentence. The actionable takeaway for executives.
+
+**SECTION LENGTH RULE — NON-NEGOTIABLE:** All three sections (What happened, Why it matters, Signal) must be approximately EQUAL LENGTH. No section should be more than 50% longer than any other. This creates visual balance and punchy, scannable items that provoke the reader to click the source link rather than giving them everything.
 
 Business-impact categories:
 - Strategy & Leadership

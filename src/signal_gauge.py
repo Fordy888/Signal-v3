@@ -101,27 +101,27 @@ def generate_gauge_html(
         cell = (
             f'<td align="center" style="width: 20%;">'
             f'<a href="{url}" target="_blank" '
-            f'style="display: block; text-decoration: none; padding: 8px 4px;">'
-            f'<span style="display: inline-block; width: 28px; height: 28px; '
+            f'style="display: block; text-decoration: none; padding: 4px 2px;">'
+            f'<span style="display: inline-block; width: 18px; height: 18px; '
             f'border-radius: 50%; background-color: {g["color"]}; '
-            f'border: 2px solid {g["color"]}; opacity: 0.85;"></span>'
+            f'border: 1.5px solid {g["color"]}; opacity: 0.85;"></span>'
             f'<br/>'
-            f'<span style="font-size: 10px; font-family: \'SF Mono\', \'Fira Code\', '
+            f'<span style="font-size: 9px; font-family: \'SF Mono\', \'Fira Code\', '
             f'\'Courier New\', monospace; color: {g["color"]}; '
-            f'letter-spacing: 0.5px; line-height: 2;">{g["label"]}</span>'
+            f'letter-spacing: 0.3px; line-height: 1.6;">{g["label"]}</span>'
             f'</a></td>'
         )
         cells.append(cell)
 
     gauge_row = "\n".join(cells)
 
-    # Full gauge block wrapped in a table row
-    gauge_html = f'''<tr><td style="padding: 12px 40px 4px 40px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 4px; border: 1px solid #f0f0f0;">
-<tr><td style="padding: 10px 12px 2px 12px;">
-<p style="margin: 0; font-size: 10px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #999; letter-spacing: 1px; text-align: center;">HOW STRONG IS THIS SIGNAL?</p>
+    # Full gauge block wrapped in a table row — compact design
+    gauge_html = f'''<tr><td style="padding: 6px 40px 2px 40px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 3px; border: 1px solid #f0f0f0;">
+<tr><td style="padding: 6px 8px 0 8px;">
+<p style="margin: 0; font-size: 9px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #bbb; letter-spacing: 0.8px; text-align: center;">HOW STRONG IS THIS SIGNAL?</p>
 </td></tr>
-<tr><td style="padding: 4px 8px 10px 8px;">
+<tr><td style="padding: 2px 6px 6px 6px;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
 {gauge_row}
 </tr></table>

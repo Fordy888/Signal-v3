@@ -1,6 +1,6 @@
 """Founder's Note generation stage for DTL Signal.
 
-Generates Paul Ford's editorial voice as the opening section of each daily edition.
+Generates Paul Ford's editorial voice as the opening section of each edition.
 Uses the voice reference library and today's scored items to produce one sharp
 commercial observation — NOT a summary of the stories below.
 """
@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import time
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -20,7 +21,10 @@ from anthropic import Anthropic
 log = logging.getLogger(__name__)
 
 BRISBANE = ZoneInfo("Australia/Brisbane")
-MAX_RETRIES = 2
+MAX_RETRIES = 3
+
+# Fallback model if primary fails
+FALLBACK_MODELS = ["claude-sonnet-4-5-20250929"]
 
 
 def _load_voice_reference(root: Path) -> str:
@@ -30,7 +34,9 @@ def _load_voice_reference(root: Path) -> str:
         log.error("Voice reference not found at %s", voice_path)
         return ""
     with open(voice_path, "r") as f:
-        return f.read()
+        content = f.read()
+    log.info("Voice reference loaded: %d chars from %s", len(content), voice_path)
+    return content
 
 
 def _build_items_summary(scored_items: list) -> str:
@@ -52,10 +58,75 @@ def _build_items_summary(scored_items: list) -> str:
             score = getattr(item, 'score', 0) if hasattr(item, 'score') else 0
 
             summaries.append(f"- [{category}] {headline} (source: {source}, score: {score})")
-        except Exception:
+        except Exception as e:
+            log.warning("Failed to build summary for item %d: %s", i, e)
             continue
 
     return "\n".join(summaries) if summaries else "No items available."
+
+
+def _call_anthropic(client: Anthropic, model_id: str, prompt: str) -> dict[str, Any] | None:
+    """Make the API call with retries. Returns parsed dict or None."""
+    resp = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            log.info("Founder's Note API call attempt %d/%d with model '%s'",
+                     attempt + 1, MAX_RETRIES, model_id)
+            resp = client.messages.create(
+                model=model_id,
+                max_tokens=1000,
+                timeout=60.0,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            break
+        except Exception as e:
+            log.warning("Founder's Note attempt %d/%d failed: %s: %s",
+                        attempt + 1, MAX_RETRIES, type(e).__name__, e)
+            if attempt < MAX_RETRIES - 1:
+                wait = 2 ** attempt * 3
+                log.info("Retrying in %ds...", wait)
+                time.sleep(wait)
+            else:
+                log.error("Founder's Note generation failed after %d attempts with model '%s'",
+                          MAX_RETRIES, model_id)
+                return None
+
+    if not resp:
+        return None
+
+    # Extract text from response
+    text = ""
+    for block in resp.content:
+        if getattr(block, "type", None) == "text":
+            text += block.text
+
+    # Parse JSON response
+    text = text.strip()
+    log.info("Founder's Note raw response length: %d chars", len(text))
+
+    # Strip markdown fencing if present
+    if text.startswith("```"):
+        lines = text.split("\n")
+        text = "\n".join(line for line in lines if not line.startswith("```"))
+        text = text.strip()
+
+    try:
+        result = json.loads(text)
+        return result
+    except json.JSONDecodeError as e:
+        log.warning("Failed to parse Founder's Note JSON directly: %s", e)
+        # Attempt to extract from malformed response
+        try:
+            start = text.find("{")
+            end = text.rfind("}") + 1
+            if start >= 0 and end > start:
+                result = json.loads(text[start:end])
+                log.info("Extracted JSON from malformed response (offset %d-%d)", start, end)
+                return result
+        except Exception:
+            pass
+        log.error("Could not parse Founder's Note response. Raw (first 500): %s", text[:500])
+        return None
 
 
 def generate_founders_note(
@@ -72,12 +143,27 @@ def generate_founders_note(
     if root is None:
         root = Path(__file__).resolve().parent.parent
 
+    # Pre-flight checks with detailed logging
+    log.info("=== Founder's Note Stage 3b START ===")
+    log.info("Edition: %04d | Items available: %d | Root: %s",
+             edition_number, len(scored_items), root)
+
+    # Check API key
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        log.error("ANTHROPIC_API_KEY is empty or not set — cannot generate Founder's Note")
+        return {}
+    log.info("ANTHROPIC_API_KEY present: %d chars (starts with '%s...')",
+             len(api_key), api_key[:8])
+
     voice_reference = _load_voice_reference(root)
     if not voice_reference:
         log.error("Cannot generate Founder's Note without voice reference")
         return {}
 
     items_summary = _build_items_summary(scored_items)
+    log.info("Items summary built: %d lines", len(items_summary.split("\n")))
+
     today = datetime.now(BRISBANE).strftime("%A %d %B %Y")
 
     prompt = f"""You are ghostwriting the "Founder's Note" for Paul Ford's DTL Signal newsletter.
@@ -113,67 +199,32 @@ Return ONLY valid JSON in this exact format:
 
 No markdown fencing. No explanation. Just the JSON object."""
 
-    client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    client = Anthropic(api_key=api_key)
     model_id = os.environ.get("MODEL_FOUNDERS_NOTE", "claude-sonnet-4-6")
+    log.info("Primary model: '%s'", model_id)
 
-    resp = None
-    for attempt in range(MAX_RETRIES):
-        try:
-            resp = client.messages.create(
-                model=model_id,
-                max_tokens=1000,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            break
-        except Exception as e:
-            if attempt < MAX_RETRIES - 1:
-                wait = 2 ** attempt * 3
-                log.warning("Founder's Note attempt %d failed, retrying in %ds: %s",
-                            attempt + 1, wait, e)
-                time.sleep(wait)
-            else:
-                log.error("Founder's Note generation failed after %d attempts: %s",
-                          MAX_RETRIES, e)
-                return {}
+    # Try primary model
+    result = _call_anthropic(client, model_id, prompt)
 
-    if not resp:
+    # If primary fails, try fallback models
+    if result is None:
+        for fallback in FALLBACK_MODELS:
+            log.warning("Trying fallback model: '%s'", fallback)
+            result = _call_anthropic(client, fallback, prompt)
+            if result is not None:
+                log.info("Fallback model '%s' succeeded", fallback)
+                break
+
+    if result is None:
+        log.error("=== Founder's Note Stage 3b FAILED — all models exhausted ===")
         return {}
-
-    # Extract text from response
-    text = ""
-    for block in resp.content:
-        if getattr(block, "type", None) == "text":
-            text += block.text
-
-    # Parse JSON response
-    text = text.strip()
-    # Strip markdown fencing if present
-    if text.startswith("```"):
-        lines = text.split("\n")
-        text = "\n".join(line for line in lines if not line.startswith("```"))
-        text = text.strip()
-
-    try:
-        result = json.loads(text)
-    except json.JSONDecodeError as e:
-        log.error("Failed to parse Founder's Note JSON: %s\nRaw: %s", e, text[:500])
-        # Attempt to extract from malformed response
-        try:
-            # Try finding JSON object in the text
-            start = text.find("{")
-            end = text.rfind("}") + 1
-            if start >= 0 and end > start:
-                result = json.loads(text[start:end])
-            else:
-                return {}
-        except Exception:
-            return {}
 
     headline = result.get("headline", "").strip()
     body = result.get("body", "").strip()
 
     if not headline or not body:
-        log.error("Founder's Note missing headline or body")
+        log.error("Founder's Note missing headline or body in parsed result: %s",
+                  {k: v[:50] if isinstance(v, str) else v for k, v in result.items()})
         return {}
 
     word_count = len(body.split())
@@ -196,7 +247,7 @@ No markdown fencing. No explanation. Just the JSON object."""
 
     generated_at = datetime.now(BRISBANE).isoformat()
 
-    log.info("Founder's Note generated: '%s' (%d words)", headline, word_count)
+    log.info("=== Founder's Note Stage 3b SUCCESS: '%s' (%d words) ===", headline, word_count)
 
     return {
         "headline": headline,
@@ -210,9 +261,9 @@ No markdown fencing. No explanation. Just the JSON object."""
 def inject_founders_note(html: str, note: dict[str, Any]) -> str:
     """Inject the Founder's Note HTML block into the newsletter.
 
-    Inserts after the "Today's Signal" thesis (the italic headline) and before
-    the main content. Falls back to injecting after the teal divider if the
-    thesis marker isn't found.
+    Inserts after the thesis (italic headline) and before the main content.
+    Supports both daily ("Today's Signal") and weekly wrap ("The Week in One Signal")
+    HTML structures.
 
     Args:
         html: The synthesised newsletter HTML.
@@ -224,6 +275,7 @@ def inject_founders_note(html: str, note: dict[str, Any]) -> str:
     headline = note.get("headline", "")
     body = note.get("body", "")
     if not headline or not body:
+        log.warning("inject_founders_note called with empty headline or body — skipping")
         return html
 
     # Build the Founder's Note HTML block
@@ -242,8 +294,8 @@ def inject_founders_note(html: str, note: dict[str, Any]) -> str:
         '</td></tr>\n'
     )
 
-    # Strategy 1: Inject after the "Today's Signal" thesis (italic paragraph)
-    # The thesis is in a <p> with font-style: italic inside the opening block
+    # Strategy 1: Inject after the thesis (italic paragraph)
+    # Works for both daily ("Today's Signal") and weekly wrap ("The Week in One Signal")
     thesis_marker = "font-style: italic;"
     thesis_pos = html.find(thesis_marker)
     if thesis_pos > 0:
@@ -252,10 +304,26 @@ def inject_founders_note(html: str, note: dict[str, Any]) -> str:
         if close_td > 0:
             insert_pos = close_td + len("</td></tr>")
             html = html[:insert_pos] + "\n" + founders_html + html[insert_pos:]
-            log.info("Founder's Note injected after Today's Signal thesis")
+            log.info("Founder's Note injected after thesis (Strategy 1: italic marker)")
             return html
 
-    # Strategy 2: Inject after the teal divider (border-top: 2px solid #4ECDC4)
+    # Strategy 2: Weekly wrap specific — after "The Week in One Signal" section
+    week_marker = "The Week in One Signal"
+    week_pos = html.find(week_marker)
+    if week_pos > 0:
+        # Find the next </td></tr> pair after the thesis content
+        # Skip past the heading row, then find the thesis content row
+        next_close = html.find("</td></tr>", week_pos)
+        if next_close > 0:
+            # Skip past the heading row to find the actual thesis content row
+            second_close = html.find("</td></tr>", next_close + 10)
+            if second_close > 0:
+                insert_pos = second_close + len("</td></tr>")
+                html = html[:insert_pos] + "\n" + founders_html + html[insert_pos:]
+                log.info("Founder's Note injected after weekly thesis (Strategy 2: Week in One Signal)")
+                return html
+
+    # Strategy 3: Inject after the teal divider (border-top: 2px solid #4ECDC4)
     teal_marker = "border-top: 2px solid #4ECDC4"
     teal_pos = html.find(teal_marker)
     if teal_pos > 0:
@@ -263,10 +331,21 @@ def inject_founders_note(html: str, note: dict[str, Any]) -> str:
         if close_tr > 0:
             insert_pos = close_tr + len("</td></tr>")
             html = html[:insert_pos] + "\n" + founders_html + html[insert_pos:]
-            log.info("Founder's Note injected after teal divider (fallback)")
+            log.info("Founder's Note injected after teal divider (Strategy 3)")
             return html
 
-    # Strategy 3: Inject after "Executive Business Intelligence" text
+    # Strategy 4: Weekly wrap — after amber divider (border-top: 2px solid #E6A817)
+    amber_marker = "border-top: 2px solid #E6A817"
+    amber_pos = html.find(amber_marker)
+    if amber_pos > 0:
+        close_tr = html.find("</td></tr>", amber_pos)
+        if close_tr > 0:
+            insert_pos = close_tr + len("</td></tr>")
+            html = html[:insert_pos] + "\n" + founders_html + html[insert_pos:]
+            log.info("Founder's Note injected after amber divider (Strategy 4: weekly wrap)")
+            return html
+
+    # Strategy 5: Inject after "Executive Business Intelligence" text
     ebi_marker = "Executive Business Intelligence"
     ebi_pos = html.find(ebi_marker)
     if ebi_pos > 0:
@@ -274,7 +353,7 @@ def inject_founders_note(html: str, note: dict[str, Any]) -> str:
         if close_tr > 0:
             insert_pos = close_tr + len("</td></tr>")
             html = html[:insert_pos] + "\n" + founders_html + html[insert_pos:]
-            log.info("Founder's Note injected after EBI header (fallback 2)")
+            log.info("Founder's Note injected after EBI header (Strategy 5)")
             return html
 
     log.warning("Could not find injection point for Founder's Note — appending after header")
