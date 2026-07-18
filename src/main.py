@@ -24,6 +24,7 @@ from .scoring import score_items
 from .synthesis import synthesise
 from .delivery import send_brief
 from .attribution import report_send_results, resolve_subscriber_ids
+from .founders_note import generate_founders_note, inject_founders_note
 from .history import load_history, record_edition
 from .edition_counter import get_next_edition, increment_edition
 from .subscribers import fetch_subscribers
@@ -394,6 +395,19 @@ def main() -> int:
         save_receipt(root, receipt)
         send_receipt_email(receipt)
         return 1
+
+    # ─── Stage 3b: Founder's Note ──────────────────────────────────────
+    log.info("Stage 3b: Generating Founder's Note...")
+    try:
+        founders_note = generate_founders_note(scored, edition_number, root)
+        if founders_note:
+            html = inject_founders_note(html, founders_note)
+            log.info("Stage 3b complete: Founder's Note injected ('%s', %d words)",
+                     founders_note.get("headline", ""), founders_note.get("word_count", 0))
+        else:
+            log.warning("Stage 3b: Founder's Note generation returned empty — skipping")
+    except Exception as e:
+        log.warning("Stage 3b: Founder's Note failed (non-fatal) — %s", e)
 
     # Quality gate: block delivery if key synthesis section is missing
     if edition_type == "weekly_wrap":
