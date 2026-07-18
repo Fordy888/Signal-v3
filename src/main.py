@@ -25,6 +25,7 @@ from .synthesis import synthesise
 from .delivery import send_brief
 from .attribution import report_send_results, resolve_subscriber_ids
 from .founders_note import generate_founders_note, inject_founders_note
+from .signal_gauge import is_gauge_enabled, inject_gauge_into_html, personalise_gauge_for_subscriber
 from .history import load_history, record_edition
 from .edition_counter import get_next_edition, increment_edition
 from .subscribers import fetch_subscribers
@@ -408,6 +409,14 @@ def main() -> int:
             log.warning("Stage 3b: Founder's Note generation returned empty — skipping")
     except Exception as e:
         log.warning("Stage 3b: Founder's Note failed (non-fatal) — %s", e)
+    # ─── Stage 3c: Signal Strength Gauge ───────────────────────────────
+    if is_gauge_enabled(mode, edition_number):
+        log.info("Stage 3c: Injecting Signal Strength Gauge...")
+        try:
+            html = inject_gauge_into_html(html, scored, edition_number)
+            log.info("Stage 3c complete: Gauge injected for edition %04d", edition_number)
+        except Exception as e:
+            log.warning("Stage 3c: Gauge injection failed (non-fatal) — %s", e)
 
     # Quality gate: block delivery if key synthesis section is missing
     if edition_type == "weekly_wrap":
@@ -486,7 +495,9 @@ def main() -> int:
         save_path = Path(args.save_html)
         save_path.parent.mkdir(parents=True, exist_ok=True)
         with open(save_path, "w") as f:
-            f.write(html)
+            # Personalise gauge with proof subscriber hash for saved HTML
+            proof_html = personalise_gauge_for_subscriber(html, "proof@dtlc.ai")
+            f.write(proof_html)
         log.info("Brief saved to %s", save_path)
 
     # ─── Dry-run: print recipient list and exit ─────────────────────────
@@ -554,8 +565,10 @@ def main() -> int:
         elif args.proof:
             subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
 
+        # Personalise gauge links for this subscriber
+        personalised_html = personalise_gauge_for_subscriber(html, email)
         result = send_brief(
-            html_body=html,
+            html_body=personalised_html,
             recipient_email=email,
             subject_override=subject_override,
             edition_number=edition_number,

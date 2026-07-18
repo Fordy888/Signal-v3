@@ -26,6 +26,10 @@ services:
       - key: MODEL_SYNTHESIS
         value: claude-sonnet-4-6
       - key: MODEL_FOUNDERS_NOTE
+      - key: ENABLE_GAUGE
+        value: off
+      - key: GAUGE_BASE_URL
+        value: https://dtlc.ai/api/gauge
         value: claude-sonnet-4-6
       - key: TZ
         value: Australia/Brisbane
@@ -85,6 +89,10 @@ services:
       - key: MODEL_SYNTHESIS
         value: claude-sonnet-4-6
       - key: MODEL_FOUNDERS_NOTE
+      - key: ENABLE_GAUGE
+        value: off
+      - key: GAUGE_BASE_URL
+        value: https://dtlc.ai/api/gauge
         value: claude-sonnet-4-6
       - key: TZ
         value: Australia/Brisbane
