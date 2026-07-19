@@ -24,6 +24,9 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 # ─── Configuration ──────────────────────────────────────────────────────────
+# Gauge clicks POST the signal to PL reporting via dtlc.ai/api/gauge.
+# The endpoint records the response and returns a brief "thanks" micro-page.
+# It does NOT redirect to dtlc.ai homepage — the subscriber stays in their email.
 GAUGE_BASE_URL = os.environ.get("GAUGE_BASE_URL", "https://dtlc.ai/api/gauge")
 SUBSCRIBER_PLACEHOLDER = "{{SUBSCRIBER_HASH}}"
 
@@ -95,6 +98,8 @@ def generate_gauge_html(
 
         # Append subscriber hash placeholder without URL-encoding the braces
         encoded_params = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
+        # URL points to the gauge API which records the signal and shows a
+        # brief confirmation micro-page. Does NOT redirect to dtlc.ai homepage.
         url = f"{GAUGE_BASE_URL}?{encoded_params}&h={SUBSCRIBER_PLACEHOLDER}"
 
         # Each cell is a clickable link styled as a gauge segment
@@ -201,9 +206,9 @@ def inject_gauge_into_html(
         start_pos = match.start()
 
         # Find the divider after this item
-        # Divider pattern: <tr><td style="padding: 8px 40px;">...<td style="border-top: 1px solid #e8e8e8;">
+        # Divider pattern: <tr><td style="padding: 8px|16px 40px;">...<td style="border-top: 1px solid #e8e8e8;">
         divider_pattern = re.compile(
-            r'<tr><td[^>]*padding:\s*8px\s+40px[^>]*>.*?border-top:\s*1px\s+solid\s+#e8e8e8.*?</tr>',
+            r'<tr><td[^>]*padding:\s*(?:8|16)px\s+40px[^>]*>.*?border-top:\s*1px\s+solid\s+#e8e8e8.*?</tr>',
             re.DOTALL
         )
 

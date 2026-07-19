@@ -1,82 +1,8 @@
 """Founder's Note generation stage for DTL Signal.
 
-
-
 Generates Paul Ford's editorial voice as the opening section of each edition.
-
 Uses the voice reference library and today's scored items to produce one sharp
-
 commercial observation — NOT a summary of the stories below.
-
-"""
-
-from __future__ import annotations
-
-
-
-import json
-
-import logging
-
-import os
-
-import re
-
-import time
-
-import traceback
-
-from datetime import datetime
-
-from pathlib import Path
-
-from typing import Any
-
-from zoneinfo import ZoneInfo
-
-
-
-from anthropic import Anthropic
-
-
-
-log = logging.getLogger(__name__)
-
-
-
-BRISBANE = ZoneInfo("Australia/Brisbane")
-
-MAX_RETRIES = 3
-
-
-
-# Models to try in order (same model retried, then fallbacks)
-
-MODEL_CHAIN = [
-    
-    "claude-sonnet-4-6",
-    
-    "claude-sonnet-4-6",       # retry same model once more
-    
-    "claude-3-5-sonnet-20241022",  # older stable model as last resort
-    
-]
-
-
-
-
-
-def _load_voice_reference(root: Path) -> str:
-    
-    """Load the Founder's Note voice reference document."""
-    
-    voice_path = root / "prompts" / "founders_note_voice.md"
-    
-    if not voice_path.exists():
-
-Generates Paul Ford's editorial voice as the opening section of each edition.
-Uses the voice reference library and today's scored items to produce one sharp
-commercial observation â NOT a summary of the stories below.
 """
 from __future__ import annotations
 
@@ -263,7 +189,7 @@ def _generate_fallback_note(scored_items: list, edition_number: int) -> dict[str
             "headline": "Speed is the new strategy",
             "body": "This week's intelligence points in one direction. The gap between knowing "
                     "and doing is closing faster than most leadership teams expect. The stories "
-                    "below aren't predictions â they're evidence. The question for your business "
+                    "below aren't predictions — they're evidence. The question for your business "
                     "isn't whether to move, it's whether you already have."
         },
         {
@@ -309,14 +235,14 @@ def generate_founders_note(
     # Check API key
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
-        log.error("ANTHROPIC_API_KEY is empty or not set â using fallback")
+        log.error("ANTHROPIC_API_KEY is empty or not set — using fallback")
         return _generate_fallback_note(scored_items, edition_number)
     log.info("ANTHROPIC_API_KEY present: %d chars (starts with '%s...')",
              len(api_key), api_key[:8])
 
     voice_reference = _load_voice_reference(root)
     if not voice_reference:
-        log.error("Cannot load voice reference â using fallback")
+        log.error("Cannot load voice reference — using fallback")
         return _generate_fallback_note(scored_items, edition_number)
 
     items_summary = _build_items_summary(scored_items)
@@ -330,7 +256,7 @@ def generate_founders_note(
 
 {voice_reference}
 
-## Today's Intelligence ({today} â Edition {edition_number:04d})
+## Today's Intelligence ({today} — Edition {edition_number:04d})
 
 These are the top stories being covered in today's edition:
 
@@ -341,11 +267,11 @@ These are the top stories being covered in today's edition:
 Write a Founder's Note that opens today's edition. This is Paul's commercial perspective on the BIGGEST PATTERN emerging from today's intelligence.
 
 CRITICAL RULES:
-1. Express ONE clear commercial view â do NOT summarise the stories
-2. The stories underneath will support this idea â don't repeat them
+1. Express ONE clear commercial view — do NOT summarise the stories
+2. The stories underneath will support this idea — don't repeat them
 3. Tell readers WHY it matters, not WHAT happened
 4. Write as an experienced operator speaking to another operator
-5. 80â120 words for the body (absolute maximum 120)
+5. 80–120 words for the body (absolute maximum 120)
 6. Headline: strong enough to stand alone, never clickbait, never overstates evidence
 7. Headline: maximum 8 words
 8. Match Paul's rhythm: short-short-short-LONG-short
@@ -389,7 +315,7 @@ No markdown fencing. No explanation. Just the JSON object."""
 
     # If all API attempts failed, use hardcoded fallback
     if result is None:
-        log.error("All model attempts exhausted â using hardcoded fallback")
+        log.error("All model attempts exhausted — using hardcoded fallback")
         return _generate_fallback_note(scored_items, edition_number)
 
     headline = result.get("headline", "").strip()
@@ -404,7 +330,7 @@ No markdown fencing. No explanation. Just the JSON object."""
 
     # Quality checks (log only, don't block)
     if word_count > 150:
-        log.warning("Founder's Note too long (%d words) â may need trimming", word_count)
+        log.warning("Founder's Note too long (%d words) — may need trimming", word_count)
     elif word_count > 120:
         log.warning("Founder's Note slightly over target (%d words, max 120)", word_count)
 
@@ -448,7 +374,7 @@ def inject_founders_note(html: str, note: dict[str, Any]) -> str:
     headline = note.get("headline", "")
     body = note.get("body", "")
     if not headline or not body:
-        log.warning("inject_founders_note called with empty headline or body â skipping")
+        log.warning("inject_founders_note called with empty headline or body — skipping")
         return html
 
     # Build the Founder's Note HTML block
@@ -480,7 +406,7 @@ def inject_founders_note(html: str, note: dict[str, Any]) -> str:
             log.info("Founder's Note injected after thesis (Strategy 1: italic marker)")
             return html
 
-    # Strategy 2: Weekly wrap specific â after "The Week in One Signal" section
+    # Strategy 2: Weekly wrap specific — after "The Week in One Signal" section
     week_marker = "The Week in One Signal"
     week_pos = html.find(week_marker)
     if week_pos > 0:
@@ -507,7 +433,7 @@ def inject_founders_note(html: str, note: dict[str, Any]) -> str:
             log.info("Founder's Note injected after teal divider (Strategy 3)")
             return html
 
-    # Strategy 4: Weekly wrap â after amber divider (border-top: 2px solid #E6A817)
+    # Strategy 4: Weekly wrap — after amber divider (border-top: 2px solid #E6A817)
     amber_marker = "border-top: 2px solid #E6A817"
     amber_pos = html.find(amber_marker)
     if amber_pos > 0:
@@ -529,7 +455,7 @@ def inject_founders_note(html: str, note: dict[str, Any]) -> str:
             log.info("Founder's Note injected after EBI header (Strategy 5)")
             return html
 
-    log.warning("Could not find injection point for Founder's Note â appending after header")
+    log.warning("Could not find injection point for Founder's Note — appending after header")
     # Last resort: inject after first <tr> block
     first_tr_close = html.find("</td></tr>")
     if first_tr_close > 0:
