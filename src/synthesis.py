@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 
 BRISBANE = ZoneInfo("Australia/Brisbane")
 MAX_RETRIES = 3
+MAX_SECTION_WORDS = 50  # Hard ceiling — truncate any section exceeding this
 
 
 def _load_context_yaml(path: str) -> str:
@@ -33,6 +34,104 @@ def _load_context_yaml(path: str) -> str:
 def _load_synthesis_prompt(path: str) -> str:
     with open(path, "r") as f:
         return f.read()
+
+
+def _truncate_to_word_limit(text: str, max_words: int) -> str:
+    """Truncate text to the last complete sentence within max_words.
+    
+    Preserves HTML tags (links etc.) but counts only visible words.
+    If no sentence boundary found, hard-truncates at max_words with ellipsis.
+    """
+    # Strip HTML tags for word counting purposes
+    visible_text = re.sub(r'<[^>]+>', '', text)
+    words = visible_text.split()
+    if len(words) <= max_words:
+        return text  # Already within limit
+    
+    # Find sentence boundaries in the original text (with HTML)
+    # Look for . ! ? followed by space or end, but not inside URLs
+    sentences = re.split(r'(?<=[.!?])\s+(?=[A-Z<])', text)
+    
+    result = ""
+    for sentence in sentences:
+        candidate = (result + " " + sentence).strip() if result else sentence
+        visible_candidate = re.sub(r'<[^>]+>', '', candidate)
+        if len(visible_candidate.split()) > max_words:
+            break
+        result = candidate
+    
+    # If we got at least one sentence, use it
+    if result and len(re.sub(r'<[^>]+>', '', result).split()) >= 10:
+        return result
+    
+    # Fallback: hard truncate at word boundary (keeping HTML intact)
+    # This is crude but ensures the ceiling holds
+    word_count = 0
+    i = 0
+    in_tag = False
+    last_space = 0
+    while i < len(text) and word_count < max_words:
+        if text[i] == '<':
+            in_tag = True
+        elif text[i] == '>':
+            in_tag = False
+        elif not in_tag and text[i] == ' ':
+            word_count += 1
+            last_space = i
+        i += 1
+    
+    if last_space > 0:
+        truncated = text[:last_space].rstrip()
+        # Close any open <a> tags
+        open_a = truncated.count('<a ') - truncated.count('</a>')
+        if open_a > 0:
+            truncated += '</a>'
+        return truncated + '…'
+    return text
+
+
+def _enforce_word_limits(html: str) -> str:
+    """Parse item sections and truncate any exceeding MAX_SECTION_WORDS.
+    
+    Targets the three content sections: 'What happened:', 'Why it matters:', 'Signal:'
+    Each section lives in a <p> tag with a <span> label followed by content text.
+    """
+    section_labels = ['What happened:', 'Why it matters:', 'Signal:']
+    truncation_count = 0
+    
+    for label in section_labels:
+        # Pattern: <span ...>Label</span> followed by content until </p>
+        # The content is everything between the closing </span> and </p>
+        pattern = re.compile(
+            r'(<span[^>]*>' + re.escape(label) + r'</span>\s*)'
+            r'([^<](?:(?!</p>).)*)',
+            re.DOTALL
+        )
+        
+        def _truncate_match(m: re.Match) -> str:
+            nonlocal truncation_count
+            prefix = m.group(1)  # The <span>Label</span> part
+            content = m.group(2)  # The actual text content
+            
+            # Count visible words in content
+            visible = re.sub(r'<[^>]+>', '', content)
+            word_count = len(visible.split())
+            
+            if word_count > MAX_SECTION_WORDS:
+                truncated = _truncate_to_word_limit(content.strip(), MAX_SECTION_WORDS)
+                truncation_count += 1
+                log.info("Word limit enforced on '%s' section: %d -> %d words",
+                         label, word_count, len(re.sub(r'<[^>]+>', '', truncated).split()))
+                return prefix + truncated
+            return m.group(0)
+        
+        html = pattern.sub(_truncate_match, html)
+    
+    if truncation_count > 0:
+        log.info("Word count enforcement: truncated %d sections exceeding %d-word limit.",
+                 truncation_count, MAX_SECTION_WORDS)
+    
+    return html
 
 
 def synthesise(
@@ -117,7 +216,7 @@ def synthesise(
     if edition_type == "weekly_wrap":
         has_key_section = ("THE PATTERN" in html and "EXECUTIVE TAKEAWAY" in html)
         section_label = "THE PATTERN + EXECUTIVE TAKEAWAY"
-        retry_instruction = "\n\nCRITICAL: Your previous output was missing THE PATTERN BEHIND THE HEADLINES and/or EXECUTIVE TAKEAWAY sections. You MUST include both. Do not truncate."
+        retry_instruction = "\n\nCRITICAL: Your previous output was missing the Traffic Light box (THE PATTERN / OPPORTUNITY / RISK) and/or EXECUTIVE TAKEAWAY sections. You MUST include both. Do not truncate."
     else:
         has_key_section = ("EXECUTIVE READ" in html and "What to Watch" in html)
         section_label = "EXECUTIVE READ + What to Watch"
@@ -192,6 +291,11 @@ def synthesise(
 <tr><td style="height: 4px; background: linear-gradient(90deg, #4ECDC4 0%, #4ECDC4 50%, #E8533A 50%, #E8533A 100%);"></td></tr>
 </table>'''
         log.info("HTML auto-repair applied — structure closed cleanly.")
+
+    # ─── WORD COUNT ENFORCEMENT ──────────────────────────────────────
+    # Belt-and-braces: truncate any item section exceeding MAX_SECTION_WORDS.
+    # This ensures the executive-dashboard feel regardless of LLM compliance.
+    html = _enforce_word_limits(html)
 
     # Strip any hallucinated "// reply to refine" text
     html = html.replace("// reply to refine", "")

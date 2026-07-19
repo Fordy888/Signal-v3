@@ -75,13 +75,17 @@ Every item MUST follow this exact structure:
 **Action tag:** ACT / WATCH / NOTE (as a pill badge)
 **Category tag:** One of the 8 business-impact categories (small, dimmed)
 **Headline:** One sharp sentence. Max 8 words.
-**What happened:** 40-60 words MAXIMUM. One or two sentences. Include hyperlinked source. Hook the reader — give enough to intrigue, NOT enough to satisfy. The goal is click-through.
-**Why it matters:** 40-60 words MAXIMUM. One or two sentences. Commercial/strategic implication.
-**Signal:** 40-60 words MAXIMUM. One sentence. The actionable takeaway.
+**What happened:** 25-40 words MAXIMUM. One sentence, two at most. Include hyperlinked source. Hook — don't satisfy. The goal is click-through.
+**Why it matters:** 25-40 words MAXIMUM. One sentence. Commercial/strategic implication.
+**Signal:** 25-40 words MAXIMUM. One sentence. The actionable takeaway.
 
-**SECTION LENGTH RULE — NON-NEGOTIABLE:** All three sections (What happened, Why it matters, Signal) must be approximately EQUAL LENGTH. No section should be more than 50% longer than any other. If "What happened" is 50 words, "Why it matters" and "Signal" must each be at least 35 words. This creates visual balance and punchy, scannable items.
+**THINK OF EACH ITEM AS A CARD ON A DASHBOARD.** The reader should absorb the key insight at a glance — without reading the full text. Each card must be the same visual weight. No card dominates.
 
-No item should become a mini-article. Each item should be scannable in under 15 seconds. Provoke the reader to click the source link — do NOT give them everything.
+**SECTION LENGTH RULE — NON-NEGOTIABLE:** All three sections (What happened, Why it matters, Signal) must be approximately EQUAL LENGTH. No section should be more than 30% longer than any other. If "What happened" is 35 words, "Why it matters" and "Signal" must each be at least 25 words. This creates visual balance and punchy, scannable items.
+
+**HARD CEILING:** Any section exceeding 50 words will be automatically truncated by the system. Write tight or the system cuts for you.
+
+No item should become a mini-article. Each item should be scannable in under 10 seconds. Provoke the reader to click the source link — do NOT give them everything.
 
 ═══════════════════════════════════════════════════
 EDITORIAL VOICE — non-negotiable
@@ -234,9 +238,9 @@ Each action: one sentence, max 15 words, commercially practical. Reference speci
 
 IMPORTANT: The item headline is NOT a link. It is bold black text. The SOURCE LINK goes INSIDE the "What happened" line as a turquoise hyperlinked reference (e.g., "According to <a href="URL" style="color: #4ECDC4; text-decoration: none; font-weight: 500;">Source Title</a>, ...").
 
-**ITEM DIVIDERS (thin line between items):**
+**ITEM DIVIDERS (thin line between items — generous spacing for breathing room):**
 ```html
-<tr><td style="padding: 8px 40px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid #e8e8e8;"></td></tr></table></td></tr>
+<tr><td style="padding: 16px 40px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid #e8e8e8;"></td></tr></table></td></tr>
 ```
 
 **EXECUTIVE READ (replaces old Section 9 — turquoise bordered box):**

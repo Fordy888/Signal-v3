@@ -421,7 +421,7 @@ def main() -> int:
     # Quality gate: block delivery if key synthesis section is missing
     if edition_type == "weekly_wrap":
         has_key_section = ("THE PATTERN" in html and "EXECUTIVE TAKEAWAY" in html)
-        gate_label = "Weekly Wrap key sections (THE PATTERN + EXECUTIVE TAKEAWAY)"
+        gate_label = "Weekly Wrap key sections (Traffic Light + EXECUTIVE TAKEAWAY)"
     else:
         has_key_section = ("EXECUTIVE READ" in html and "What to Watch" in html)
         gate_label = "Executive Read section"

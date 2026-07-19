@@ -42,15 +42,13 @@ Produce DTL Signal Weekly Wrap as ONE brief in clean inline-styled HTML (for ema
 - Comfortably readable by an executive in five to seven minutes.
 - Maintain the approved business-impact taxonomy and Signal editorial voice.
 
-**STRUCTURE — seven parts:**
+**STRUCTURE — five parts:**
 
 1. **The Week in One Signal** — One sharp thesis sentence capturing the most important pattern or shift from the week.
 2. **The Five Biggest Stories of the Week** — Five developments with the greatest commercial, strategic or operational significance.
-3. **The Pattern Behind the Headlines** — A concise strategic interpretation connecting the five stories and explaining what changed materially during the week.
-4. **The Week's Biggest Opportunity** — One development leaders could act on commercially or operationally.
-5. **The Week's Biggest Risk** — One emerging issue requiring attention, preparation or governance.
-6. **What to Watch Next Week** — Three specific developments, decisions or events likely to matter in the coming week.
-7. **Executive Takeaway** — One clear judgment or recommended action leaders should carry into Monday.
+3. **The Week's Traffic Light** — ONE compact box with three rows: THE PATTERN (amber — what changed), OPPORTUNITY (green — what to act on), RISK (red — what to watch). One sentence each. Maximum 25 words per row.
+4. **What to Watch Next Week** — Three specific developments, decisions or events likely to matter in the coming week. One line each, max 15 words.
+5. **Executive Takeaway** — One clear judgment or recommended action leaders should carry into Monday.
 
 ═══════════════════════════════════════════════════
 STORY CONTENT STRUCTURE — MANDATORY
@@ -61,11 +59,15 @@ Each of the Five Biggest Stories MUST follow this exact structure:
 **Action tag:** ACT / WATCH / NOTE (as a pill badge)
 **Category tag:** One of the 8 business-impact categories (small, dimmed)
 **Headline:** One sharp sentence. Max 10 words.
-**What happened:** 40-60 words MAXIMUM. One or two sentences. Include hyperlinked source(s). Establish what shifted — enough to hook, NOT a full summary. Provoke click-through.
-**Why it matters:** 40-60 words MAXIMUM. One or two sentences. Commercial/strategic implication at the weekly level.
-**Signal:** 40-60 words MAXIMUM. One sentence. The actionable takeaway for executives.
+**What happened:** 25-40 words MAXIMUM. One sentence, two at most. Include hyperlinked source(s). Hook — don't satisfy. Provoke click-through.
+**Why it matters:** 25-40 words MAXIMUM. One sentence. Commercial/strategic implication at the weekly level.
+**Signal:** 25-40 words MAXIMUM. One sentence. The actionable takeaway for executives.
 
-**SECTION LENGTH RULE — NON-NEGOTIABLE:** All three sections (What happened, Why it matters, Signal) must be approximately EQUAL LENGTH. No section should be more than 50% longer than any other. This creates visual balance and punchy, scannable items that provoke the reader to click the source link rather than giving them everything.
+**THINK OF EACH STORY AS A CARD ON A DASHBOARD.** The reader should absorb the key insight at a glance. Each card must be the same visual weight. No card dominates.
+
+**SECTION LENGTH RULE — NON-NEGOTIABLE:** All three sections (What happened, Why it matters, Signal) must be approximately EQUAL LENGTH. No section should be more than 30% longer than any other. This creates visual balance and punchy, scannable items that provoke the reader to click the source link rather than giving them everything.
+
+**HARD CEILING:** Any section exceeding 50 words will be automatically truncated by the system. Write tight or the system cuts for you.
 
 Business-impact categories:
 - Strategy & Leadership
@@ -193,55 +195,38 @@ HTML TEMPLATE
 </td></tr>
 ```
 
-**STORY DIVIDERS:**
+**STORY DIVIDERS (generous spacing for breathing room):**
 ```html
-<tr><td style="padding: 8px 40px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid #e8e8e8;"></td></tr></table></td></tr>
+<tr><td style="padding: 16px 40px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid #e8e8e8;"></td></tr></table></td></tr>
 ```
 
-**THE PATTERN BEHIND THE HEADLINES (amber bordered box — distinct from daily's turquoise Executive Read):**
+**THE WEEK'S TRAFFIC LIGHT (single compact box — Pattern/Opportunity/Risk in one view):**
 ```html
 <tr><td style="padding: 28px 40px 0 40px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fffdf5; border: 2px solid #E6A817; border-radius: 4px;">
-<tr><td style="padding: 24px 28px 6px 28px;">
-<p style="margin: 0 0 2px 0; font-size: 13px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; font-weight: 800; letter-spacing: 2px; color: #E6A817; text-transform: uppercase;">THE PATTERN</p>
-<p style="margin: 0 0 20px 0; font-size: 10px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #999; letter-spacing: 1px;">WHAT CHANGED THIS WEEK</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e8e8e8; border-radius: 4px;">
+<tr><td style="padding: 14px 20px; border-bottom: 1px solid #f0f0f0;">
+<p style="margin: 0 0 4px 0; font-size: 10px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #E6A817; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase;">⬤ THE PATTERN</p>
+<p style="margin: 0; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333;">{ONE SENTENCE: What connected across the five stories this week. Max 25 words.}</p>
 </td></tr>
-<tr><td style="padding: 0 28px 20px 28px;">
-<p style="margin: 0 0 16px 0; font-size: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #333;">
-{3-4 SENTENCES: Connect the five stories. What is the pattern? What changed materially? What is the strategic implication for executives going into next week?}
-</p>
+<tr><td style="padding: 14px 20px; border-bottom: 1px solid #f0f0f0;">
+<p style="margin: 0 0 4px 0; font-size: 10px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #4ECDC4; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase;">⬤ OPPORTUNITY</p>
+<p style="margin: 0; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333;">{ONE SENTENCE: What to act on. Max 25 words.}</p>
+</td></tr>
+<tr><td style="padding: 14px 20px;">
+<p style="margin: 0 0 4px 0; font-size: 10px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #E8533A; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase;">⬤ RISK</p>
+<p style="margin: 0; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333;">{ONE SENTENCE: What to watch. Max 25 words.}</p>
 </td></tr>
 </table>
 </td></tr>
 ```
 
-**OPPORTUNITY AND RISK (side-by-side feel, stacked for mobile):**
+**WHAT TO WATCH NEXT WEEK (compact — three one-liners):**
 ```html
-<tr><td style="padding: 28px 40px 0 40px;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="padding: 16px 20px; background-color: #f0faf9; border-radius: 4px;">
-<p style="margin: 0 0 8px 0; font-size: 11px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #4ECDC4; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase;">BIGGEST OPPORTUNITY</p>
-<p style="margin: 0; font-size: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #333;">{2-3 SENTENCES: One development leaders could act on commercially or operationally. Be specific.}</p>
-</td></tr>
-</table>
-</td></tr>
-<tr><td style="padding: 12px 40px 0 40px;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="padding: 16px 20px; background-color: #fef5f4; border-radius: 4px;">
-<p style="margin: 0 0 8px 0; font-size: 11px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #E8533A; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase;">BIGGEST RISK</p>
-<p style="margin: 0; font-size: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #333;">{2-3 SENTENCES: One emerging issue requiring attention, preparation or governance. Be specific.}</p>
-</td></tr>
-</table>
-</td></tr>
-```
-
-**WHAT TO WATCH NEXT WEEK:**
-```html
-<tr><td style="padding: 28px 40px 0 40px;">
-<p style="margin: 0 0 12px 0; font-size: 12px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #E6A817; letter-spacing: 1px; font-weight: 700; text-transform: uppercase;">What to Watch Next Week</p>
-<p style="margin: 0 0 8px 0; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #444;">• {SPECIFIC_DEVELOPMENT_1}</p>
-<p style="margin: 0 0 8px 0; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #444;">• {SPECIFIC_DEVELOPMENT_2}</p>
-<p style="margin: 0 0 8px 0; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #444;">• {SPECIFIC_DEVELOPMENT_3}</p>
+<tr><td style="padding: 20px 40px 0 40px;">
+<p style="margin: 0 0 8px 0; font-size: 10px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #E6A817; letter-spacing: 1px; font-weight: 700; text-transform: uppercase;">What to Watch Next Week</p>
+<p style="margin: 0 0 4px 0; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #444;">→ {MAX_15_WORDS_1}</p>
+<p style="margin: 0 0 4px 0; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #444;">→ {MAX_15_WORDS_2}</p>
+<p style="margin: 0; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #444;">→ {MAX_15_WORDS_3}</p>
 </td></tr>
 ```
 
@@ -303,10 +288,8 @@ WEEKLY WRAP QUALITY GATES
 The Weekly Wrap MUST contain ALL of the following or it will be rejected:
 - "The Week in One Signal" thesis line
 - Exactly 5 stories in "The Five Biggest Stories"
-- "THE PATTERN" strategic interpretation box
-- "BIGGEST OPPORTUNITY" section
-- "BIGGEST RISK" section
-- "What to Watch Next Week" with 3 bullets
+- Traffic Light box with THE PATTERN, OPPORTUNITY, and RISK rows (one sentence each)
+- "What to Watch Next Week" with 3 one-liners
 - "EXECUTIVE TAKEAWAY" one-sentence judgment
 
 The Weekly Wrap MUST NOT:
