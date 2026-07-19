@@ -14,13 +14,13 @@ DEFAULT_TIMEOUT = 15
 
 
 def report_send_results(
-    signal_id: str,
+    signal_id: int,
     delivery_results: list[dict],
 ) -> bool:
     """POST delivery mapping to /api/pipeline/send-results.
     
     Args:
-        signal_id: The edition identifier (e.g., "edition_20260716")
+        signal_id: The numeric edition number (e.g., 14)
         delivery_results: List of dicts with keys:
             - subscriberId (int): database ID of the subscriber
             - resendMessageId (str): Resend message ID returned on send

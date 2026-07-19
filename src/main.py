@@ -622,8 +622,9 @@ def main() -> int:
                 else:
                     log.warning("  No subscriber ID found for %s — skipping attribution", email_addr)
             if attribution_results:
-                edition_id = f"edition_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
-                report_ok = report_send_results(edition_id, attribution_results)
+                # Pure Logic API requires signalId as a NUMBER (the edition number).
+                # Previously sent "edition_YYYYMMDD" string -> HTTP 400 "signalId (number) is required".
+                report_ok = report_send_results(int(edition_number), attribution_results)
                 if report_ok:
                     log.info("  ✓ DTL PL attribution complete: %d mappings reported", len(attribution_results))
                 else:
