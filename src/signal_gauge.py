@@ -30,6 +30,14 @@ log = logging.getLogger(__name__)
 GAUGE_BASE_URL = os.environ.get("GAUGE_BASE_URL", "https://dtlc.ai/api/gauge")
 SUBSCRIBER_PLACEHOLDER = "{{SUBSCRIBER_HASH}}"
 
+# GAUGE_MODE controls click behaviour:
+#   - "static" (default): dots are visual only — no links, clicks do nothing.
+#     Chosen for initial production rollout until the in-email registration
+#     plumbing to Pure Logic is finalised.
+#   - "interactive": dots are links to GAUGE_BASE_URL (records rating,
+#     shows confirmation micro-page).
+GAUGE_MODE = os.environ.get("GAUGE_MODE", "static").lower().strip()
+
 # Score labels and colours
 GAUGE_SCORES = [
     {"score": 1, "label": "Yawn", "color": "#9CA3AF"},   # grey
@@ -96,17 +104,8 @@ def generate_gauge_html(
         if item_type:
             params["type"] = item_type
 
-        # Append subscriber hash placeholder without URL-encoding the braces
-        encoded_params = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
-        # URL points to the gauge API which records the signal and shows a
-        # brief confirmation micro-page. Does NOT redirect to dtlc.ai homepage.
-        url = f"{GAUGE_BASE_URL}?{encoded_params}&h={SUBSCRIBER_PLACEHOLDER}"
-
-        # Each cell is a clickable link styled as a gauge segment
-        cell = (
-            f'<td align="center" style="width: 20%;">'
-            f'<a href="{url}" target="_blank" '
-            f'style="display: block; text-decoration: none; padding: 4px 2px;">'
+        # The visual dot + label (shared by both modes)
+        dot_and_label = (
             f'<span style="display: inline-block; width: 18px; height: 18px; '
             f'border-radius: 50%; background-color: {g["color"]}; '
             f'border: 1.5px solid {g["color"]}; opacity: 0.85;"></span>'
@@ -114,8 +113,30 @@ def generate_gauge_html(
             f'<span style="font-size: 9px; font-family: \'SF Mono\', \'Fira Code\', '
             f'\'Courier New\', monospace; color: {g["color"]}; '
             f'letter-spacing: 0.3px; line-height: 1.6;">{g["label"]}</span>'
-            f'</a></td>'
         )
+
+        if GAUGE_MODE == "interactive":
+            # Append subscriber hash placeholder without URL-encoding the braces
+            encoded_params = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
+            # URL points to the gauge API which records the signal and shows a
+            # brief confirmation micro-page. Does NOT redirect to dtlc.ai homepage.
+            url = f"{GAUGE_BASE_URL}?{encoded_params}&h={SUBSCRIBER_PLACEHOLDER}"
+            cell = (
+                f'<td align="center" style="width: 20%;">'
+                f'<a href="{url}" target="_blank" '
+                f'style="display: block; text-decoration: none; padding: 4px 2px;">'
+                f'{dot_and_label}'
+                f'</a></td>'
+            )
+        else:
+            # Static mode: identical appearance, but no link — a click does
+            # nothing and never navigates the reader out of the email.
+            cell = (
+                f'<td align="center" style="width: 20%;">'
+                f'<span style="display: block; text-decoration: none; padding: 4px 2px;">'
+                f'{dot_and_label}'
+                f'</span></td>'
+            )
         cells.append(cell)
 
     gauge_row = "\n".join(cells)
