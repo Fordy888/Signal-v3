@@ -104,15 +104,13 @@ def generate_gauge_html(
         if item_type:
             params["type"] = item_type
 
-        # The visual dot + label (shared by both modes)
-        dot_and_label = (
-            f'<span style="display: inline-block; width: 18px; height: 18px; '
+        # Slim design: small 10px dot, no label under each dot — the label
+        # appears once as a quiet lead-in. Tooltip (title attr) preserves
+        # the meaning for curious readers in clients that support it.
+        dot = (
+            f'<span style="display: inline-block; width: 10px; height: 10px; '
             f'border-radius: 50%; background-color: {g["color"]}; '
-            f'border: 1.5px solid {g["color"]}; opacity: 0.85;"></span>'
-            f'<br/>'
-            f'<span style="font-size: 9px; font-family: \'SF Mono\', \'Fira Code\', '
-            f'\'Courier New\', monospace; color: {g["color"]}; '
-            f'letter-spacing: 0.3px; line-height: 1.6;">{g["label"]}</span>'
+            f'opacity: 0.75; vertical-align: middle;"></span>'
         )
 
         if GAUGE_MODE == "interactive":
@@ -122,37 +120,36 @@ def generate_gauge_html(
             # brief confirmation micro-page. Does NOT redirect to dtlc.ai homepage.
             url = f"{GAUGE_BASE_URL}?{encoded_params}&h={SUBSCRIBER_PLACEHOLDER}"
             cell = (
-                f'<td align="center" style="width: 20%;">'
-                f'<a href="{url}" target="_blank" '
-                f'style="display: block; text-decoration: none; padding: 4px 2px;">'
-                f'{dot_and_label}'
+                f'<td align="center" style="padding: 0 5px;">'
+                f'<a href="{url}" target="_blank" title="{g["label"]}" '
+                f'style="display: inline-block; text-decoration: none; padding: 3px 1px;">'
+                f'{dot}'
                 f'</a></td>'
             )
         else:
             # Static mode: identical appearance, but no link — a click does
             # nothing and never navigates the reader out of the email.
             cell = (
-                f'<td align="center" style="width: 20%;">'
-                f'<span style="display: block; text-decoration: none; padding: 4px 2px;">'
-                f'{dot_and_label}'
+                f'<td align="center" style="padding: 0 5px;">'
+                f'<span title="{g["label"]}" '
+                f'style="display: inline-block; text-decoration: none; padding: 3px 1px;">'
+                f'{dot}'
                 f'</span></td>'
             )
         cells.append(cell)
 
-    gauge_row = "\n".join(cells)
+    gauge_row = "".join(cells)
 
-    # Full gauge block wrapped in a table row — compact design
-    gauge_html = f'''<tr><td style="padding: 6px 40px 2px 40px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 3px; border: 1px solid #f0f0f0;">
-<tr><td style="padding: 6px 8px 0 8px;">
-<p style="margin: 0; font-size: 9px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #bbb; letter-spacing: 0.8px; text-align: center;">HOW STRONG IS THIS SIGNAL?</p>
-</td></tr>
-<tr><td style="padding: 2px 6px 6px 6px;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr>
+    # Slim gauge: one quiet right-aligned line at the foot of the article.
+    # No background box, no border — just a whisper of a prompt and five dots.
+    gauge_html = f'''<tr><td style="padding: 2px 40px 0 40px;">
+<table align="right" cellpadding="0" cellspacing="0" style="margin: 0;">
+<tr>
+<td style="padding: 0 8px 0 0; vertical-align: middle;">
+<span style="font-size: 8px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #c8c8c8; letter-spacing: 0.6px;">RATE THIS SIGNAL</span>
+</td>
 {gauge_row}
 </tr></table>
-</td></tr>
-</table>
 </td></tr>'''
 
     return gauge_html
