@@ -12,7 +12,8 @@ Edition history:
   - Editions 001-012: pre-counter (manual tracking)
   - Edition 013: first edition with counter (sent Saturday 12 Jul 2026)
   - Edition 014: sent to 20 subscribers Thursday 16 Jul 2026
-  - Edition 015: next scheduled (Monday 20 Jul 2026)
+  - Edition 015: sent to 20 subscribers Monday 20 Jul 2026
+  - Edition 016: next scheduled (Tuesday 21 Jul 2026)
 """
 from __future__ import annotations
 import json
@@ -22,7 +23,7 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 COUNTER_FILE = "data/edition_counter.json"
-DEFAULT_START = 14  # Last successfully sent edition. Next = DEFAULT_START + 1 = 015.
+DEFAULT_START = 15  # Last successfully sent edition (0015, Mon 20 Jul). Next = 0016.
 
 
 def get_next_edition(root: Path) -> int:
