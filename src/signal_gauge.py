@@ -50,6 +50,11 @@ GAUGE_HOVER_CSS = (
     '</style>'
 )
 
+# Stable marker prefixed to every gauge block; used to locate the first gauge
+# when the document has no <head> at injection time (the synthesised HTML is
+# a bare fragment until delivery.py wraps it).
+GAUGE_BLOCK_MARKER = "<!-- pl-001-gauge -->"
+
 # Score labels and colours
 GAUGE_SCORES = [
     {"score": 1, "label": "Yawn", "color": "#9CA3AF"},   # grey
@@ -158,7 +163,7 @@ def generate_gauge_html(
 
     # Slim gauge: one quiet right-aligned line at the foot of the article.
     # No background box, no border — just a whisper of a prompt and five dots.
-    gauge_html = f'''<tr><td style="padding: 2px 40px 0 40px;">
+    gauge_html = f'''{GAUGE_BLOCK_MARKER}<tr><td style="padding: 2px 40px 0 40px;">
 <table align="right" cellpadding="0" cellspacing="0" style="margin: 0;">
 <tr>
 <td style="padding: 0 8px 0 0; vertical-align: middle;">
@@ -290,19 +295,20 @@ def inject_gauge_into_html(
     for pos, gauge in sorted(insertions, key=lambda x: x[0], reverse=True):
         html = html[:pos] + "\n" + gauge + "\n" + html[pos:]
 
-    # Inject the hover-grow CSS once into <head>. Supported clients (Gmail
-    # desktop webmail, Apple Mail) get the effect; others ignore <style>
-    # or :hover and degrade gracefully to static dots.
+    # Inject the hover-grow CSS once. The synthesised HTML is a bare fragment
+    # at this stage (delivery.py adds the <html>/<head> wrapper later), so a
+    # <head> rarely exists here. A <style> block in the body is honoured by
+    # Gmail webmail and Apple Mail; clients that strip it degrade gracefully
+    # to static dots. Prefer <head> when present, else place the style block
+    # immediately before the first gauge.
     if insertions and GAUGE_HOVER_CSS not in html:
         head_close = html.find("</head>")
         if head_close != -1:
             html = html[:head_close] + GAUGE_HOVER_CSS + "\n" + html[head_close:]
         else:
-            # No <head> — prepend to body content as a fallback
-            body_open = html.find("<body")
-            if body_open != -1:
-                body_tag_end = html.find(">", body_open) + 1
-                html = html[:body_tag_end] + "\n" + GAUGE_HOVER_CSS + html[body_tag_end:]
+            first_gauge = html.find(GAUGE_BLOCK_MARKER)
+            if first_gauge != -1:
+                html = html[:first_gauge] + GAUGE_HOVER_CSS + "\n" + html[first_gauge:]
 
     log.info("Gauge injected after %d items", len(insertions))
     return html
