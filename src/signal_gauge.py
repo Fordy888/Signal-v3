@@ -38,6 +38,18 @@ SUBSCRIBER_PLACEHOLDER = "{{SUBSCRIBER_HASH}}"
 #     shows confirmation micro-page).
 GAUGE_MODE = os.environ.get("GAUGE_MODE", "static").lower().strip()
 
+# Hover-grow effect (PL-001 interaction spec): a dot swells slightly and goes
+# fully opaque under the cursor so the reader knows which judgement they are
+# about to give. transform:scale avoids layout shift; clients without :hover
+# or <style> support (e.g. Outlook desktop) degrade gracefully to static dots.
+GAUGE_HOVER_CSS = (
+    '<style type="text/css">'
+    '.gauge-dot:hover { transform: scale(1.5); opacity: 1 !important; '
+    'cursor: pointer; }'
+    'a:hover .gauge-dot { transform: scale(1.5); opacity: 1 !important; }'
+    '</style>'
+)
+
 # Score labels and colours
 GAUGE_SCORES = [
     {"score": 1, "label": "Yawn", "color": "#9CA3AF"},   # grey
@@ -107,10 +119,14 @@ def generate_gauge_html(
         # Slim design: small 10px dot, no label under each dot — the label
         # appears once as a quiet lead-in. Tooltip (title attr) preserves
         # the meaning for curious readers in clients that support it.
+        # The gauge-dot class enables the hover-grow effect (see GAUGE_HOVER_CSS)
+        # in clients that support :hover (Gmail desktop, Apple Mail); others
+        # degrade gracefully to the static dot.
         dot = (
-            f'<span style="display: inline-block; width: 10px; height: 10px; '
+            f'<span class="gauge-dot" style="display: inline-block; width: 10px; height: 10px; '
             f'border-radius: 50%; background-color: {g["color"]}; '
-            f'opacity: 0.75; vertical-align: middle;"></span>'
+            f'opacity: 0.75; vertical-align: middle; '
+            f'transition: transform 0.12s ease, opacity 0.12s ease;"></span>'
         )
 
         if GAUGE_MODE == "interactive":
@@ -273,6 +289,20 @@ def inject_gauge_into_html(
     # Apply insertions in reverse order (so positions don't shift)
     for pos, gauge in sorted(insertions, key=lambda x: x[0], reverse=True):
         html = html[:pos] + "\n" + gauge + "\n" + html[pos:]
+
+    # Inject the hover-grow CSS once into <head>. Supported clients (Gmail
+    # desktop webmail, Apple Mail) get the effect; others ignore <style>
+    # or :hover and degrade gracefully to static dots.
+    if insertions and GAUGE_HOVER_CSS not in html:
+        head_close = html.find("</head>")
+        if head_close != -1:
+            html = html[:head_close] + GAUGE_HOVER_CSS + "\n" + html[head_close:]
+        else:
+            # No <head> — prepend to body content as a fallback
+            body_open = html.find("<body")
+            if body_open != -1:
+                body_tag_end = html.find(">", body_open) + 1
+                html = html[:body_tag_end] + "\n" + GAUGE_HOVER_CSS + html[body_tag_end:]
 
     log.info("Gauge injected after %d items", len(insertions))
     return html
