@@ -1003,6 +1003,275 @@ rss_feeds:
     status: active
     notes: CIO/IT leadership news. Enterprise AI adoption patterns.
 
+
+  # ═══════════════════════════════════════════════════
+  # PROOF-RUN ADDITIONS — 30 Jul 2026 (Source Register, pending sign-off)
+  # 28 sources rebalancing mix toward Compass Pillars 3,4,5,6 and 1-2.
+  # Editorial principles: "News, not content marketing" + item-level sponsor filtering.
+  # ═══════════════════════════════════════════════════
+
+  # --- Pillar 6: Sales, Marketing & Customer ---
+
+  - name: Marketing AI Institute
+    url: https://www.marketingaiinstitute.com/blog/rss.xml
+    category: product_service_ideas
+    region: global
+    topics: [ai_marketing, adoption, tools, practitioner, enterprise_ai]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 27/30 Gold. Pillar 6."
+
+  - name: Sales & Marketing Management
+    url: https://salesandmarketing.com/feed/
+    category: product_service_ideas
+    region: us
+    topics: [sales_management, ai_sales, crm, revenue, leadership]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 25/30 Gold. Pillar 6."
+
+  - name: MarTech
+    url: https://martech.org/feed/
+    category: product_service_ideas
+    region: global
+    topics: [martech, ai_marketing, cmo, automation, genai]
+    signal_type: analysis
+    status: probation
+    notes: "Added 30 Jul 2026 proof. Score: 25/30 Gold. Pillar 6. Rate-limits aggressive fetching (429) — probation."
+
+  - name: Content Marketing Institute
+    url: https://contentmarketinginstitute.com/rss.xml
+    category: product_service_ideas
+    region: global
+    topics: [content_marketing, ai_content, strategy, geo, governance]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 24/30 Silver. Pillar 6. HIGH-CARE source; sponsored/partner items filtered."
+
+  - name: CMSWire
+    url: https://feeds2.feedburner.com/CMSWire
+    category: cultural_economic_shifts
+    region: global
+    topics: [cx, martech, digital_workplace, ai_platforms]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 24/30 Silver. Pillar 6 (CX)."
+
+  - name: Demand Gen Report
+    url: https://www.demandgenreport.com/feed/
+    category: product_service_ideas
+    region: us
+    topics: [demand_gen, abm, intent_data, predictive_scoring, b2b]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 24/30 Silver. Pillar 6."
+
+  - name: CX Today
+    url: https://www.cxtoday.com/feed/
+    category: cultural_economic_shifts
+    region: global
+    topics: [cx, contact_centre, ai_agents, voice_ai, customer_service]
+    signal_type: aggregator
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 24/30 Silver. Pillar 6 (CX)."
+
+  - name: B&T
+    url: https://www.bandt.com.au/feed/
+    category: australian_business
+    region: australia
+    topics: [advertising, media, marketing, ai_advertising]
+    signal_type: aggregator
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 24/30 Silver. Pillar 6, AU."
+
+  - name: Marketing Mag
+    url: https://www.marketingmag.com.au/feed/
+    category: australian_business
+    region: australia
+    topics: [marketing, ai_tools, strategy, brand]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 25/30 Gold. Pillar 6, AU."
+
+  - name: The AI Maker
+    url: https://aimaker.substack.com/feed
+    category: tactical_ai_stack
+    region: global
+    topics: [ai_workflows, sales_automation, practical_ai, tools]
+    signal_type: operator_voice
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 23/30 Silver. Pillar 6."
+
+  - name: Almost Timely (Christopher Penn)
+    url: https://almosttimely.substack.com/feed
+    category: product_service_ideas
+    region: us
+    topics: [ai_marketing, analytics, genai, data_science]
+    signal_type: operator_voice
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 23/30 Silver. Pillar 6."
+
+  - name: Social Media Today
+    url: https://www.socialmediatoday.com/feeds/news/
+    category: product_service_ideas
+    region: us
+    topics: [social_media, ai_advertising, platforms, social_selling]
+    signal_type: aggregator
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 22/30 Silver. Pillar 6."
+
+  # --- Pillar 4: People & Culture ---
+
+  - name: Josh Bersin
+    url: https://joshbersin.com/feed/
+    category: people_to_watch
+    region: global
+    topics: [hr_tech, ai_workforce, talent, skills, leadership]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 29/30 Gold. Pillar 4. Premier independent HR-tech/AI analyst."
+
+  - name: HR Dive
+    url: https://www.hrdive.com/feeds/news/
+    category: people_to_watch
+    region: us
+    topics: [hr, ai_recruiting, compliance, talent, workforce]
+    signal_type: aggregator
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 26/30 Gold. Pillar 4."
+
+  - name: Indeed Hiring Lab
+    url: https://www.hiringlab.org/feed/
+    category: people_to_watch
+    region: global
+    topics: [labour_market, ai_skills, hiring_data, workforce_research]
+    signal_type: research
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 25/30 Gold. Pillar 4. Vendor-affiliated research unit (Indeed) — flagged."
+
+  - name: HR Examiner
+    url: https://www.hrexaminer.com/feed/
+    category: people_to_watch
+    region: us
+    topics: [ai_hr, ethics, hr_tech, critical_analysis]
+    signal_type: analysis
+    status: probation
+    notes: "Added 30 Jul 2026 proof. Score: 25/30 Gold. Pillar 4. Returned 403 to pipeline server in proof run — probation, review after 14 days."
+
+  - name: Human Resource Executive
+    url: https://hrexecutive.com/feed/
+    category: people_to_watch
+    region: us
+    topics: [hr_leadership, enterprise_hr, ai_adoption, talent]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 24/30 Silver. Pillar 4. Item filter for event/webinar noise."
+
+  - name: AIHR
+    url: https://www.aihr.com/feed/
+    category: people_to_watch
+    region: global
+    topics: [hr_analytics, digital_hr, skills, education]
+    signal_type: research
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 23/30 Silver. Pillar 4."
+
+  # --- Pillar 3: Finance & Capital ---
+
+  - name: CFO Dive
+    url: https://www.cfodive.com/feeds/news/
+    category: venture_capital
+    region: us
+    topics: [cfo, finance_ai, fpa, accounting_automation, corporate_finance]
+    signal_type: aggregator
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 27/30 Gold. Pillar 3."
+
+  - name: Tearsheet
+    url: https://tearsheet.co/feed/
+    category: venture_capital
+    region: us
+    topics: [fintech, banking_ai, payments, embedded_finance]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 27/30 Gold. Pillar 3."
+
+  - name: Banking Dive
+    url: https://www.bankingdive.com/feeds/news/
+    category: venture_capital
+    region: us
+    topics: [banking, ai_adoption, regulation, financial_services]
+    signal_type: aggregator
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 26/30 Gold. Pillar 3."
+
+  - name: PYMNTS CFO
+    url: https://www.pymnts.com/feed/?cat=cfo
+    category: venture_capital
+    region: global
+    topics: [payments, cfo, finance_ops, commerce]
+    signal_type: aggregator
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 25/30 Gold. Pillar 3. Item filter for vendor research."
+
+  - name: CFO Thought Leader
+    url: https://www.cfothoughtleader.com/feed/
+    category: venture_capital
+    region: us
+    topics: [cfo, finance_leadership, strategy, operator_interviews]
+    signal_type: operator_voice
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 24/30 Silver. Pillar 3."
+
+  # --- Pillar 5: Operations & Delivery ---
+
+  - name: AI in Business (Emerj)
+    url: https://emerj.com/feed/
+    category: opportunity_radar
+    region: global
+    topics: [enterprise_ai, roi, case_studies, ai_adoption, operations]
+    signal_type: research
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 27/30 Gold. Pillar 5. Evidence-based AI ROI case studies."
+
+  - name: Supply Chain Dive
+    url: https://www.supplychaindive.com/feeds/news/
+    category: opportunity_radar
+    region: us
+    topics: [supply_chain, logistics, ai_operations, automation]
+    signal_type: aggregator
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 26/30 Gold. Pillar 5."
+
+  - name: The Robot Report
+    url: https://www.therobotreport.com/feed/
+    category: opportunity_radar
+    region: global
+    topics: [robotics, physical_ai, automation, operations]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 27/30 Gold. Pillar 5. Physical AI in operations."
+
+  # --- Pillars 1-2: Leadership & Strategy ---
+
+  - name: Chief Executive
+    url: https://chiefexecutive.net/feed/
+    category: strategy_decision_making
+    region: us
+    topics: [ceo, leadership, ai_strategy, governance, transformation]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 29/30 Gold. Pillars 1-2. Written directly for CEOs."
+
+  - name: Inside Retail
+    url: https://insideretail.com.au/feed
+    category: australian_business
+    region: australia
+    topics: [retail, ai_adoption, cx, operations, australian_business]
+    signal_type: analysis
+    status: active
+    notes: "Added 30 Jul 2026 proof. Score: 27/30 Gold. Pillars 1-2/6, AU. Non-tech industry AI case studies."
+
 # ═══════════════════════════════════════════════════
 # HACKERNEWS — always-on signal source
 # ═══════════════════════════════════════════════════

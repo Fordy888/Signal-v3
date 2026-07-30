@@ -220,4 +220,24 @@ When a government RSS feed dies, the replacement search order is:
 
 ---
 
+## Permanent Editorial Principles (adopted 30 July 2026)
+
+These two principles were adopted as standing editorial policy by Paul Ford on 30 July 2026, during the pillar-rebalance source expansion. They sit alongside the 6-dimension rubric and apply to every source and every item, permanently.
+
+### Principle 1 — News, not content marketing
+
+Any source — vendor, trade press, or newsletter — earns its place by carrying genuine news and evidence: announcements, launches, funding, regulation, research data, and real adoption case studies with measurable commercial change. What never gets in: playbook listicles, thought-leadership-as-lead-gen, gated-asset promotions, and webinar bait — no matter how well-produced or which logo is on it. Big platforms invest heavily in content marketing precisely because it looks like editorial; that is exactly why the bar exists. Vendor-owned feeds are held to the strictest version of the test (news-wire items only, if used at all), and independent trade outlets have their Signal-to-Noise score marked against the same standard.
+
+### Principle 2 — Judge the item, not just the masthead
+
+A vendor article is not automatically bad; an independent blog is not automatically good. Every article earns its place on evidence, adoption, research, regulation, funding, or measurable commercial change. Trade outlets with sponsor/partner programs (e.g., CMI's vendor-affiliated content) remain eligible on the strength of their editorial core, with sponsored items ("sponsored", "partner content", "brought to you by", vendor-authored) down-scored or dropped at ingestion. The protection operates at item level, not source level — keep the gold, screen the ads.
+
+### Mission alignment
+
+> DTL Signal exists to improve executive judgement by maintaining balance across the seven business functions that determine business performance.
+
+Source curation serves this mission: the portfolio of sources must collectively cover all seven Compass pillars (Leadership & Vision; Strategy & Business Model; Finance & Capital; People & Culture; Operations & Delivery; Sales, Marketing & Customer; Technology & Data), and no single pillar's sources may crowd out the others. Functional Balance in the synthesis prompt (v5.1) is the editorial expression of this rule.
+
+---
+
 *This document is the single source of truth for source curation decisions in the Signal pipeline.*
