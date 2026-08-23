@@ -14,6 +14,7 @@ import yaml
 from anthropic import Anthropic
 
 from .scoring import ScoredItem
+from .header_metadata import ensure_header_metadata
 
 log = logging.getLogger(__name__)
 
@@ -300,17 +301,22 @@ def synthesise(
     # Strip any hallucinated "// reply to refine" text
     html = html.replace("// reply to refine", "")
 
-    # ─── POST-SYNTHESIS DATE CORRECTION ─────────────────────────────────
-    # The LLM sometimes hallucates the wrong day-of-week in the header date line.
-    # Force-correct it to match the computed values from pipeline runtime.
-    # Pattern matches any weekday name followed by the date in the header line
-    # e.g., "Thursday 10 July 2026 | 06:00 AEST" → "Friday 10 July 2026 | 06:00 AEST"
-    weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    wrong_day_pattern = "|".join(w for w in weekdays if w != day_name)
-    # Fix the header date line: any wrong weekday + our date → correct weekday + date
-    date_line_pattern = rf'({"|".join(weekdays)})\s+{re.escape(date_formatted)}'
-    html = re.sub(date_line_pattern, f'{day_name} {date_formatted}', html)
-    log.info("Post-synthesis date correction applied: %s %s", day_name, date_formatted)
+    # ─── POST-SYNTHESIS METADATA ENFORCEMENT ─────────────────────────────
+    # The LLM may omit or rewrite the date row. Pipeline-computed Brisbane
+    # metadata is authoritative, so replace or inject it deterministically.
+    html, metadata_action = ensure_header_metadata(
+        html=html,
+        day_name=day_name,
+        date_formatted=date_formatted,
+        time_str=time_str,
+    )
+    log.info(
+        "Post-synthesis header metadata %s: %s %s | %s AEST",
+        metadata_action,
+        day_name,
+        date_formatted,
+        time_str,
+    )
 
     # ─── EDITION COUNTER VERIFICATION ──────────────────────────────────
     # Ensure the edition number appears in the HTML header.
