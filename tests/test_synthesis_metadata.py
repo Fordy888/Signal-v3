@@ -17,7 +17,7 @@ class HeaderMetadataTests(unittest.TestCase):
             html, "Monday", "24 August 2026", "06:06"
         )
 
-        self.assertEqual(action, "replaced")
+        self.assertEqual(action, "header_replaced")
         self.assertIn("Monday 24 August 2026 | 06:06 AEST", corrected)
         self.assertNotIn("Sunday 23 August 2026", corrected)
 
@@ -34,7 +34,7 @@ class HeaderMetadataTests(unittest.TestCase):
             html, "Monday", "24 August 2026", "06:06"
         )
 
-        self.assertEqual(action, "injected")
+        self.assertEqual(action, "header_injected")
         self.assertIn("Monday 24 August 2026 | 06:06 AEST", corrected)
         self.assertLess(
             corrected.index("Monday 24 August 2026"),
@@ -48,8 +48,29 @@ class HeaderMetadataTests(unittest.TestCase):
             html, "Monday", "24 August 2026", "06:06"
         )
 
-        self.assertEqual(action, "unchanged")
+        self.assertEqual(action, "header_unchanged")
         self.assertEqual(corrected, html)
+
+    def test_replaces_mismatched_footer_stamp(self):
+        html = """
+        <table>
+          <tr><td>Monday 24 August 2026 | 06:06 AEST</td></tr>
+          <tr><td>PF::SIGNAL-0038 // 25.08.2026 // 06:06 AEST</td></tr>
+        </table>
+        """
+
+        corrected, action = ensure_header_metadata(
+            html,
+            "Monday",
+            "24 August 2026",
+            "06:06",
+            edition_number=38,
+            date_compact="24.08.2026",
+        )
+
+        self.assertIn("footer_replaced", action)
+        self.assertIn("PF::SIGNAL-0038 // 24.08.2026 // 06:06 AEST", corrected)
+        self.assertNotIn("PF::SIGNAL-0038 // 25.08.2026", corrected)
 
 
 if __name__ == "__main__":

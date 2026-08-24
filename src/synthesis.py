@@ -309,6 +309,8 @@ def synthesise(
         day_name=day_name,
         date_formatted=date_formatted,
         time_str=time_str,
+        edition_number=edition_number,
+        date_compact=date_compact,
     )
     log.info(
         "Post-synthesis header metadata %s: %s %s | %s AEST",

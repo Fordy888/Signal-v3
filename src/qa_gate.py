@@ -466,6 +466,16 @@ def check_subject_body_alignment(html: str, edition_number: int) -> QAResult:
     if day_month not in html:
         issues.append(f"Today's date ({date_formatted}) not found in the email body")
 
+    # Daily editions carry a deterministic footer stamp. If one is present,
+    # it must agree with the same runtime date and edition number as the header.
+    if "PF::SIGNAL-" in html:
+        date_compact = now.strftime("%d.%m.%Y")
+        expected_stamp = f"PF::SIGNAL-{edition_padded} // {date_compact}"
+        if expected_stamp not in html:
+            issues.append(
+                f"Footer stamp does not match Edition {edition_padded} and {date_compact}"
+            )
+
     if issues:
         return QAResult(
             check_name="Subject/Body Alignment",
