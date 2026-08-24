@@ -23,7 +23,7 @@
 - [x] Build a sandboxed Edition 0038 Enhanced path; do not change production output before approval
 - [x] Generate and compare Edition 0038 Current versus Edition 0038 Enhanced
 - [x] Test whether the enhanced edition is faster, clearer, more connected, rigorous, memorable and human
-- [ ] Deliver the comparison and rollout recommendation for Fordy’s approval
+- [x] Deliver the comparison and rollout recommendation for Fordy’s approval
 - [x] Reorder and label the enhanced experience around the governing rhythm: Think → Decide → Look up → Smile
 - [x] Ensure the Visual Signal supports the transition from Think to Decide without becoming a fifth competing stage
 - [x] Fix dry-run recipient display when firstName is null
