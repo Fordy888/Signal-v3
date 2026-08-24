@@ -27,6 +27,10 @@ from .attribution import report_send_results, resolve_subscriber_ids
 from .founders_note import generate_founders_note, inject_founders_note
 from .signal_gauge import is_gauge_enabled, inject_gauge_into_html, personalise_gauge_for_subscriber
 from .history import load_history, record_edition
+from .judgement_plan import generate_judgement_plan, scored_items_to_evidence
+from .signal_memory import apply_memory_update, load_signal_memory, memory_context, save_signal_memory
+from .enhanced_renderer import render_enhanced_email
+from .human_signal import load_joke_history, load_jokes, record_joke, select_joke
 from .edition_counter import get_next_edition, increment_edition
 from .subscribers import fetch_subscribers
 from .qa_gate import (
@@ -163,6 +167,8 @@ def main() -> int:
     parser.add_argument("--force-type", type=str, choices=["daily", "weekly_wrap"],
                         default=None,
                         help="Override day-of-week detection (for testing)")
+    parser.add_argument("--enhanced", action="store_true",
+                        help="Run Development Thesis V1 judgement architecture (default off; approval comparison only)")
     args = parser.parse_args()
 
     # Locate project root (parent of src/)
@@ -366,14 +372,45 @@ def main() -> int:
     else:
         synthesis_prompt_path = str(root / "prompts" / "synthesis_prompt.md")
 
+    enhanced_plan = None
+    selected_joke = None
+    signal_memory = None
+    memory_path = root / os.environ.get("SIGNAL_MEMORY_PATH", "data/signal_memory.json")
+    joke_history_path = root / os.environ.get("SIGNAL_JOKE_HISTORY_PATH", "data/joke_history.json")
+
     try:
-        html = synthesise(
-            scored_items=scored,
-            context_path=context_path,
-            synthesis_prompt_path=synthesis_prompt_path,
-            edition_number=edition_number,
-            edition_type=edition_type,
-        )
+        if args.enhanced:
+            if edition_type != "daily":
+                raise ValueError("Enhanced judgement architecture is currently approved for daily editions only")
+            log.info("Stage 3: Building structured judgement plan (enhanced mode)...")
+            planner_evidence = scored_items_to_evidence(scored)
+            signal_memory = load_signal_memory(memory_path)
+            enhanced_plan = generate_judgement_plan(
+                evidence_items=planner_evidence,
+                prior_memory=memory_context(signal_memory),
+                prompt_path=root / "prompts" / "judgement_planner_prompt.md",
+            )
+            jokes = load_jokes(root / "data" / "dad_jokes.json")
+            selected_joke = select_joke(
+                jokes,
+                edition_number=edition_number,
+                recent_ids=load_joke_history(joke_history_path),
+            )
+            html = render_enhanced_email(
+                plan=enhanced_plan,
+                sources=planner_evidence,
+                joke=selected_joke,
+                edition_number=edition_number,
+                generated_at=datetime.now(BRISBANE),
+            )
+        else:
+            html = synthesise(
+                scored_items=scored,
+                context_path=context_path,
+                synthesis_prompt_path=synthesis_prompt_path,
+                edition_number=edition_number,
+                edition_type=edition_type,
+            )
         log.info("Stage 3 complete: %d chars of HTML produced", len(html))
     except Exception as e:
         log.error("Synthesis failed: %s", e)
@@ -398,19 +435,22 @@ def main() -> int:
         return 1
 
     # ─── Stage 3b: Founder's Note ──────────────────────────────────────
-    log.info("Stage 3b: Generating Founder's Note...")
-    try:
-        founders_note = generate_founders_note(scored, edition_number, root)
-        if founders_note:
-            html = inject_founders_note(html, founders_note)
-            log.info("Stage 3b complete: Founder's Note injected ('%s', %d words)",
-                     founders_note.get("headline", ""), founders_note.get("word_count", 0))
-        else:
-            log.warning("Stage 3b: Founder's Note generation returned empty — skipping")
-    except Exception as e:
-        log.warning("Stage 3b: Founder's Note failed (non-fatal) — %s", e)
+    if args.enhanced:
+        log.info("Stage 3b: Enhanced mode uses governed DTL View + Human Signal; standalone Founder's Note skipped")
+    else:
+        log.info("Stage 3b: Generating Founder's Note...")
+        try:
+            founders_note = generate_founders_note(scored, edition_number, root)
+            if founders_note:
+                html = inject_founders_note(html, founders_note)
+                log.info("Stage 3b complete: Founder's Note injected ('%s', %d words)",
+                         founders_note.get("headline", ""), founders_note.get("word_count", 0))
+            else:
+                log.warning("Stage 3b: Founder's Note generation returned empty — skipping")
+        except Exception as e:
+            log.warning("Stage 3b: Founder's Note failed (non-fatal) — %s", e)
     # ─── Stage 3c: Signal Strength Gauge ───────────────────────────────
-    if is_gauge_enabled(mode, edition_number):
+    if not args.enhanced and is_gauge_enabled(mode, edition_number):
         log.info("Stage 3c: Injecting Signal Strength Gauge...")
         try:
             html = inject_gauge_into_html(html, scored, edition_number)
@@ -422,6 +462,12 @@ def main() -> int:
     if edition_type == "weekly_wrap":
         has_key_section = ("THE PATTERN" in html and "EXECUTIVE TAKEAWAY" in html)
         gate_label = "Weekly Wrap key sections (Traffic Light + EXECUTIVE TAKEAWAY)"
+    elif args.enhanced:
+        has_key_section = all(
+            label in html
+            for label in ("THE ONE THING", "THE EVIDENCE", "WHAT CHANGED?", "COUNTER-SIGNAL", "EXECUTIVE READ", "What to Watch")
+        )
+        gate_label = "Development Thesis V1 intelligence sequence"
     else:
         has_key_section = ("EXECUTIVE READ" in html and "What to Watch" in html)
         gate_label = "Executive Read section"
@@ -602,6 +648,18 @@ def main() -> int:
             edition_id = f"edition_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
             record_edition(root, delivered_urls, edition_id=edition_id)
             increment_edition(root)
+            if args.enhanced and enhanced_plan and selected_joke and signal_memory is not None:
+                delivered_at = datetime.now(BRISBANE).isoformat()
+                updated_memory = apply_memory_update(
+                    signal_memory,
+                    enhanced_plan["memory_update"],
+                    enhanced_plan["what_changed"],
+                    edition_number=edition_number,
+                    delivered_at=delivered_at,
+                )
+                save_signal_memory(memory_path, updated_memory)
+                record_joke(joke_history_path, selected_joke["id"])
+                log.info("Enhanced memory and Human Signal rotation recorded after successful delivery")
             log.info("Edition counter incremented. Next edition will be %04d", edition_number + 1)
     except Exception as e:
         bookkeeping_error = str(e)

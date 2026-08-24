@@ -1,0 +1,147 @@
+{
+  "one_thing": {
+    "statement": "AI's decisive advantage is shifting from model capability to the operating discipline around it.",
+    "business_implication": "Cheaper models, constrained agents, messy knowledge and enforceable governance risk point the same way: build the operating system around AI before buying more capability.",
+    "confidence": "HIGH",
+    "evidence_ids": [
+      "S01",
+      "S03",
+      "S06",
+      "S07"
+    ]
+  },
+  "evidence_items": [
+    {
+      "source_ids": [
+        "S01"
+      ],
+      "category": "Operations & Workflow",
+      "action_tag": "ACT",
+      "headline": "Constrained AI agents outperform autonomous ones",
+      "evidence": "Enterprises report better production outcomes when AI agents have deliberately limited decision authority."
+    },
+    {
+      "source_ids": [
+        "S02"
+      ],
+      "category": "Finance & Commercial Performance",
+      "action_tag": "ACT",
+      "headline": "Nvidia AI server costs up 17%",
+      "evidence": "Server makers notified customers of roughly 17% price increases on Grace Blackwell 300 and Vera Rubin 200 systems."
+    },
+    {
+      "source_ids": [
+        "S03"
+      ],
+      "category": "Strategy & Leadership",
+      "action_tag": "ACT",
+      "headline": "Enterprises choose cheaper AI models",
+      "evidence": "Enterprise buyers are choosing cheaper AI alternatives despite more capable premium models being available."
+    },
+    {
+      "source_ids": [
+        "S04"
+      ],
+      "category": "Sales & Marketing",
+      "action_tag": "WATCH",
+      "headline": "AI-native firms adding human sales capacity",
+      "evidence": "Replit, Gamma, Lovable and Anthropic are building human sales teams to pursue enterprise revenue."
+    },
+    {
+      "source_ids": [
+        "S06"
+      ],
+      "category": "Data & Systems",
+      "action_tag": "ACT",
+      "headline": "Messy data breaks enterprise AI agents",
+      "evidence": "Agent reliability degrades where organisational knowledge is siloed and inconsistently structured."
+    },
+    {
+      "source_ids": [
+        "S07"
+      ],
+      "category": "Governance & Risk",
+      "action_tag": "ACT",
+      "headline": "Uber fined for opaque automated decisions",
+      "evidence": "The Dutch DPA fined Uber for automated driver suspensions that lacked adequate disclosure to affected individuals."
+    },
+    {
+      "source_ids": [
+        "S05"
+      ],
+      "category": "People & Capability",
+      "action_tag": "WATCH",
+      "headline": "AI suppressing wages before cutting jobs",
+      "evidence": "Apollo's chief economist says AI's labour impact is appearing in weaker wage growth, not aggregate job losses."
+    }
+  ],
+  "interpretation": "Model access is becoming abundant, but useful outcomes remain constrained by cost, knowledge quality, decision boundaries and accountability. The value gap is operational.",
+  "dtl_view": "The next AI advantage is disciplined execution. Treat governance, data quality and workflow design as the product; model selection is increasingly a procurement choice.",
+  "what_changed": {
+    "position_id": "ai-advantage-operating-system",
+    "classification": "STRENGTHENS",
+    "prior_position": "Durable AI advantage comes from the operating system around the model \u2014 data, governance, process and ownership \u2014 rather than the model itself.",
+    "current_position": "Evidence across cost, governance, data quality and agent design reinforces that the operating system around AI matters more than model selection.",
+    "explanation": "Compared with Edition 0022, live enterprise behaviour now strengthens the position: buyers are choosing cheaper models, constrained agents are producing better outcomes, messy knowledge is limiting reliability and opaque automation is attracting enforceable cost.",
+    "confidence": "HIGH"
+  },
+  "visual_signal": {
+    "eligible": true,
+    "type": "TENSION_MAP",
+    "title": "The AI cost-capability squeeze",
+    "subtitle": "Infrastructure costs rising; enterprise willingness to pay for capability falling",
+    "rows": [
+      {
+        "label": "Infrastructure cost",
+        "status": "RISING",
+        "detail": "Nvidia server prices up roughly 17%"
+      },
+      {
+        "label": "Enterprise model spend",
+        "status": "FALLING",
+        "detail": "Buyers choosing cheaper models over premium"
+      },
+      {
+        "label": "Agent autonomy tolerance",
+        "status": "CONSTRAINED",
+        "detail": "Better outcomes with limited agent authority"
+      },
+      {
+        "label": "Regulatory cost of opacity",
+        "status": "RISING",
+        "detail": "Fines for unexplained automated decisions"
+      }
+    ]
+  },
+  "counter_signal": {
+    "statement": "Enterprises choosing cheaper models now may be early-adopters optimising for experimentation cost, not production value. As AI becomes revenue-critical, capability premiums could reassert as switching costs rise and reliability demands increase.",
+    "would_change_view_if": "Premium model retention rates stabilise or improve in production deployments; or enterprises publicly reverse cheaper-model decisions citing reliability failures.",
+    "confidence_effect": "Would shift ONE THING confidence to LOW and weaken the cost-pressure narrative materially."
+  },
+  "executive_actions": [
+    "Audit AI infrastructure spend against current Nvidia price levels; update build-vs-buy assumptions accordingly.",
+    "Map every automated decision affecting employees, customers or contractors against disclosure and explainability requirements.",
+    "Set explicit autonomy boundaries for any AI agent in production before expanding scope."
+  ],
+  "executive_read": {
+    "dtl_view": "The AI market is being squeezed simultaneously from above and below: infrastructure costs are rising while enterprise buyers refuse to pay capability premiums. The winners will not be those with the best model access \u2014 they will be those with the tightest governance, cleanest data, and most disciplined agent design. The operating system around AI is the only layer that remains competitively defensible.",
+    "watch_items": [
+      "Whether premium AI model providers respond to enterprise price sensitivity with tiered or consumption-based pricing.",
+      "Whether European regulatory actions on automated decisions trigger equivalent enforcement in other jurisdictions.",
+      "Wage benchmark data in knowledge-work sectors as an early indicator of AI labour displacement timing."
+    ]
+  },
+  "memory_update": {
+    "position_id": "ai-advantage-operating-system",
+    "theme": "AI commercial advantage",
+    "statement": "Model capability premiums are collapsing under cost pressure. Durable AI advantage resides in data quality, agent governance, and process discipline \u2014 not model selection. This position is now supported by evidence across cost, governance, agent design, and buyer behaviour.",
+    "confidence": "MEDIUM",
+    "supporting_source_ids": [
+      "S01",
+      "S02",
+      "S03",
+      "S06",
+      "S07"
+    ]
+  }
+}

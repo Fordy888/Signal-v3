@@ -1,0 +1,65 @@
+[
+  {
+    "source_id": "S01",
+    "title": "Enterprises winning with AI agents are limiting autonomy",
+    "source": "VentureBeat",
+    "url": "https://venturebeat.com/orchestration/enterprises-winning-with-ai-agents-are-limiting-how-much-the-agents-can-do-alone",
+    "category": "Operations & Workflow",
+    "score": 31,
+    "evidence": "Production results indicate enterprises are getting better outcomes when they deliberately constrain what AI agents can decide and do alone."
+  },
+  {
+    "source_id": "S02",
+    "title": "Nvidia AI server prices rise about 17%",
+    "source": "The Information",
+    "url": "https://www.theinformation.com/articles/nvidia-ai-chip-prices-rise-17-server-makers-tell-customers",
+    "category": "Finance & Commercial Performance",
+    "score": 30,
+    "evidence": "Server makers notified customers of roughly 17% price increases for Nvidia Grace Blackwell 300 and Vera Rubin 200 systems."
+  },
+  {
+    "source_id": "S03",
+    "title": "Cheaper AI models attract enterprise buyers",
+    "source": "Simon Willison / Financial Times",
+    "url": "https://simonwillison.net/2026/Aug/23/anthropics-best-ai-model-struggles-to-attract-users-as-cheaper-t/",
+    "category": "Strategy & Leadership",
+    "score": 30,
+    "evidence": "Enterprise customers are turning to cheaper AI alternatives despite the availability of more capable premium models."
+  },
+  {
+    "source_id": "S04",
+    "title": "AI-native companies are building sales teams",
+    "source": "SaaStr",
+    "url": "https://www.saastr.com/everyone-ends-up-with-a-sales-team-even-in-the-ai-era-the-team-just-scales-later-now/",
+    "category": "Sales & Marketing",
+    "score": 29,
+    "evidence": "Replit, Gamma, Lovable and Anthropic are adding human sales capacity as they pursue enterprise revenue."
+  },
+  {
+    "source_id": "S05",
+    "title": "AI labour effects are appearing in wages",
+    "source": "PYMNTS CFO",
+    "url": "https://www.pymnts.com/news/artificial-intelligence/2026/apollo-economist-says-ai-affecting-wages-more-than-employment/",
+    "category": "People & Capability",
+    "score": 27,
+    "evidence": "Apollo Global's chief economist said AI's labour-market impact is appearing in weaker wage growth more than aggregate job losses."
+  },
+  {
+    "source_id": "S06",
+    "title": "Messy documents constrain enterprise AI agents",
+    "source": "VentureBeat",
+    "url": "https://venturebeat.com/orchestration/enterprise-ai-agents-are-only-as-reliable-as-the-messiest-documents-behind-them",
+    "category": "Data & Systems",
+    "score": 29,
+    "evidence": "Enterprise agent reliability is breaking down where organisational knowledge is siloed and inconsistently structured."
+  },
+  {
+    "source_id": "S07",
+    "title": "Uber fined over opaque automated decisions",
+    "source": "Reuters via Daring Fireball",
+    "url": "https://www.reuters.com/world/dutch-regulator-fines-uber-966-million-automating-driver-suspensions-document-2026-08-21/",
+    "category": "Governance & Risk",
+    "score": 28,
+    "evidence": "The Dutch Data Protection Authority fined Uber for automated driver-account decisions without adequate disclosure to affected people."
+  }
+]
