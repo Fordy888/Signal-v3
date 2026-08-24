@@ -133,11 +133,14 @@ def render_alive_moment(moment: dict[str, Any]) -> str:
     licence_url = escape(str(moment["licence_url"]), quote=True)
     source_url = escape(str(moment["image_source_url"]), quote=True)
     return (
-        '<tr><td style="padding:28px 40px 8px 40px;">'
+        '<tr><td style="padding:32px 40px 18px 40px;">'
         '<p style="margin:0 0 14px 0;font:800 11px monospace;color:#17A398;letter-spacing:1.8px;">WE ARE ALIVE</p>'
         f'<p style="margin:0 0 5px 0;font-size:18px;font-weight:800;color:#1a1a1a;">{escape(moment["location"])}, {escape(moment["country"])}</p>'
-        f'<p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#555;">{escape(moment["caption"])}</p>'
-        f'<img src="{escape(moment["image_url"], quote=True)}" width="820" alt="{escape(moment["phenomenon"], quote=True)}" style="display:block;width:100%;max-width:820px;height:auto;border:0;border-radius:2px;" />'
-        f'<p style="margin:7px 0 0 0;font-size:9px;line-height:1.4;color:#aaa;">{attribution} · <a href="{source_url}" style="color:#999;">source</a> · <a href="{licence_url}" style="color:#999;">licence</a></p>'
+        f'<p style="margin:0 0 22px 0;font-size:14px;line-height:1.6;color:#555;">{escape(moment["caption"])}</p>'
+        '<table width="75%" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">'
+        '<tr><td align="center">'
+        f'<img src="{escape(moment["image_url"], quote=True)}" width="615" alt="{escape(moment["phenomenon"], quote=True)}" style="display:block;width:100%;max-width:615px;height:auto;border:0;border-radius:2px;" />'
+        f'<p style="margin:7px 0 0 0;font-size:8px;line-height:1.35;color:#c0c0c0;text-align:center;">{attribution} · <a href="{source_url}" style="color:#aaa;text-decoration:none;">source</a> · <a href="{licence_url}" style="color:#aaa;text-decoration:none;">licence</a></p>'
+        '</td></tr></table>'
         '</td></tr>'
     )

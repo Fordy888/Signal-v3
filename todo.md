@@ -43,5 +43,18 @@
 - [x] Place WE ARE ALIVE immediately before the governed Dad Joke, creating Perspective → Peace → Laughter
 - [x] Keep the feature default-off and require human approval before any production publication
 - [x] Produce a revised Edition 0038 proof with image provenance, licence status, duplicate checks and desktop/mobile verification
+
+## WE ARE ALIVE Restraint Refinement
+
+- [x] Preserve the previous email’s CEO View wording verbatim; change placement only
+- [x] Reduce the displayed photograph size by approximately 25% while preserving responsive mobile rendering
+- [x] Add surrounding white space so the photograph reads as a five-second pause, not a hero feature
+- [x] Minimise visible attribution while retaining readable CC BY-SA 4.0 credit, source and licence links
+- [x] Keep the one-sentence factual caption unchanged
+- [x] Remove “Signal learns. Every open, every click, every skip trains the next edition.” from reader-facing email
+- [x] Move quietly from Dad Joke to the minimal DTL Signal footer
+- [x] Preserve THINK → DECIDE → LOOK UP → WE ARE ALIVE → SMILE without adding stages
+- [x] Verify the final-page acceptance test on desktop and mobile
+- [x] Send the refined exact proof to paul.ford@gmail.com
 - [x] Fix dry-run recipient display when firstName is null
 - [x] Exclude the known test and bounced addresses still present in the live subscriber API before recovery send

@@ -165,6 +165,10 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertIn("CEO VIEW", html)
         self.assertEqual(html.count("CEO VIEW"), 1)
         self.assertIn("Do something different today … Paul", html)
+        self.assertIn(valid_plan()["dtl_view"], html)
+        self.assertNotIn("Signal learns. Every open, every click, every skip trains the next edition.", html)
+        self.assertIn('width="75%"', html)
+        self.assertIn('max-width:615px', html)
         self.assertIn("PF::SIGNAL-0038 // 24.08.2026 // 06:06 AEST", html)
 
 

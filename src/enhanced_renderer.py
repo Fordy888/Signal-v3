@@ -130,8 +130,7 @@ def render_enhanced_email(
         [
             '<tr><td style="padding:24px 40px 0 40px;"><p style="margin:0;font:800 9px monospace;color:#aaa;letter-spacing:2px;text-transform:uppercase;">SMILE</p></td></tr>',
             render_human_signal(joke),
-            '<tr><td style="padding:24px 40px 8px 40px;"><p style="margin:0;font:11px monospace;color:#999;">Signal learns. Every open, every click, every skip trains the next edition.</p></td></tr>',
-            '<tr><td style="padding:0 40px 26px 40px;"><table width="100%"><tr>',
+            '<tr><td style="padding:28px 40px 26px 40px;"><table width="100%"><tr>',
             f'<td><p style="margin:0;font:9px monospace;color:#bbb;letter-spacing:1px;">PF::SIGNAL-{edition_padded} // {date_compact} // {time_text} AEST</p></td>',
             '<td align="right"><p style="margin:0;font:9px monospace;color:#bbb;"><a href="https://dtlc.ai" style="color:#4ECDC4;text-decoration:none;">dtlc.ai</a></p></td>',
             '</tr></table></td></tr>',

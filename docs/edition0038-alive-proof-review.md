@@ -31,3 +31,23 @@ The treatment is suitable for email proof. Keep WE ARE ALIVE optional and govern
 | Opening hierarchy | THE ONE THING remains dominant | THE ONE THING remains dominant | Pass |
 
 The revised opening reads as **judgement first, proof second**: THE ONE THING establishes priority, CEO View provides Paul’s human position, and THE EVIDENCE substantiates it. The personal line “Do something different today … Paul” adds authorship without functioning as a promotional CTA.
+
+## Final-page restraint revision
+
+| Check | Observation | Result |
+|---|---|---|
+| Photograph proportion | Centred at 75% of content width, approximately 25% smaller than the previous proof | Pass |
+| White space | Additional space above the image and around the centred image table creates a short visual pause | Pass |
+| Attribution | Retained as required, centred at 8 px in light grey with unobtrusive source and licence links | Pass |
+| Caption | The approved one-sentence factual Moorea caption is unchanged | Pass |
+| Dad Joke treatment | Remains visually smaller than WE ARE ALIVE | Pass |
+| Human finish | The behavioural-learning sentence is removed; the joke now flows directly to the minimal Signal footer | Pass |
+| Emotional sequence | THINK → DECIDE → LOOK UP → WE ARE ALIVE → SMILE remains intact | Pass |
+
+The final page now behaves as intended: stop briefly, look, smile, and leave. The photograph is still arresting, but it no longer presents as the edition’s hero story.
+
+### Mobile verification
+
+At a 390 px viewport, the Counter-Signal, What to Watch and WE ARE ALIVE introduction remain legible with the intended hierarchy. The location and single factual sentence stack naturally before the centred photograph. The reduced 75% image treatment creates visible side margins on mobile rather than returning to a full-bleed hero treatment.
+
+The final mobile finish also passes: the 75% photograph remains large enough to recognise instantly, the legally required attribution is present but visually recessive, the Dad Joke is clearly smaller than WE ARE ALIVE, and the minimal edition footer follows directly with no tracking or technology message. The resulting cadence is **look → smile → leave**.
