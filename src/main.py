@@ -508,7 +508,8 @@ def main() -> int:
         print(f"\nRecipient count: {len(recipients)}")
         print(f"\nRecipient list:")
         for i, r in enumerate(recipients, 1):
-            print(f"  {i:2d}. {r.get('firstName', '?'):15s} — {r['email']}")
+            first_name = r.get("firstName") or "?"
+            print(f"  {i:2d}. {first_name:15s} — {r['email']}")
         print(f"\n{'=' * 60}")
         print(f"Brief preview ({len(html)} chars total):")
         print("=" * 60 + "\n")

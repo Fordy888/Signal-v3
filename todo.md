@@ -9,3 +9,5 @@
 - [ ] Verify subject, body date, content mix, formatting, QA and delivery
 - [ ] Decide whether to recover/send today’s held edition
 - [ ] Record the incident cause and resolution
+- [x] Fix dry-run recipient display when firstName is null
+- [ ] Exclude the known test and bounced addresses still present in the live subscriber API before recovery send

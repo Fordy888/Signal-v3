@@ -18,6 +18,42 @@ RETRY_DELAY = 10  # seconds
 WARM_UP_ATTEMPTS = 4  # total attempts to reach the website (handles autoscale cold starts)
 WARM_UP_DELAY = 15  # seconds between warm-up retries
 
+# Explicit delivery exclusions for test accounts and a known bounced typo that
+# remain marked active in the website subscriber database. Keeping this list
+# narrow avoids heuristic filtering of legitimate DTLC.ai or Gmail addresses.
+DELIVERY_EXCLUSIONS = {
+    "chain-validation-jul29@dtlc.ai",
+    "controlled-test-chain@dtlc.ai",
+    "batch1-test2@dtlc.ai",
+    "attribution-test@dtlc.ai",
+    "outreach-e2e-test@gmail.com",
+    "outreach-test-jul28@dtlc.ai",
+    "test-outreach-check@example.com",
+    "fordevi4@gmail.com",
+}
+
+
+def filter_delivery_recipients(subscribers: list[dict]) -> list[dict]:
+    """Remove only the explicitly approved non-customer delivery addresses."""
+    filtered: list[dict] = []
+    excluded: list[str] = []
+
+    for subscriber in subscribers:
+        email = str(subscriber.get("email") or "").strip().lower()
+        if email in DELIVERY_EXCLUSIONS:
+            excluded.append(email)
+            continue
+        filtered.append(subscriber)
+
+    if excluded:
+        log.warning(
+            "Excluded %d known test/bounced delivery address(es): %s",
+            len(excluded),
+            ", ".join(sorted(excluded)),
+        )
+
+    return filtered
+
 
 def _warm_up_website(base_url: str) -> bool:
     """Ping the website to wake it up from autoscale hibernation.
@@ -108,9 +144,17 @@ def fetch_subscribers() -> list[dict]:
                 log.warning("Subscriber API returned empty list - safety abort")
                 return []
 
-            log.info("Fetched %d active subscriber(s) from website API",
-                     len(subscribers))
-            return subscribers
+            delivery_recipients = filter_delivery_recipients(subscribers)
+            if not delivery_recipients:
+                log.warning("All active subscribers were excluded from delivery - safety abort")
+                return []
+
+            log.info(
+                "Fetched %d active subscriber(s) from website API; %d eligible for delivery",
+                len(subscribers),
+                len(delivery_recipients),
+            )
+            return delivery_recipients
 
         except requests.exceptions.Timeout:
             if attempt < 2:
