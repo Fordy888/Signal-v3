@@ -30,6 +30,10 @@
 ## CEO View + WE ARE ALIVE Proof
 
 - [x] Retain CEO View as the named human judgement layer within DECIDE
+- [x] Move CEO View directly beneath THE ONE THING and before THE EVIDENCE
+- [x] Remove the later CEO View duplicate from DECIDE
+- [x] Add “Do something different today … Paul” beneath the top CEO View
+- [x] Regenerate and send the revised exact proof with top-positioned CEO View
 - [x] Add a portable alive_moment object with full event, image, licence, attribution, verification, rotation and publication provenance
 - [x] Validate that every photograph is real and commercially reusable; reject uncertain rights or AI-generated imagery
 - [x] Validate that every phenomenon is current or genuinely seasonally current for its stated location

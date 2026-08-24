@@ -144,11 +144,12 @@ class JudgementArchitectureTests(unittest.TestCase):
         sequence = [
             "THINK",
             "THE ONE THING",
+            "CEO VIEW",
+            "Do something different today … Paul",
             "THE EVIDENCE",
             "VISUAL SIGNAL",
             "DECIDE",
             "INTERPRETATION",
-            "CEO VIEW",
             "WHAT CHANGED?",
             "EXECUTIVE ACTION / WATCH",
             "LOOK UP",
@@ -162,6 +163,8 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertIn("THE EVIDENCE", html)
         self.assertIn("INTERPRETATION", html)
         self.assertIn("CEO VIEW", html)
+        self.assertEqual(html.count("CEO VIEW"), 1)
+        self.assertIn("Do something different today … Paul", html)
         self.assertIn("PF::SIGNAL-0038 // 24.08.2026 // 06:06 AEST", html)
 
 

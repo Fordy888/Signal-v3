@@ -20,3 +20,14 @@ The moment is quiet and contains no business metaphor, inspirational quote, CTA,
 ## Recommendation
 
 The treatment is suitable for email proof. Keep WE ARE ALIVE optional and governed: publish only when a candidate clears the seasonality, image authenticity, rights, place alignment and rotation tests.
+
+## CEO View opening revision
+
+| Check | Desktop | Mobile | Result |
+|---|---|---|---|
+| CEO View position | Immediately beneath THE ONE THING | Visible before THE EVIDENCE without excessive scrolling | Pass |
+| Duplication | Removed from DECIDE | Removed from DECIDE | Pass |
+| Paul sign-off | Quiet italic treatment beneath CEO View | Legible and clearly personal | Pass |
+| Opening hierarchy | THE ONE THING remains dominant | THE ONE THING remains dominant | Pass |
+
+The revised opening reads as **judgement first, proof second**: THE ONE THING establishes priority, CEO View provides Paul’s human position, and THE EVIDENCE substantiates it. The personal line “Do something different today … Paul” adds authorship without functioning as a promotional CTA.
