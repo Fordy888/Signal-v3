@@ -26,5 +26,18 @@
 - [x] Deliver the comparison and rollout recommendation for Fordy’s approval
 - [x] Reorder and label the enhanced experience around the governing rhythm: Think → Decide → Look up → Smile
 - [x] Ensure the Visual Signal supports the transition from Think to Decide without becoming a fifth competing stage
+
+## CEO View + WE ARE ALIVE Proof
+
+- [x] Retain CEO View as the named human judgement layer within DECIDE
+- [x] Add a portable alive_moment object with full event, image, licence, attribution, verification, rotation and publication provenance
+- [x] Validate that every photograph is real and commercially reusable; reject uncertain rights or AI-generated imagery
+- [x] Validate that every phenomenon is current or genuinely seasonally current for its stated location
+- [x] Enforce peaceful editorial exclusions and prevent business metaphors, CTAs, optimisation, engagement ranking and sponsored content
+- [x] Add geographic, category, species and location rotation checks
+- [x] Render WE ARE ALIVE as Heading → Place → one gentle sentence → one real photograph
+- [x] Place WE ARE ALIVE immediately before the governed Dad Joke, creating Perspective → Peace → Laughter
+- [x] Keep the feature default-off and require human approval before any production publication
+- [x] Produce a revised Edition 0038 proof with image provenance, licence status, duplicate checks and desktop/mobile verification
 - [x] Fix dry-run recipient display when firstName is null
 - [x] Exclude the known test and bounced addresses still present in the live subscriber API before recovery send

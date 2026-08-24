@@ -139,6 +139,7 @@ class JudgementArchitectureTests(unittest.TestCase):
             joke,
             edition_number=38,
             generated_at=datetime(2026, 8, 24, 6, 6, tzinfo=ZoneInfo("Australia/Brisbane")),
+            alive_moment=json.loads((ROOT / "data" / "fixtures" / "alive_moment_0038.json").read_text()),
         )
         sequence = [
             "THINK",
@@ -147,11 +148,12 @@ class JudgementArchitectureTests(unittest.TestCase):
             "VISUAL SIGNAL",
             "DECIDE",
             "INTERPRETATION",
-            "DTL VIEW",
+            "CEO VIEW",
             "WHAT CHANGED?",
             "EXECUTIVE ACTION / WATCH",
             "LOOK UP",
             "COUNTER-SIGNAL",
+            "WE ARE ALIVE",
             "SMILE",
             "DAD JOKE OF THE DAY",
         ]
@@ -159,7 +161,7 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertIn("THE EVIDENCE", html)
         self.assertIn("INTERPRETATION", html)
-        self.assertIn("DTL VIEW", html)
+        self.assertIn("CEO VIEW", html)
         self.assertIn("PF::SIGNAL-0038 // 24.08.2026 // 06:06 AEST", html)
 
 

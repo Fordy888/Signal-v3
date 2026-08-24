@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.enhanced_renderer import render_enhanced_email
+from src.alive_moment import load_alive_history, load_alive_moment, validate_alive_moment
 from src.human_signal import load_joke_history, load_jokes, select_joke
 from src.judgement_plan import generate_judgement_plan, validate_judgement_plan
 from src.signal_memory import load_signal_memory, memory_context
@@ -31,6 +32,8 @@ def main() -> int:
     parser.add_argument("--plan-input", default=None, help="Render an existing validated plan instead of calling the planner")
     parser.add_argument("--plan-output", default=str(ROOT / "data" / "edition0038-enhanced-plan.json"))
     parser.add_argument("--html-output", default=str(ROOT / "data" / "edition0038-enhanced.html"))
+    parser.add_argument("--alive-moment", action="store_true", help="Include the human-approved WE ARE ALIVE fixture")
+    parser.add_argument("--alive-input", default=str(ROOT / "data" / "fixtures" / "alive_moment_0038.json"))
     args = parser.parse_args()
 
     evidence_path = Path(args.evidence)
@@ -55,8 +58,16 @@ def main() -> int:
     jokes = load_jokes(ROOT / "data" / "dad_jokes.json")
     recent_ids = load_joke_history(ROOT / "data" / "joke_history.json")
     joke = select_joke(jokes, edition_number=38, recent_ids=recent_ids)
+    alive_moment = None
+    if args.alive_moment:
+        alive_moment = validate_alive_moment(
+            load_alive_moment(Path(args.alive_input)),
+            load_alive_history(ROOT / "data" / "alive_moment_history.json"),
+        )
     generated_at = datetime(2026, 8, 24, 6, 6, tzinfo=BRISBANE)
-    html = render_enhanced_email(plan, evidence, joke, edition_number=38, generated_at=generated_at)
+    html = render_enhanced_email(
+        plan, evidence, joke, edition_number=38, generated_at=generated_at, alive_moment=alive_moment
+    )
 
     html_output = Path(args.html_output)
     html_output.parent.mkdir(parents=True, exist_ok=True)
@@ -68,6 +79,7 @@ def main() -> int:
     print(f"WHAT CHANGED: {plan['what_changed']['classification']}")
     print(f"Visual Signal: {plan['visual_signal']['eligible']} / {plan['visual_signal']['type']}")
     print(f"Human Signal: {joke['id']}")
+    print(f"WE ARE ALIVE: {alive_moment['id'] if alive_moment else 'not included'}")
     return 0
 
 

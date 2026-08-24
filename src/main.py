@@ -31,6 +31,7 @@ from .judgement_plan import generate_judgement_plan, scored_items_to_evidence
 from .signal_memory import apply_memory_update, load_signal_memory, memory_context, save_signal_memory
 from .enhanced_renderer import render_enhanced_email
 from .human_signal import load_joke_history, load_jokes, record_joke, select_joke
+from .alive_moment import load_alive_history, load_alive_moment, record_alive_moment, validate_alive_moment
 from .edition_counter import get_next_edition, increment_edition
 from .subscribers import fetch_subscribers
 from .qa_gate import (
@@ -169,7 +170,11 @@ def main() -> int:
                         help="Override day-of-week detection (for testing)")
     parser.add_argument("--enhanced", action="store_true",
                         help="Run Development Thesis V1 judgement architecture (default off; approval comparison only)")
+    parser.add_argument("--alive-moment", action="store_true",
+                        help="Include a pre-approved WE ARE ALIVE candidate (requires --enhanced; default off)")
     args = parser.parse_args()
+    if args.alive_moment and not args.enhanced:
+        parser.error("--alive-moment requires --enhanced")
 
     # Locate project root (parent of src/)
     root = Path(__file__).resolve().parent.parent
@@ -375,8 +380,10 @@ def main() -> int:
     enhanced_plan = None
     selected_joke = None
     signal_memory = None
+    alive_moment = None
     memory_path = root / os.environ.get("SIGNAL_MEMORY_PATH", "data/signal_memory.json")
     joke_history_path = root / os.environ.get("SIGNAL_JOKE_HISTORY_PATH", "data/joke_history.json")
+    alive_history_path = root / os.environ.get("SIGNAL_ALIVE_HISTORY_PATH", "data/alive_moment_history.json")
 
     try:
         if args.enhanced:
@@ -396,12 +403,19 @@ def main() -> int:
                 edition_number=edition_number,
                 recent_ids=load_joke_history(joke_history_path),
             )
+            if args.alive_moment:
+                alive_path = root / os.environ.get("SIGNAL_ALIVE_MOMENT_PATH", "data/alive_moment.json")
+                alive_moment = validate_alive_moment(
+                    load_alive_moment(alive_path),
+                    load_alive_history(alive_history_path),
+                )
             html = render_enhanced_email(
                 plan=enhanced_plan,
                 sources=planner_evidence,
                 joke=selected_joke,
                 edition_number=edition_number,
                 generated_at=datetime.now(BRISBANE),
+                alive_moment=alive_moment,
             )
         else:
             html = synthesise(
@@ -659,6 +673,8 @@ def main() -> int:
                 )
                 save_signal_memory(memory_path, updated_memory)
                 record_joke(joke_history_path, selected_joke["id"])
+                if alive_moment:
+                    record_alive_moment(alive_history_path, alive_moment, published_at=delivered_at)
                 log.info("Enhanced memory and Human Signal rotation recorded after successful delivery")
             log.info("Edition counter incremented. Next edition will be %04d", edition_number + 1)
     except Exception as e:

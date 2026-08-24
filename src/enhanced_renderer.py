@@ -6,6 +6,7 @@ from html import escape
 from typing import Any
 
 from .human_signal import render_human_signal
+from .alive_moment import render_alive_moment
 from .visual_signal import render_visual_signal
 
 
@@ -33,6 +34,7 @@ def render_enhanced_email(
     joke: dict[str, str],
     edition_number: int,
     generated_at: datetime,
+    alive_moment: dict[str, Any] | None = None,
 ) -> str:
     source_map = {str(item["source_id"]): item for item in sources}
     edition_padded = f"{edition_number:04d}"
@@ -87,7 +89,7 @@ def render_enhanced_email(
             '<tr><td style="padding:18px 40px 6px 40px;"><p style="margin:0;font:800 11px monospace;color:#17A398;letter-spacing:1.5px;">EXECUTIVE READ</p></td></tr>',
             '<tr><td style="padding:0 40px 4px 40px;"><p style="margin:0 0 5px 0;font:800 10px monospace;color:#999;letter-spacing:1px;">INTERPRETATION</p></td></tr>',
             f'<tr><td style="padding:0 40px 14px 40px;">{_p(escape(plan["interpretation"]), colour="#444")}</td></tr>',
-            '<tr><td style="padding:0 40px 4px 40px;"><p style="margin:0 0 5px 0;font:800 10px monospace;color:#E8533A;letter-spacing:1px;">DTL VIEW</p></td></tr>',
+            '<tr><td style="padding:0 40px 4px 40px;"><p style="margin:0 0 5px 0;font:800 10px monospace;color:#E8533A;letter-spacing:1px;">CEO VIEW</p></td></tr>',
             f'<tr><td style="padding:0 40px 14px 40px;">{_p(escape(plan["dtl_view"]), colour="#1a1a1a")}</td></tr>',
             '<tr><td style="padding:18px 40px 8px 40px;">',
             '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fffe;border:2px solid #4ECDC4;border-radius:4px;">',
@@ -121,6 +123,8 @@ def render_enhanced_email(
     )
     for watch in plan["executive_read"]["watch_items"]:
         html.append(f'<tr><td style="padding:3px 40px;">{_p("• " + escape(watch), size=13, colour="#555")}</td></tr>')
+    if alive_moment:
+        html.append(render_alive_moment(alive_moment))
     html.extend(
         [
             '<tr><td style="padding:24px 40px 0 40px;"><p style="margin:0;font:800 9px monospace;color:#aaa;letter-spacing:2px;text-transform:uppercase;">SMILE</p></td></tr>',
