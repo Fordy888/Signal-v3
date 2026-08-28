@@ -25,7 +25,7 @@ MOVEMENT_TYPES = {
     "DOES_NOT_MATERIALLY_CHANGE",
 }
 CONFIDENCE_LEVELS = {"HIGH", "MEDIUM", "LOW"}
-ACTION_TAGS = {"ACT", "WATCH", "NOTE"}
+ACTION_TAGS = {"ACT", "WATCH", "OPPORTUNITY", "NOTE"}
 VISUAL_TYPES = {"DIRECTION_OF_TRAVEL", "TENSION_MAP", "COMPARISON", "EXPOSURE_MAP", "NONE"}
 
 
@@ -57,7 +57,7 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
         "one_thing",
         "evidence_items",
         "interpretation",
-        "dtl_view",
+        "founders_note",
         "what_changed",
         "visual_signal",
         "counter_signal",
@@ -96,8 +96,16 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
 
     if not str(plan.get("interpretation", "")).strip() or _words(plan["interpretation"]) > 55:
         raise JudgementPlanError("Edition-level interpretation is missing or exceeds 55 words")
-    if not str(plan.get("dtl_view", "")).strip() or _words(plan["dtl_view"]) > 45:
-        raise JudgementPlanError("Edition-level DTL View is missing or exceeds 45 words")
+
+    founders_note = plan["founders_note"]
+    headline = str(founders_note.get("headline", "")).strip()
+    body = str(founders_note.get("body", "")).strip()
+    if not headline or _words(headline) > 12:
+        raise JudgementPlanError("FOUNDER'S NOTE headline is missing or exceeds 12 words")
+    if not 60 <= _words(body) <= 180:
+        raise JudgementPlanError("FOUNDER'S NOTE body must contain 60-180 words")
+    if not body.endswith("— Paul"):
+        raise JudgementPlanError("FOUNDER'S NOTE must end with the inline sign-off — Paul")
 
     what_changed = plan["what_changed"]
     if what_changed.get("classification") not in MOVEMENT_TYPES:

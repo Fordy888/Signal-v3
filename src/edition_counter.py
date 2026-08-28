@@ -1,69 +1,55 @@
-"""Edition counter for Signal pipeline.
-Tracks the current edition number in data/edition_counter.json.
-Increments only on successful send (not proof).
+"""Deterministic Brisbane weekday edition numbering.
 
-NOTE: On Render's ephemeral cron filesystem, the counter file does NOT persist
-between job runs. The DEFAULT_START value is the authoritative fallback.
-After each successful live send, update DEFAULT_START to match the edition
-that was just sent. This ensures the next run always produces the correct
-edition number regardless of filesystem state.
-
-Edition history:
-  - Editions 001-012: pre-counter (manual tracking)
-  - Edition 013: first edition with counter (sent Saturday 12 Jul 2026)
-  - Edition 014: sent to 20 subscribers Thursday 16 Jul 2026
-  - Edition 015: sent to 20 subscribers Monday 20 Jul 2026
-  - Edition 016: next scheduled (Tuesday 21 Jul 2026)
+Edition 0017 is anchored to Friday 24 July 2026. Weekdays advance the edition;
+Saturday and Sunday retain Friday's number. No ephemeral filesystem state is
+required, so proofs, dry-runs and Render rebuilds cannot consume a number.
 """
 from __future__ import annotations
-import json
+
 import logging
+from datetime import date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
+
 
 log = logging.getLogger(__name__)
 
-COUNTER_FILE = "data/edition_counter.json"
-DEFAULT_START = 15  # Last successfully sent edition (0015, Mon 20 Jul). Next = 0016.
+BRISBANE = ZoneInfo("Australia/Brisbane")
+ANCHOR_DATE = date(2026, 7, 24)
+ANCHOR_EDITION = 17
 
 
-def get_next_edition(root: Path) -> int:
-    """Get the next edition number (current + 1) without incrementing."""
-    counter_path = root / COUNTER_FILE
-    counter_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    if not counter_path.exists():
-        log.info("No edition counter found — starting at %d", DEFAULT_START + 1)
-        return DEFAULT_START + 1
-    
-    try:
-        with open(counter_path, "r") as f:
-            data = json.load(f)
-        return data.get("current", DEFAULT_START) + 1
-    except (json.JSONDecodeError, IOError) as e:
-        log.warning("Failed to read edition counter: %s — using default", e)
-        return DEFAULT_START + 1
+def _weekdays_between(start: date, end: date) -> int:
+    if end < start:
+        return -_weekdays_between(end, start)
+    count = 0
+    current = start
+    while current < end:
+        current += timedelta(days=1)
+        if current.weekday() < 5:
+            count += 1
+    return count
 
 
-def increment_edition(root: Path) -> int:
-    """Increment the edition counter after successful send. Returns the new current value."""
-    counter_path = root / COUNTER_FILE
-    counter_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    current = DEFAULT_START
-    if counter_path.exists():
-        try:
-            with open(counter_path, "r") as f:
-                data = json.load(f)
-            current = data.get("current", DEFAULT_START)
-        except (json.JSONDecodeError, IOError):
-            pass
-    
-    new_current = current + 1
-    try:
-        with open(counter_path, "w") as f:
-            json.dump({"current": new_current, "last_incremented_by": "send"}, f, indent=2)
-        log.info("Edition counter incremented: %d -> %d", current, new_current)
-    except IOError as e:
-        log.error("Failed to write edition counter: %s", e)
-    
-    return new_current
+def edition_for_date(target: date) -> int:
+    effective = target
+    while effective.weekday() >= 5:
+        effective -= timedelta(days=1)
+    return ANCHOR_EDITION + _weekdays_between(ANCHOR_DATE, effective)
+
+
+def get_next_edition(root: Path | None = None) -> int:
+    today = datetime.now(BRISBANE).date()
+    edition = edition_for_date(today)
+    log.info(
+        "Edition number derived from calendar: %04d (Brisbane %s)",
+        edition,
+        today.isoformat(),
+    )
+    return edition
+
+
+def increment_edition(root: Path | None = None) -> int:
+    edition = get_next_edition(root)
+    log.info("Edition counter is date-derived — nothing to increment (today = %04d)", edition)
+    return edition

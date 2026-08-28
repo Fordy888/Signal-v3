@@ -4,8 +4,8 @@ services:
     name: dtl-signal
     runtime: python
     schedule: "0 20 * * *"
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m src.main --send
+    buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
+    startCommand: python -m src.main --send --enhanced --alive-moment
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -21,6 +21,18 @@ services:
         sync: false
       - key: BETTERSTACK_HEARTBEAT_URL
         sync: false
+      - key: SIGNAL_RELEASE_PROFILE
+        value: v4.0
+      - key: SIGNAL_V4_LAUNCH_DATE
+        value: "2026-08-31"
+      - key: SIGNAL_EXPECTED_DAILY_RENDERER
+        value: enhanced-v4
+      - key: SIGNAL_EXPECTED_GIT_BRANCH
+        value: master
+      - key: SIGNAL_EXPECTED_RENDER_SERVICE_ID
+        value: crn-d8ouk0bsq97s73fgc36g
+      - key: SIGNAL_ALIVE_MOMENT_PATH
+        value: data/fixtures/alive_moment_0043.json
       - key: MODEL_SCORING
         value: claude-haiku-4-5-20251001
       - key: MODEL_SYNTHESIS
@@ -69,8 +81,8 @@ services:
     name: dtl-signal-proof
     runtime: python
     schedule: "0 0 1 1 *"
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m src.main --proof
+    buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
+    startCommand: python -m src.main --proof --enhanced --alive-moment --as-of 2026-08-31T06:00:00+10:00 --save-html data/deployed-canary-0043.html
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -84,6 +96,12 @@ services:
         sync: false
       - key: SIGNAL_PIPELINE_API_KEY
         sync: false
+      - key: SIGNAL_RELEASE_PROFILE
+        value: v4.0
+      - key: SIGNAL_EXPECTED_DAILY_RENDERER
+        value: enhanced-v4
+      - key: SIGNAL_ALIVE_MOMENT_PATH
+        value: data/fixtures/alive_moment_0043.json
       - key: MODEL_SCORING
         value: claude-haiku-4-5-20251001
       - key: MODEL_SYNTHESIS

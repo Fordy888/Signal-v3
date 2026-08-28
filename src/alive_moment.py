@@ -129,18 +129,20 @@ def record_alive_moment(path: Path, moment: dict[str, Any], published_at: str) -
 
 
 def render_alive_moment(moment: dict[str, Any]) -> str:
-    attribution = escape(str(moment["attribution_text"]))
+    photographer = escape(str(moment["photographer"]))
+    image_source = escape(str(moment["image_source"]))
+    licence_type = escape(str(moment["licence_type"]))
     licence_url = escape(str(moment["licence_url"]), quote=True)
     source_url = escape(str(moment["image_source_url"]), quote=True)
     return (
         '<tr><td style="padding:32px 40px 18px 40px;">'
-        '<p style="margin:0 0 14px 0;font:800 11px monospace;color:#17A398;letter-spacing:1.8px;">WE ARE ALIVE</p>'
+        '<p style="margin:0 0 14px 0;font:800 11px monospace;color:#17A398;letter-spacing:1.8px;">REMEMBER THE WORLD</p>'
         f'<p style="margin:0 0 5px 0;font-size:18px;font-weight:800;color:#1a1a1a;">{escape(moment["location"])}, {escape(moment["country"])}</p>'
         f'<p style="margin:0 0 22px 0;font-size:14px;line-height:1.6;color:#555;">{escape(moment["caption"])}</p>'
-        '<table width="75%" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">'
-        '<tr><td align="center">'
-        f'<img src="{escape(moment["image_url"], quote=True)}" width="615" alt="{escape(moment["phenomenon"], quote=True)}" style="display:block;width:100%;max-width:615px;height:auto;border:0;border-radius:2px;" />'
-        f'<p style="margin:7px 0 0 0;font-size:8px;line-height:1.35;color:#c0c0c0;text-align:center;">{attribution} · <a href="{source_url}" style="color:#aaa;text-decoration:none;">source</a> · <a href="{licence_url}" style="color:#aaa;text-decoration:none;">licence</a></p>'
+        '<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;margin:0;">'
+        '<tr><td align="left">'
+        f'<img src="{escape(moment["image_url"], quote=True)}" width="820" alt="{escape(moment["phenomenon"], quote=True)}" style="display:block;width:100%;max-width:820px;height:auto;border:0;border-radius:2px;" />'
+        f'<p style="margin:8px 0 0 0;font-size:8px;line-height:1.4;color:#6B7280;text-align:left;"><a href="{source_url}" style="color:#6B7280;text-decoration:none;">Photo: {photographer} · {image_source}</a> · <a href="{licence_url}" style="color:#6B7280;text-decoration:underline;">{licence_type}</a></p>'
         '</td></tr></table>'
         '</td></tr>'
     )

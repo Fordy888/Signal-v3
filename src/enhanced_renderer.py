@@ -10,7 +10,18 @@ from .alive_moment import render_alive_moment
 from .visual_signal import render_visual_signal
 
 
-ACTION_COLOURS = {"ACT": "#E8533A", "WATCH": "#E6A817", "NOTE": "#888888"}
+ACTION_COLOURS = {
+    "ACT": "#E8533A",
+    "WATCH": "#E6A817",
+    "OPPORTUNITY": "#17A398",
+    "NOTE": "#17A398",
+}
+ACTION_LABELS = {
+    "ACT": "ACT NOW",
+    "WATCH": "WATCH CLOSELY",
+    "OPPORTUNITY": "OPPORTUNITY",
+    "NOTE": "OPPORTUNITY",
+}
 MOVEMENT_COLOURS = {
     "STRENGTHENS": "#17A398",
     "CONFIRMS": "#4ECDC4",
@@ -28,6 +39,28 @@ def _divider() -> str:
     return '<tr><td style="padding:0 40px;"><div style="border-top:1px solid #e8e8e8;"></div></td></tr>'
 
 
+def _signal_glance() -> str:
+    directions = (
+        ("ACT NOW", "Decision or action", "#E8533A"),
+        ("WATCH CLOSELY", "Developing change", "#E6A817"),
+        ("OPPORTUNITY", "Opening to explore", "#17A398"),
+    )
+    cells = "".join(
+        f'<td width="33.33%" valign="top" style="background:{colour};padding:11px 10px;border-radius:3px;">'
+        f'<p style="margin:0 0 4px 0;font:800 10px monospace;color:#1A1A1A;letter-spacing:1px;">{label}</p>'
+        f'<p style="margin:0;font-size:11px;line-height:1.3;color:#1A1A1A;">{description}</p>'
+        '</td>'
+        for label, description, colour in directions
+    )
+    return (
+        '<tr><td style="padding:4px 36px 14px 36px;">'
+        '<p style="margin:0 4px 7px 4px;font:800 10px monospace;color:#1A1A1A;letter-spacing:1.5px;">YOUR SIGNAL AT A GLANCE</p>'
+        '<table width="100%" cellpadding="0" cellspacing="4" role="presentation" style="width:100%;table-layout:fixed;">'
+        f'<tr>{cells}</tr>'
+        '</table></td></tr>'
+    )
+
+
 def render_enhanced_email(
     plan: dict[str, Any],
     sources: list[dict[str, Any]],
@@ -42,26 +75,35 @@ def render_enhanced_email(
     date_compact = generated_at.strftime("%d.%m.%Y")
     time_text = generated_at.strftime("%H:%M")
     one = plan["one_thing"]
+    founders_note = plan["founders_note"]
 
     html = [
         '<table width="100%" cellpadding="0" cellspacing="0" style="max-width:900px;margin:0 auto;background:#fff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Arial,sans-serif;">',
         '<tr><td style="height:4px;background:linear-gradient(90deg,#E8533A 0%,#E8533A 50%,#4ECDC4 50%,#4ECDC4 100%);"></td></tr>',
         '<tr><td style="padding:32px 40px 0 40px;"><table width="100%"><tr>',
         '<td><p style="margin:0;font:800 24px monospace;letter-spacing:3px;color:#1a1a1a;">DTL SIGNAL</p></td>',
-        f'<td align="right"><p style="margin:0;font:11px monospace;color:#999;letter-spacing:1px;">Edition {edition_padded}</p></td>',
+        f'<td align="right"><p style="margin:0;font:11px monospace;color:#17A398;letter-spacing:1px;">Edition {edition_padded}</p></td>',
         '</tr></table></td></tr>',
-        '<tr><td style="padding:4px 40px 0 40px;"><p style="margin:0;font-size:12px;color:#999;letter-spacing:1.5px;text-transform:uppercase;">Executive Business Intelligence</p></td></tr>',
+        '<tr><td style="padding:4px 40px 0 40px;"><p style="margin:0;font-size:12px;color:#17A398;letter-spacing:1.5px;text-transform:uppercase;">Executive Business Intelligence</p></td></tr>',
         f'<tr><td style="padding:4px 40px 24px 40px;"><p style="margin:0;font:11px monospace;color:#bbb;">{escape(date_long)} | {time_text} AEST</p></td></tr>',
-        '<tr><td style="padding:0 40px;"><div style="border-top:2px solid #4ECDC4;"></div></td></tr>',
-        '<tr><td style="padding:18px 40px 0 40px;"><p style="margin:0;font:800 9px monospace;color:#aaa;letter-spacing:2px;text-transform:uppercase;">THINK</p></td></tr>',
-        '<tr><td style="padding:22px 40px 8px 40px;"><p style="margin:0;font:800 11px monospace;color:#E8533A;letter-spacing:1.7px;">THE ONE THING</p></td></tr>',
+        '<tr><td style="padding:0 40px;"><div style="border-top:2px solid #4ECDC4;padding-top:14px;">'
+        '<p style="margin:0;font:800 11px monospace;letter-spacing:1.4px;text-transform:uppercase;">'
+        '<span style="color:#C43F2C;">THINK.</span> '
+        '<span style="color:#966300;">DECIDE.</span> '
+        '<span style="color:#2B7F8C;">LOOK UP.</span> '
+        '<span style="color:#0B7F78;">SMILE.</span>'
+        '</p></div></td></tr>',
+        '<tr><td style="padding:14px 40px 8px 40px;"><p style="margin:0;font:800 11px monospace;color:#E8533A;letter-spacing:1.7px;">THE ONE THING</p></td></tr>',
         f'<tr><td style="padding:0 40px 8px 40px;"><p style="margin:0;font-size:24px;font-weight:800;line-height:1.35;color:#1a1a1a;">{escape(str(one["statement"]))}</p></td></tr>',
         f'<tr><td style="padding:4px 40px 16px 40px;">{_p(escape(str(one["business_implication"])), size=15, colour="#555")}</td></tr>',
-        '<tr><td style="padding:4px 40px 4px 40px;"><p style="margin:0 0 5px 0;font:800 10px monospace;color:#E8533A;letter-spacing:1px;">CEO VIEW</p></td></tr>',
-        f'<tr><td style="padding:0 40px 6px 40px;">{_p(escape(plan["dtl_view"]), colour="#1a1a1a")}</td></tr>',
-        '<tr><td style="padding:0 40px 22px 40px;"><p style="margin:0;font:italic 600 14px Georgia,serif;color:#777;">Do something different today … Paul</p></td></tr>',
+        '<tr><td style="padding:4px 40px 22px 40px;">',
+        '<p style="margin:0 0 4px 0;font:800 11px monospace;color:#E8533A;letter-spacing:2px;text-transform:uppercase;">FOUNDER\'S NOTE</p>',
+        f'<p style="margin:0 0 12px 0;font-size:18px;font-weight:700;color:#1a1a1a;line-height:1.3;">{escape(str(founders_note["headline"]))}</p>',
+        f'<p style="margin:0;font-size:15px;line-height:1.7;color:#333;">{escape(str(founders_note["body"]))}</p>',
+        '</td></tr>',
         _divider(),
         '<tr><td style="padding:20px 40px 6px 40px;"><p style="margin:0;font:800 12px monospace;color:#17A398;letter-spacing:1.7px;">THE EVIDENCE</p></td></tr>',
+        _signal_glance(),
     ]
 
     for item in plan["evidence_items"]:
@@ -71,10 +113,11 @@ def render_enhanced_email(
             for source in sources_for_item
         )
         colour = ACTION_COLOURS[item["action_tag"]]
+        action_label = ACTION_LABELS[item["action_tag"]]
         html.extend(
             [
                 '<tr><td style="padding:16px 40px 10px 40px;">',
-                f'<p style="margin:0 0 7px 0;"><span style="display:inline-block;background:{colour};color:#fff;font:800 9px monospace;letter-spacing:1.3px;padding:3px 8px;border-radius:2px;">{escape(item["action_tag"])}</span> <span style="font:800 10px monospace;color:#17A398;letter-spacing:1px;text-transform:uppercase;">{escape(item["category"])}</span></p>',
+                f'<p style="margin:0 0 7px 0;"><span style="display:inline-block;background:{colour};color:#1A1A1A;font:800 9px monospace;letter-spacing:1.3px;padding:3px 8px;border-radius:2px;">{escape(action_label)}</span> <span style="font:800 10px monospace;color:#17A398;letter-spacing:1px;text-transform:uppercase;">{escape(item["category"])}</span></p>',
                 f'<p style="margin:0 0 11px 0;font-size:18px;font-weight:800;line-height:1.35;color:#1a1a1a;">{escape(item["headline"])}</p>',
                 _p(f'{escape(item["evidence"])} <span style="white-space:nowrap;">({source_links})</span>'),
                 '</td></tr>',
@@ -88,8 +131,7 @@ def render_enhanced_email(
     html.extend(
         [
             render_visual_signal(plan["visual_signal"]),
-            '<tr><td style="padding:24px 40px 0 40px;"><p style="margin:0;font:800 9px monospace;color:#aaa;letter-spacing:2px;text-transform:uppercase;">DECIDE</p></td></tr>',
-            '<tr><td style="padding:18px 40px 6px 40px;"><p style="margin:0;font:800 11px monospace;color:#17A398;letter-spacing:1.5px;">EXECUTIVE READ</p></td></tr>',
+            '<tr><td style="padding:24px 40px 6px 40px;"><p style="margin:0;font:800 11px monospace;color:#17A398;letter-spacing:1.5px;">EXECUTIVE READ</p></td></tr>',
             '<tr><td style="padding:0 40px 4px 40px;"><p style="margin:0 0 5px 0;font:800 10px monospace;color:#999;letter-spacing:1px;">INTERPRETATION</p></td></tr>',
             f'<tr><td style="padding:0 40px 14px 40px;">{_p(escape(plan["interpretation"]), colour="#444")}</td></tr>',
             '<tr><td style="padding:18px 40px 8px 40px;">',
@@ -111,7 +153,6 @@ def render_enhanced_email(
     counter = plan["counter_signal"]
     html.extend(
         [
-            '<tr><td style="padding:24px 40px 0 40px;"><p style="margin:0;font:800 9px monospace;color:#aaa;letter-spacing:2px;text-transform:uppercase;">LOOK UP</p></td></tr>',
             '<tr><td style="padding:24px 40px 8px 40px;">',
             '<table width="100%" cellpadding="0" cellspacing="0" style="background:#fffaf1;border-left:4px solid #E6A817;">',
             '<tr><td style="padding:18px 20px;">',
@@ -128,11 +169,10 @@ def render_enhanced_email(
         html.append(render_alive_moment(alive_moment))
     html.extend(
         [
-            '<tr><td style="padding:24px 40px 0 40px;"><p style="margin:0;font:800 9px monospace;color:#aaa;letter-spacing:2px;text-transform:uppercase;">SMILE</p></td></tr>',
             render_human_signal(joke),
             '<tr><td style="padding:28px 40px 26px 40px;"><table width="100%"><tr>',
             f'<td><p style="margin:0;font:9px monospace;color:#bbb;letter-spacing:1px;">PF::SIGNAL-{edition_padded} // {date_compact} // {time_text} AEST</p></td>',
-            '<td align="right"><p style="margin:0;font:9px monospace;color:#bbb;"><a href="https://dtlc.ai" style="color:#4ECDC4;text-decoration:none;">dtlc.ai</a></p></td>',
+            '<td align="right"><p style="margin:0;font:9px monospace;color:#17A398;"><a href="https://dtlc.ai" style="color:#17A398;text-decoration:underline;">→ dtlc.ai</a></p></td>',
             '</tr></table></td></tr>',
             '<tr><td style="height:4px;background:linear-gradient(90deg,#4ECDC4 0%,#4ECDC4 50%,#E8533A 50%,#E8533A 100%);"></td></tr>',
             '</table>',

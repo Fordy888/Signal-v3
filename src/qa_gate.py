@@ -22,10 +22,12 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
+
+from .edition_counter import edition_for_date
 
 log = logging.getLogger(__name__)
 
@@ -91,6 +93,94 @@ class QAResult:
         return f"  {icon} [{self.severity.upper()}] {self.check_name}: {self.message}"
 
 
+def check_release_identity(
+    *,
+    renderer_id: str,
+    edition_type: str,
+    mode: str,
+    as_of: datetime | None = None,
+) -> QAResult:
+    """Hold production if the live Render identity cannot prove the v4 daily route."""
+    runtime = (as_of or datetime.now(BRISBANE)).astimezone(BRISBANE)
+    if edition_type != "daily":
+        return QAResult(
+            check_name="Release Identity",
+            passed=True,
+            severity="info",
+            message=f"{edition_type} follows its separately approved route.",
+        )
+    if mode != "send":
+        return QAResult(
+            check_name="Release Identity",
+            passed=True,
+            severity="info",
+            message=f"Release identity observed but not enforced in {mode} mode ({renderer_id}).",
+        )
+
+    launch_raw = os.environ.get("SIGNAL_V4_LAUNCH_DATE", "").strip()
+    try:
+        launch_date = date.fromisoformat(launch_raw)
+    except ValueError:
+        return QAResult(
+            check_name="Release Identity",
+            passed=False,
+            severity="critical",
+            message="SIGNAL_V4_LAUNCH_DATE is missing or invalid; production status cannot be SAFE.",
+        )
+    if runtime.date() < launch_date:
+        return QAResult(
+            check_name="Release Identity",
+            passed=True,
+            severity="info",
+            message=f"v4 release gate activates on {launch_date.isoformat()}.",
+        )
+
+    expected_renderer = os.environ.get("SIGNAL_EXPECTED_DAILY_RENDERER", "").strip()
+    expected_branch = os.environ.get("SIGNAL_EXPECTED_GIT_BRANCH", "").strip()
+    expected_service = os.environ.get("SIGNAL_EXPECTED_RENDER_SERVICE_ID", "").strip()
+    release_profile = os.environ.get("SIGNAL_RELEASE_PROFILE", "").strip()
+    actual_branch = os.environ.get("RENDER_GIT_BRANCH", "").strip()
+    actual_commit = os.environ.get("RENDER_GIT_COMMIT", "").strip()
+    actual_service = os.environ.get("RENDER_SERVICE_ID", "").strip()
+
+    issues = []
+    if os.environ.get("RENDER", "").lower() != "true":
+        issues.append("runtime is not verified as Render")
+    if release_profile != "v4.0":
+        issues.append(f"release profile is {release_profile or 'missing'}, expected v4.0")
+    if not expected_renderer or renderer_id != expected_renderer:
+        issues.append(
+            f"renderer is {renderer_id or 'missing'}, expected {expected_renderer or 'missing'}"
+        )
+    if not expected_branch or actual_branch != expected_branch:
+        issues.append(
+            f"branch is {actual_branch or 'missing'}, expected {expected_branch or 'missing'}"
+        )
+    if not expected_service or actual_service != expected_service:
+        issues.append(
+            f"service is {actual_service or 'missing'}, expected {expected_service or 'missing'}"
+        )
+    if not actual_commit:
+        issues.append("RENDER_GIT_COMMIT is missing")
+
+    if issues:
+        return QAResult(
+            check_name="Release Identity",
+            passed=False,
+            severity="critical",
+            message="; ".join(issues) + ".",
+        )
+    return QAResult(
+        check_name="Release Identity",
+        passed=True,
+        severity="info",
+        message=(
+            f"MATCH — {release_profile}, renderer {renderer_id}, branch {actual_branch}, "
+            f"commit {actual_commit[:12]}, service {actual_service}."
+        ),
+    )
+
+
 @dataclass
 class RunReceipt:
     """Structured receipt for a pipeline run."""
@@ -147,6 +237,14 @@ class RunReceipt:
     # Traceability
     code_version: str = ""  # Git commit hash that produced this edition
     edition_type: str = "daily"  # "daily" or "weekly_wrap" — for analytics distinction
+    release_profile: str = ""
+    renderer_id: str = ""
+    expected_renderer_id: str = ""
+    release_identity_status: str = "UNVERIFIED"
+    html_sha256: str = ""
+    render_git_commit: str = ""
+    render_git_branch: str = ""
+    render_service_id: str = ""
 
     def plain_english_summary(self) -> str:
         """Plain-English summary for Paul. One glance tells you if everything is OK."""
@@ -159,7 +257,7 @@ class RunReceipt:
                 f"Sources: {self.sources_succeeded}/{self.sources_active} succeeded. "
                 f"Items scored: {self.items_scored}. "
                 f"Category coverage: {self.categories_with_items}/{self.categories_total}. "
-                f"Status: Safe."
+                f"Delivery status: Success. Release identity: {self.release_identity_status}."
             )
         elif self.pipeline_result == "held":
             reasons = "; ".join(self.qa_issues) if self.qa_issues else "Unknown critical failure"
@@ -209,6 +307,10 @@ class RunReceipt:
         # Add code version for traceability
         if self.code_version:
             summary += f" Code version: {self.code_version}."
+        if self.renderer_id:
+            summary += f" Renderer: {self.renderer_id}."
+        if self.html_sha256:
+            summary += f" Artefact: {self.html_sha256[:12]}."
 
         return summary
 
@@ -216,6 +318,7 @@ class RunReceipt:
         """Clean, readable HTML email for Paul. Not a technical dump."""
         now_str = datetime.now(BRISBANE).strftime("%A %d %B %Y at %H:%M AEST")
 
+        identity_ok = self.release_identity_status in ("MATCH", "NOT_APPLICABLE")
         if self.pipeline_result in ("held", "aborted"):
             status_label = "HELD — NOT SENT" if self.pipeline_result == "held" else "ABORTED — NOT SENT"
             status_color = "#dc2626"
@@ -226,11 +329,16 @@ class RunReceipt:
             status_color = "#d97706"
             action_text = "Check delivery failures. These subscribers did not receive today's edition."
             tomorrow_text = "Tomorrow's edition should send normally unless the same delivery issues persist."
-        else:
-            status_label = "DELIVERED SUCCESSFULLY"
+        elif identity_ok:
+            status_label = "DELIVERED — RELEASE IDENTITY MATCHED"
             status_color = "#16a34a"
-            action_text = "No action required."
-            tomorrow_text = "Tomorrow's edition is safe."
+            action_text = "No delivery action required. Reverify the live release identity before the next run."
+            tomorrow_text = "Not pre-certified. Every scheduled run must prove its release identity again."
+        else:
+            status_label = "DELIVERED — RELEASE IDENTITY UNVERIFIED"
+            status_color = "#d97706"
+            action_text = "Investigate the deployed commit, renderer and Render command before the next run."
+            tomorrow_text = "NOT safe until release identity is verified."
 
         # Build issues section
         issues_html = ""
@@ -285,6 +393,23 @@ class RunReceipt:
             failed_sources_html += f"<p style='margin:8px 0 0;font-size:12px;color:#555;white-space:pre-line;'>{self.failed_source_summary}</p>"
             failed_sources_html += "</div>"
 
+        identity_color = "#16a34a" if identity_ok else "#dc2626"
+        identity_html = (
+            "<div style='margin-top:16px;padding:12px;background:#f8fafc;border-radius:6px;"
+            "border:1px solid #cbd5e1;'>"
+            "<strong style='font-size:14px;'>Release Identity</strong>"
+            "<table style='width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;'>"
+            f"<tr><td style='padding:4px 0;color:#666;width:180px;'>Status</td><td style='color:{identity_color};font-weight:700;'>{self.release_identity_status}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Profile</td><td>{self.release_profile or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Renderer</td><td>{self.renderer_id or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Expected renderer</td><td>{self.expected_renderer_id or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Commit</td><td>{self.render_git_commit or self.code_version or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Branch</td><td>{self.render_git_branch or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Render service</td><td>{self.render_service_id or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>HTML SHA-256</td><td style='font-family:monospace;'>{self.html_sha256 or 'missing'}</td></tr>"
+            "</table></div>"
+        )
+
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;">
@@ -310,8 +435,9 @@ class RunReceipt:
 
     {self._subscriber_insights_html()}
 
-    {readiness_html}
-    {failed_sources_html}
+	    {readiness_html}
+	    {identity_html}
+	    {failed_sources_html}
     {issues_html}
     {failed_html}
     {degraded_html}
@@ -361,7 +487,7 @@ class RunReceipt:
             if "recipient" in issue.lower() or "subscriber" in issue.lower():
                 return "Review the subscriber API connection. Check that WEBSITE_BASE_URL and SIGNAL_PIPELINE_API_KEY are correct on Render."
             if "edition number" in issue.lower() or "counter" in issue.lower():
-                return "The edition counter may be corrupted. Check data/edition_counter.json on Render."
+                return "The runtime date and locked edition do not agree. Check the Brisbane schedule and approved edition manifest before retrying."
             if "content" in issue.lower() or "html" in issue.lower() or "generation" in issue.lower():
                 return "The edition failed to generate properly. Check synthesis logs on Render for the specific error (code bug, prompt issue, or API timeout)."
             if "source" in issue.lower() or "readiness" in issue.lower():
@@ -377,7 +503,7 @@ class RunReceipt:
             if "subscriber" in issue.lower() or "recipient" in issue.lower():
                 return "Tomorrow's edition is NOT safe until the subscriber API issue is resolved."
             if "edition number" in issue.lower():
-                return "Tomorrow's edition may have the same issue. The counter needs manual correction."
+                return "Tomorrow's edition is not safe until the Brisbane date and approved edition manifest agree."
             if "content" in issue.lower() or "generation" in issue.lower():
                 return "Tomorrow's edition may work if this was a temporary API issue. Monitor the next run."
             if "source" in issue.lower() or "readiness" in issue.lower():
@@ -392,24 +518,25 @@ class RunReceipt:
 # PRE-SEND QA CHECKS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def check_edition_number(edition_number: int, root: Path) -> QAResult:
-    """Verify edition number is sequential and reasonable."""
-    counter_path = root / "data" / "edition_counter.json"
-    if counter_path.exists():
-        try:
-            with open(counter_path, "r") as f:
-                data = json.load(f)
-            last = data.get("current", 0)
-            expected = last + 1
-            if edition_number != expected:
-                return QAResult(
-                    check_name="Edition Number",
-                    passed=False,
-                    severity="critical",
-                    message=f"Expected edition {expected:04d} but got {edition_number:04d}. The edition counter may be corrupted."
-                )
-        except Exception:
-            pass
+def check_edition_number(
+    edition_number: int,
+    root: Path,
+    *,
+    as_of: datetime | None = None,
+) -> QAResult:
+    """Verify the edition against the deterministic Brisbane calendar."""
+    runtime = (as_of or datetime.now(BRISBANE)).astimezone(BRISBANE)
+    expected = edition_for_date(runtime.date())
+    if edition_number != expected:
+        return QAResult(
+            check_name="Edition Number",
+            passed=False,
+            severity="critical",
+            message=(
+                f"Expected Edition {expected:04d} for Brisbane date "
+                f"{runtime.date().isoformat()} but got {edition_number:04d}."
+            ),
+        )
 
     if edition_number < 1 or edition_number > 9999:
         return QAResult(
@@ -423,13 +550,17 @@ def check_edition_number(edition_number: int, root: Path) -> QAResult:
         check_name="Edition Number",
         passed=True,
         severity="info",
-        message=f"Edition {edition_number:04d} is sequential and valid."
+        message=f"Edition {edition_number:04d} matches the Brisbane calendar."
     )
 
 
-def check_date_integrity(edition_number: int) -> QAResult:
+def check_date_integrity(
+    edition_number: int,
+    *,
+    as_of: datetime | None = None,
+) -> QAResult:
     """Verify date/weekday consistency."""
-    now = datetime.now(BRISBANE)
+    now = (as_of or datetime.now(BRISBANE)).astimezone(BRISBANE)
     weekday = now.strftime("%A")
     date_str = now.strftime("%d %B %Y")
 
@@ -449,9 +580,14 @@ def check_date_integrity(edition_number: int) -> QAResult:
     )
 
 
-def check_subject_body_alignment(html: str, edition_number: int) -> QAResult:
+def check_subject_body_alignment(
+    html: str,
+    edition_number: int,
+    *,
+    as_of: datetime | None = None,
+) -> QAResult:
     """Verify edition number and date appear correctly in the HTML body."""
-    now = datetime.now(BRISBANE)
+    now = (as_of or datetime.now(BRISBANE)).astimezone(BRISBANE)
     edition_padded = f"{edition_number:04d}"
     date_formatted = now.strftime("%d %B %Y")
 
@@ -782,6 +918,7 @@ def run_pre_send_qa(
     root: Path,
     scored_items: list | None = None,
     fetch_results: list | None = None,
+    as_of: datetime | None = None,
 ) -> tuple[bool, list[QAResult]]:
     """Run all pre-send QA checks.
 
@@ -796,9 +933,9 @@ def run_pre_send_qa(
     category_coverage = build_category_coverage(scored_items or [])
 
     results = [
-        check_edition_number(edition_number, root),
-        check_date_integrity(edition_number),
-        check_subject_body_alignment(html, edition_number),
+        check_edition_number(edition_number, root, as_of=as_of),
+        check_date_integrity(edition_number, as_of=as_of),
+        check_subject_body_alignment(html, edition_number, as_of=as_of),
         check_content_minimum(html, scored_count),
         check_content_readiness(
             sources_succeeded=sources_succeeded,
@@ -919,6 +1056,9 @@ def create_receipt(
     category_coverage: dict[str, int] | None = None,
     fetch_results: list | None = None,
     edition_type: str = "daily",
+    renderer_id: str = "",
+    html_sha256: str = "",
+    release_identity_status: str | None = None,
 ) -> RunReceipt:
     """Create a structured run receipt."""
     now = datetime.now(BRISBANE)
@@ -974,6 +1114,27 @@ def create_receipt(
     # Populate subscriber insights if provided
     si = subscriber_insights or {}
 
+    expected_renderer = (
+        os.environ.get("SIGNAL_EXPECTED_DAILY_RENDERER", "").strip()
+        if edition_type == "daily"
+        else "weekly-wrap-current"
+    )
+    identity_result = check_release_identity(
+        renderer_id=renderer_id,
+        edition_type=edition_type,
+        mode=mode,
+    )
+    if release_identity_status:
+        identity_status = release_identity_status
+    elif edition_type != "daily":
+        identity_status = "NOT_APPLICABLE"
+    elif mode != "send":
+        identity_status = "OBSERVED_ONLY"
+    elif identity_result.passed:
+        identity_status = "MATCH"
+    else:
+        identity_status = "MISMATCH"
+
     return RunReceipt(
         edition_number=edition_number,
         mode=mode,
@@ -1011,6 +1172,14 @@ def create_receipt(
         subscriber_emails_personal=si.get("personal_emails", []),
         code_version=code_version,
         edition_type=edition_type,
+        release_profile=os.environ.get("SIGNAL_RELEASE_PROFILE", ""),
+        renderer_id=renderer_id,
+        expected_renderer_id=expected_renderer,
+        release_identity_status=identity_status,
+        html_sha256=html_sha256,
+        render_git_commit=os.environ.get("RENDER_GIT_COMMIT", ""),
+        render_git_branch=os.environ.get("RENDER_GIT_BRANCH", ""),
+        render_service_id=os.environ.get("RENDER_SERVICE_ID", ""),
     )
 
 

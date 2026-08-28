@@ -76,7 +76,10 @@
     }
   ],
   "interpretation": "Model access is becoming abundant, but useful outcomes remain constrained by cost, knowledge quality, decision boundaries and accountability. The value gap is operational.",
-  "dtl_view": "The next AI advantage is disciplined execution. Treat governance, data quality and workflow design as the product; model selection is increasingly a procurement choice.",
+  "founders_note": {
+    "headline": "AI is infrastructure now. Price it that way.",
+    "body": "The stack is getting boring. That's a good sign. When the big players start competing on billing flexibility, cost controls, and hardware refresh cycles \u2014 not magic \u2014 it means the technology is settling into its real role. Infrastructure. Commodity. Table stakes. Here's what that means for you. The edge is no longer access. Everyone has access. The edge is judgment about where to actually deploy it. Most businesses are still asking \"should we use AI?\" The smarter question is \"which constraint does this remove, and what does that free up?\" The technology isn't the strategy. It never was. That's the whole game now. \u2014 Paul"
+  },
   "what_changed": {
     "position_id": "ai-advantage-operating-system",
     "classification": "STRENGTHENS",

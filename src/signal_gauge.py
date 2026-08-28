@@ -90,6 +90,7 @@ def generate_gauge_html(
     category: str = "",
     item_title: str = "",
     item_type: str = "",
+    show_label: bool = True,
 ) -> str:
     """Generate the email-safe gauge HTML for a single item.
 
@@ -98,7 +99,8 @@ def generate_gauge_html(
         item_index: The 1-based index of the item in the edition
         category: The business category (e.g., "Strategy & Leadership")
         item_title: Descriptive metadata only — not used for identity
-        item_type: ACT, WATCH, or NOTE
+        item_type: ACT, WATCH, OPPORTUNITY, or NOTE
+        show_label: Show RATE THIS SIGNAL only where the meaning is introduced
 
     Returns:
         HTML string for the gauge block (table-based, email-safe)
@@ -163,12 +165,16 @@ def generate_gauge_html(
 
     # Slim gauge: one quiet right-aligned line at the foot of the article.
     # No background box, no border — just a whisper of a prompt and five dots.
+    label_cell = (
+        '<td style="padding: 0 8px 0 0; vertical-align: middle;">'
+        '<span style="font-size: 8px; font-family: \'SF Mono\', \'Fira Code\', '
+        '\'Courier New\', monospace; color: #c8c8c8; letter-spacing: 0.6px;">'
+        'RATE THIS SIGNAL</span></td>'
+    ) if show_label else ""
     gauge_html = f'''{GAUGE_BLOCK_MARKER}<tr><td style="padding: 2px 40px 0 40px;">
 <table align="right" cellpadding="0" cellspacing="0" style="margin: 0;">
 <tr>
-<td style="padding: 0 8px 0 0; vertical-align: middle;">
-<span style="font-size: 8px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #c8c8c8; letter-spacing: 0.6px;">RATE THIS SIGNAL</span>
-</td>
+{label_cell}
 {gauge_row}
 </tr></table>
 </td></tr>'''
@@ -195,12 +201,12 @@ def inject_gauge_into_html(
         HTML with gauge blocks injected after each item
     """
     # Strategy: Find each item block by looking for the item structure pattern.
-    # Items have: ACT/WATCH/NOTE pill → category → headline → what happened → why it matters → signal
+    # Items have an action pill → category → headline → evidence/story detail.
     # After the last <p> of each item (the Signal: line), inject the gauge before the divider.
 
-    # Pattern: find the ACT|WATCH|NOTE badges to identify item starts
+    # Recognise both legacy and Enhanced action labels.
     item_pattern = re.compile(
-        r'(<span[^>]*>(?:ACT|WATCH|NOTE)</span>)',
+        r'(<span[^>]*>(?:ACT NOW|WATCH CLOSELY|OPPORTUNITY|ACT|WATCH|NOTE)</span>)',
         re.IGNORECASE
     )
 
@@ -218,8 +224,11 @@ def inject_gauge_into_html(
     for idx, match in enumerate(item_matches):
         item_index = idx + 1  # 1-based
 
-        # Extract the item type (ACT/WATCH/NOTE) from the badge
-        badge_text = re.search(r'>(ACT|WATCH|NOTE)<', match.group(0), re.IGNORECASE)
+        badge_text = re.search(
+            r'>(ACT NOW|WATCH CLOSELY|OPPORTUNITY|ACT|WATCH|NOTE)<',
+            match.group(0),
+            re.IGNORECASE,
+        )
         item_type = badge_text.group(1).upper() if badge_text else ""
 
         # Get category from scored_items if available
@@ -287,6 +296,7 @@ def inject_gauge_into_html(
             category=category,
             item_title=item_title,
             item_type=item_type,
+            show_label=(item_index == 1),
         )
 
         insertions.append((insert_pos, gauge_html))

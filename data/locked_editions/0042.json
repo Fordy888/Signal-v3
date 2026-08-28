@@ -1,0 +1,10 @@
+{
+  "edition_number": 42,
+  "issue_date": "2026-08-28",
+  "generated_at": "2026-08-28T06:00:00+10:00",
+  "plan_path": "data/edition0042-enhanced-plan.json",
+  "evidence_path": "data/fixtures/edition0042_evidence.json",
+  "alive_moment_path": "data/fixtures/alive_moment_0042.json",
+  "include_alive_moment": true,
+  "expected_html_sha256": "e043f2c88984ca9250bbde7b34a3e71ae7eab93fd0591b2a59cf7e2290472255"
+}

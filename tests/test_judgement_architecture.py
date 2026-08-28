@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from datetime import datetime
+from html import escape
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -29,7 +30,7 @@ def valid_plan() -> dict:
             {
                 "source_ids": [f"S0{i}"],
                 "category": category,
-                "action_tag": "WATCH" if i > 1 else "ACT",
+                "action_tag": "OPPORTUNITY" if i == 4 else ("WATCH" if i > 1 else "ACT"),
                 "headline": headline,
                 "evidence": "A source-backed fact remains separate from judgement.",
             }
@@ -47,7 +48,18 @@ def valid_plan() -> dict:
             )
         ],
         "interpretation": "The collective evidence indicates that AI value is being limited by operating discipline more than access to models.",
-        "dtl_view": "Build the operating system around AI before buying more capability.",
+        "founders_note": {
+            "headline": "AI is infrastructure now. Price it that way.",
+            "body": (
+                "The stack is getting boring. That's a good sign. When serious buyers start focusing on "
+                "billing flexibility, cost controls and operating discipline rather than magic, the technology "
+                "is settling into its real role. Infrastructure. Commodity. Table stakes. The edge is no longer "
+                "access because everyone has access. The edge is judgement about where to deploy it, which "
+                "constraint it removes, and what that frees up. Most businesses are still asking whether they "
+                "should use AI. The smarter question is where it produces a measurable business advantage. "
+                "The technology is not the strategy. It never was. That is the whole game now. — Paul"
+            ),
+        },
         "what_changed": {
             "position_id": "ai-advantage-operating-system",
             "classification": "STRENGTHENS",
@@ -104,6 +116,12 @@ class JudgementArchitectureTests(unittest.TestCase):
         with self.assertRaises(JudgementPlanError):
             validate_judgement_plan(plan, {f"S0{i}" for i in range(1, 8)})
 
+    def test_founders_note_requires_established_format_and_inline_signoff(self) -> None:
+        plan = valid_plan()
+        plan["founders_note"]["body"] = "Compressed CEO view without the established founder format."
+        with self.assertRaises(JudgementPlanError):
+            validate_judgement_plan(plan, {f"S0{i}" for i in range(1, 8)})
+
     def test_visual_signal_is_optional_and_governed(self) -> None:
         self.assertEqual(render_visual_signal({"eligible": False, "type": "NONE", "rows": []}), "")
         rendered = render_visual_signal(valid_plan()["visual_signal"])
@@ -141,35 +159,79 @@ class JudgementArchitectureTests(unittest.TestCase):
             generated_at=datetime(2026, 8, 24, 6, 6, tzinfo=ZoneInfo("Australia/Brisbane")),
             alive_moment=json.loads((ROOT / "data" / "fixtures" / "alive_moment_0038.json").read_text()),
         )
+        signature = ["THINK.", "DECIDE.", "LOOK UP.", "SMILE."]
+        signature_positions = [html.index(label) for label in signature]
+        self.assertEqual(signature_positions, sorted(signature_positions))
+        self.assertLess(signature_positions[-1], html.index("THE ONE THING"))
         sequence = [
-            "THINK",
             "THE ONE THING",
-            "CEO VIEW",
-            "Do something different today … Paul",
+            "FOUNDER'S NOTE",
+            "AI is infrastructure now. Price it that way.",
+            "— Paul",
             "THE EVIDENCE",
+            "YOUR SIGNAL AT A GLANCE",
             "VISUAL SIGNAL",
-            "DECIDE",
             "INTERPRETATION",
             "WHAT CHANGED?",
             "EXECUTIVE ACTION / WATCH",
-            "LOOK UP",
             "COUNTER-SIGNAL",
-            "WE ARE ALIVE",
-            "SMILE",
+            "REMEMBER THE WORLD",
             "DAD JOKE OF THE DAY",
         ]
         positions = [html.index(label) for label in sequence]
         self.assertEqual(positions, sorted(positions))
         self.assertIn("THE EVIDENCE", html)
+        self.assertEqual(html.count("YOUR SIGNAL AT A GLANCE"), 1)
+        self.assertEqual(html.count("THINK."), 1)
+        self.assertEqual(html.count("DECIDE."), 1)
+        self.assertEqual(html.count("LOOK UP."), 1)
+        self.assertEqual(html.count("SMILE."), 1)
+        self.assertIn('<span style="color:#C43F2C;">THINK.</span>', html)
+        self.assertIn('<span style="color:#966300;">DECIDE.</span>', html)
+        self.assertIn('<span style="color:#2B7F8C;">LOOK UP.</span>', html)
+        self.assertIn('<span style="color:#0B7F78;">SMILE.</span>', html)
+        self.assertIn("ACT NOW", html)
+        self.assertIn("WATCH CLOSELY", html)
+        self.assertIn("OPPORTUNITY", html)
+        self.assertIn("Decision or action", html)
+        self.assertIn("Developing change", html)
+        self.assertIn("Opening to explore", html)
+        self.assertIn("background:#E8533A", html)
+        self.assertIn("background:#E6A817", html)
+        self.assertIn("background:#17A398", html)
         self.assertIn("INTERPRETATION", html)
-        self.assertIn("CEO VIEW", html)
-        self.assertEqual(html.count("CEO VIEW"), 1)
-        self.assertIn("Do something different today … Paul", html)
-        self.assertIn(valid_plan()["dtl_view"], html)
+        self.assertIn("FOUNDER'S NOTE", html)
+        self.assertEqual(html.count("FOUNDER'S NOTE"), 1)
+        self.assertIn(valid_plan()["founders_note"]["headline"], html)
+        self.assertIn(escape(valid_plan()["founders_note"]["body"]), html)
+        self.assertEqual(html.count("— Paul"), 1)
+        self.assertNotIn("CEO VIEW", html)
+        self.assertNotIn("Do something different today … Paul", html)
+        self.assertNotIn("WE ARE ALIVE", html)
         self.assertNotIn("Signal learns. Every open, every click, every skip trains the next edition.", html)
-        self.assertIn('width="75%"', html)
-        self.assertIn('max-width:615px', html)
+        self.assertIn('<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;margin:0;">', html)
+        self.assertIn('width="820"', html)
+        self.assertIn('max-width:820px', html)
+        self.assertIn('color:#6B7280;text-align:left;', html)
         self.assertIn("PF::SIGNAL-0038 // 24.08.2026 // 06:06 AEST", html)
+        self.assertIn('color:#17A398;letter-spacing:1px;">Edition 0038', html)
+        self.assertIn('font-size:12px;color:#17A398;letter-spacing:1.5px', html)
+        self.assertIn('border-top:2px solid #4ECDC4;padding-top:14px;', html)
+        self.assertIn('padding:14px 40px 8px 40px;', html)
+        self.assertNotIn('color:#aaa;letter-spacing:2px;text-transform:uppercase;">THINK</p>', html)
+        self.assertNotIn('color:#aaa;letter-spacing:2px;text-transform:uppercase;">DECIDE</p>', html)
+        self.assertNotIn('color:#aaa;letter-spacing:2px;text-transform:uppercase;">LOOK UP</p>', html)
+        self.assertNotIn('color:#aaa;letter-spacing:2px;text-transform:uppercase;">SMILE</p>', html)
+        self.assertIn('color:#17A398;text-decoration:underline;">→ dtlc.ai</a>', html)
+        self.assertNotIn("opacity:", html)
+        self.assertIn("Financial Times (via Simon Willison)", html)
+        self.assertNotIn("Simon Willison / Financial Times", html)
+        self.assertIn("Photo: Charles J. Sharp · Wikimedia Commons", html)
+        self.assertIn('text-decoration:underline;">CC BY-SA 4.0</a>', html)
+        self.assertNotIn(">source</a>", html)
+        self.assertNotIn(">licence</a>", html)
+        self.assertEqual(html.count("DAD JOKE OF THE DAY"), 1)
+        self.assertLess(html.index("DAD JOKE OF THE DAY"), html.index("PF::SIGNAL-0038"))
 
 
 if __name__ == "__main__":
