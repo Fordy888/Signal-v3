@@ -44,7 +44,9 @@ The suite now reports **47 passing tests**, including a full Monday Edition 0043
 
 The candidate was reconstructed in an isolated Git worktree from the staged release diff. The first clean-tree run exposed two newly created test modules that were present locally but excluded by an inherited `test_*.py` ignore rule. The ignore contract was corrected; the clean candidate now contains all four test modules changed or added by the release, and all 47 tests pass from Git-contained files only. This validates the same file boundary the Render build will receive.
 
-Commit, merge, live Render deploy and the deployed canary remain outstanding.
+The complete 37-file release candidate was committed on `feature/development-thesis-v1` as `5f316db76bcbed19f9ab9a4b598f2d0ae4c60758`. GitHub reports the identical remote feature-branch SHA. Production `master`, the live Render service and subscribers remain unchanged.
+
+Merge, live Render deploy and the deployed canary remain outstanding.
 
 ## References
 

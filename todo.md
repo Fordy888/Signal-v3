@@ -203,7 +203,7 @@
 - [x] Add commit SHA, renderer ID, artefact identity and expected/actual release status to operational receipts
 - [x] Update the source-controlled Render start command for v4.0 daily routing while preserving Saturday Weekly Wrap routing
 - [x] Run the full 47-test regression suite and Monday Edition 0043 no-send simulation from an isolated clean release tree
-- [ ] Commit and push the complete release candidate to the feature branch
+- [x] Commit and push release candidate `5f316db76bcbed19f9ab9a4b598f2d0ae4c60758` to the feature branch
 - [ ] Merge the reviewed release candidate into master with the current production commit preserved as rollback
 - [ ] Verify Render deployed the exact master commit and live v4.0 command
 - [ ] Generate a canary from the deployed service and send only to Fordy’s proof inbox
