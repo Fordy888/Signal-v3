@@ -211,7 +211,9 @@
 - [x] Manually build and deploy corrected production master `f47caf17f246714b8452445ab25c0e13c3dae683` with all 47 tests passing live
 - [x] Fix the Render Python 3.11 nested-f-string failure exposed by build `bld-daa0u467bikc73f4cqa0` and make the Sunday-sensitive release test deterministic
 - [ ] Verify Render deployed the exact master commit and live v4.0 command
-- [ ] Generate a canary from the deployed service and send only to Fordy’s proof inbox
+- [x] Generate two canaries from the deployed service and send only to Fordy’s proof inbox; the corrected canary matches Monday subject and body identity
+- [x] Add a one-recipient release-canary mode that enforces the same v4.0 identity gate as Monday subscriber-send mode; all 49 tests pass
+- [ ] Require the canary receipt to state VERIFIED before issuing Monday GO
 - [x] Fix the deployed canary subject to use the same Brisbane release clock as the Edition 0043 body and receipt; 48 tests pass
 - [ ] Confirm Gmail mobile, Gmail desktop and Apple Mail rendering from the deployed canary
 - [ ] Issue a factual Monday GO or HELD status before the scheduled run

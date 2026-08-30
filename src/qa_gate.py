@@ -100,7 +100,7 @@ def check_release_identity(
     mode: str,
     as_of: datetime | None = None,
 ) -> QAResult:
-    """Hold production if the live Render identity cannot prove the v4 daily route."""
+    """Hold production or an explicit proof canary if live identity cannot prove v4."""
     runtime = (as_of or datetime.now(BRISBANE)).astimezone(BRISBANE)
     if edition_type != "daily":
         return QAResult(

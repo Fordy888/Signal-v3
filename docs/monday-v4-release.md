@@ -142,6 +142,28 @@ Gmail confirms the deployed proof arrived from `DTL Signal <signal@signal.dtlc.a
 
 Subject construction now uses the same Brisbane `runtime_now` release clock as edition numbering, body metadata and QA for both daily proofs and Weekly Wrap proofs. A dedicated no-delivery test asserts the exact Monday Edition 0043 subject, and the complete suite now reports **48 passing tests**.
 
+The subject-clock fix is committed on production master as `8eb0d28ed784837c09efb57a959b879511b6dfb0`. GitHub reports the same SHA. Render's build history still stops at the manually built `f47caf1`; the nominal On Commit auto-deploy missed `8eb0d28` as well. A second guarded manual build is therefore required before the corrected canary can be considered deployed.
+
+Manual guarded build `bld-daa1gton74is739huc6g` started on exact commit `8eb0d28ed784837c09efb57a959b879511b6dfb0` under Render Python 3.11.9. The persisted build command is running the complete 48-test suite before activation; no subscriber job was triggered.
+
+Build `bld-daa1gton74is739huc6g` succeeded for exact commit `8eb0d28ed784837c09efb57a959b879511b6dfb0`; all 48 tests passed in Render's Python 3.11 environment. The scheduled v4.0 command and six identity values remain active. A corrected deployed proof canary is now required to close the release gate.
+
+The corrected deployed canary started from the live Render shell with `--proof`, Enhanced v4, the approved image gate and the Monday 31 August release clock. Its output path is `data/deployed-canary-0043-corrected.html`. The command contains no `--send` flag and targets only the configured proof recipient; subscribers remain untouched.
+
+The live shell confirms the corrected canary is running on exact commit `8eb0d28ed784837c09efb57a959b879511b6dfb0`, resolves to Edition 0043 and reports Monday 31 August 2026 at 06:00 AEST. Recipient integrity confirms exactly one valid address, `paul.ford@gmail.com`. Source collection is in progress; scoring, synthesis, QA and delivery remain pending.
+
+The corrected canary has entered Stage 2 and is scoring live items successfully. No Stage 3 marker is yet present, so the release remains HELD until the second canary completes and the corrected Monday subject appears in Fordy's inbox.
+
+The corrected canary completed synthesis and QA, saved `data/deployed-canary-0043-corrected.html`, and entered delivery with one recipient. Gmail confirms receipt at 11:56 UTC with exact subject `[PROOF] DTL Signal | Edition 0043 | Monday 31 August 2026`, sender `DTL Signal <signal@signal.dtlc.ai>`, recipient `paul.ford@gmail.com`, Gmail message/thread ID `1a05286e68dfc251`. The body begins with Edition 0043, Monday 31 August at 06:00 AEST and the v4.0 `THINK. DECIDE. LOOK UP. SMILE.` signature.
+
+The matching operational receipt confirms 1/1 delivered, 102/111 sources succeeded, 69 items scored, 8/8 category coverage, profile `v4.0`, renderer `enhanced-v4`, exact commit `8eb0d28ed784837c09efb57a959b879511b6dfb0`, branch `master`, service `crn-d8ouk0bsq97s73fgc36g` and HTML SHA-256 `cd3653da1961cf18241ec04478b67d1fa3810fa2d4b3b0d3c948618d6209c430`.
+
+Proof mode intentionally reports identity as `OBSERVED_ONLY`, so the receipt still says `NOT safe` even though every observed field matches. To avoid issuing GO by manual interpretation, the final canary must run the same identity gate in enforced mode while retaining the one-recipient proof boundary. Monday remains HELD until that receipt states VERIFIED.
+
+The pipeline now supports `--release-canary`, valid only with `--proof --enhanced`. It preserves the one-recipient proof boundary but executes the same release-identity gate used by subscriber-send mode and threads an explicit MATCH or MISMATCH into the operational receipt. A MATCH receipt is impossible if the renderer, branch, commit, service or v4.0 profile is missing or wrong.
+
+The complete suite now reports **49 passing tests**, including an end-to-end proof-canary simulation that asserts the Monday subject, exactly one delivery call and a `DELIVERED — RELEASE IDENTITY MATCHED` receipt. The source-controlled proof command includes `--release-canary`.
+
 Render's embedded terminal does not expose a functional scroll container through browser automation, so the final lines cannot be treated as visible evidence yet. Canary completion will be cross-checked through the one-recipient proof email and operational receipt in Fordy's Gmail, then reconciled with Render logs if needed.
 
 ## References

@@ -188,6 +188,8 @@ def main() -> int:
                         help="Render a checksum-locked approved Enhanced daily edition")
     parser.add_argument("--as-of", type=str, default=None,
                         help="ISO timestamp for proof/dry-run route and metadata simulation; never permitted with --send")
+    parser.add_argument("--release-canary", action="store_true",
+                        help="Proof-only mode: enforce the live production release-identity gate")
     args = parser.parse_args()
     if args.alive_moment and not args.enhanced:
         parser.error("--alive-moment requires --enhanced")
@@ -195,6 +197,10 @@ def main() -> int:
         parser.error("--locked-edition requires --enhanced")
     if args.as_of and args.send:
         parser.error("--as-of is never permitted with --send")
+    if args.release_canary and not args.proof:
+        parser.error("--release-canary requires --proof")
+    if args.release_canary and not args.enhanced:
+        parser.error("--release-canary requires --enhanced")
 
     # Locate project root (parent of src/)
     root = Path(__file__).resolve().parent.parent
@@ -600,12 +606,15 @@ def main() -> int:
         fetch_results=fetch_results,
         as_of=now_brisbane,
     )
+    identity_mode = "send" if args.release_canary else mode
     release_identity_result = check_release_identity(
         renderer_id=renderer_id,
         edition_type=edition_type,
-        mode=mode,
+        mode=identity_mode,
         as_of=now_brisbane,
     )
+    if args.release_canary:
+        log.info("RELEASE CANARY: production identity gate enforced within proof-only recipient boundary")
     qa_results.append(release_identity_result)
     log.info(str(release_identity_result))
     if not release_identity_result.passed and release_identity_result.severity == "critical":
@@ -632,6 +641,9 @@ def main() -> int:
             edition_type=edition_type,
             renderer_id=renderer_id,
             html_sha256=html_sha256,
+            release_identity_status=(
+                "MATCH" if release_identity_result.passed else "MISMATCH"
+            ) if args.release_canary else None,
         )
         save_receipt(root, receipt)
         send_receipt_email(receipt)
@@ -861,6 +873,9 @@ def main() -> int:
             edition_type=edition_type,
             renderer_id=renderer_id,
             html_sha256=html_sha256,
+            release_identity_status=(
+                "MATCH" if release_identity_result.passed else "MISMATCH"
+            ) if args.release_canary else None,
         )
 
         if bookkeeping_error:

@@ -82,7 +82,7 @@ services:
     runtime: python
     schedule: "0 0 1 1 *"
     buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
-    startCommand: python -m src.main --proof --enhanced --alive-moment --as-of 2026-08-31T06:00:00+10:00 --save-html data/deployed-canary-0043.html
+    startCommand: python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-08-31T06:00:00+10:00 --save-html data/deployed-canary-0043.html
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false

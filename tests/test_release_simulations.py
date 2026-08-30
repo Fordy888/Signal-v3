@@ -227,8 +227,19 @@ class ReleaseSimulationTests(unittest.TestCase):
         evidence = json.loads(
             (ROOT / "data" / "fixtures" / "edition0042_evidence.json").read_text()
         )
+        production_env = {
+            "RENDER": "true",
+            "RENDER_GIT_BRANCH": "master",
+            "RENDER_GIT_COMMIT": "abcdef1234567890",
+            "RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
+            "SIGNAL_RELEASE_PROFILE": "v4.0",
+            "SIGNAL_V4_LAUNCH_DATE": "2026-08-31",
+            "SIGNAL_EXPECTED_DAILY_RENDERER": "enhanced-v4",
+            "SIGNAL_EXPECTED_GIT_BRANCH": "master",
+            "SIGNAL_EXPECTED_RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
+        }
         patches = self._common_patches()
-        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6] as send_mock, patch(
+        with patch.dict(os.environ, production_env, clear=False), patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6] as send_mock, patch(
             "src.main.scored_items_to_evidence", return_value=evidence
         ), patch(
             "src.main.generate_judgement_plan", return_value=plan
@@ -238,13 +249,14 @@ class ReleaseSimulationTests(unittest.TestCase):
             "src.main.load_alive_history", return_value=[]
         ), patch(
             "src.main.send_receipt_email"
-        ), patch(
+        ) as receipt_mock, patch(
             "src.main.ping_heartbeat"
         ), patch(
             "sys.argv",
             [
                 "signal",
                 "--proof",
+                "--release-canary",
                 "--enhanced",
                 "--alive-moment",
                 "--as-of",
@@ -259,6 +271,8 @@ class ReleaseSimulationTests(unittest.TestCase):
             send_mock.call_args.kwargs["subject_override"],
             "[PROOF] DTL Signal | Edition 0043 | Monday 31 August 2026",
         )
+        receipt = receipt_mock.call_args.args[0]
+        self.assertEqual(receipt.release_identity_status, "MATCH")
 
     def test_saturday_weekly_wrap_full_dry_run_never_delivers(self) -> None:
         output = tempfile.NamedTemporaryFile(suffix=".html", delete=False)

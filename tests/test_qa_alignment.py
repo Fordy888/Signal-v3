@@ -93,6 +93,30 @@ class ReleaseIdentityTests(unittest.TestCase):
         self.assertIn("MATCH", result.message)
         self.assertIn("abcdef123456", result.message)
 
+    def test_monday_v4_identity_can_be_enforced_inside_proof_canary(self):
+        with patch.dict(os.environ, self.production_env, clear=False):
+            result = check_release_identity(
+                renderer_id="enhanced-v4",
+                edition_type="daily",
+                mode="send",
+                as_of=self.monday,
+            )
+            receipt = create_receipt(
+                edition_number=43,
+                mode="proof",
+                recipients_attempted=1,
+                recipients_delivered=1,
+                pipeline_result="success",
+                code_version="abcdef1234567890",
+                edition_type="daily",
+                renderer_id="enhanced-v4",
+                html_sha256="2" * 64,
+                release_identity_status="MATCH" if result.passed else "MISMATCH",
+            )
+        self.assertTrue(result.passed)
+        self.assertEqual(receipt.release_identity_status, "MATCH")
+        self.assertIn("DELIVERED — RELEASE IDENTITY MATCHED", receipt.alert_email_html())
+
     def test_monday_v4_identity_holds_when_live_commit_is_missing(self):
         env = dict(self.production_env)
         env["RENDER_GIT_COMMIT"] = ""
@@ -163,7 +187,7 @@ class ReleaseIdentityTests(unittest.TestCase):
         )
         self.assertEqual(
             proof_service["startCommand"],
-            "python -m src.main --proof --enhanced --alive-moment --as-of 2026-08-31T06:00:00+10:00 --save-html data/deployed-canary-0043.html",
+            "python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-08-31T06:00:00+10:00 --save-html data/deployed-canary-0043.html",
         )
 
 
