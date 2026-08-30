@@ -205,6 +205,10 @@
 - [x] Run the full 47-test regression suite and Monday Edition 0043 no-send simulation from an isolated clean release tree
 - [x] Commit and push release candidate `5f316db76bcbed19f9ab9a4b598f2d0ae4c60758` to the feature branch
 - [ ] Merge the reviewed release candidate into master with the current production commit preserved as rollback
+- [x] Inspect the authenticated Render service and confirm it is still on legacy commit `7ae66b2` with legacy command `python -m src.main --send`
+- [ ] Update the live Render build command, v4.0 command and release-identity environment to match source control
+- [ ] Manually deploy production master `da2ef3eaa2e7a2876bbec7b68b9dbcd86bb12698`
+- [x] Fix the Render Python 3.11 nested-f-string failure exposed by build `bld-daa0u467bikc73f4cqa0` and make the Sunday-sensitive release test deterministic
 - [ ] Verify Render deployed the exact master commit and live v4.0 command
 - [ ] Generate a canary from the deployed service and send only to Fordy’s proof inbox
 - [ ] Confirm Gmail mobile, Gmail desktop and Apple Mail rendering from the deployed canary

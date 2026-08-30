@@ -271,11 +271,15 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertTrue(any("rating gauge" in issue for issue in issues))
 
     def test_send_mode_holds_when_live_subscriber_api_returns_empty(self) -> None:
-        with patch("src.main.fetch_subscribers", return_value=[]), patch(
-            "src.main.send_alert"
-        ) as alert_mock, patch("src.main.send_brief") as send_mock, patch(
-            "sys.argv", ["signal", "--send"]
-        ):
+        monday = datetime(
+            2026, 8, 31, 6, 0, tzinfo=ZoneInfo("Australia/Brisbane")
+        )
+        with patch("src.main.datetime") as mocked_datetime, patch(
+            "src.main.fetch_subscribers", return_value=[]
+        ), patch("src.main.send_alert") as alert_mock, patch(
+            "src.main.send_brief"
+        ) as send_mock, patch("sys.argv", ["signal", "--send"]):
+            mocked_datetime.now.return_value = monday
             result = main()
         self.assertEqual(result, 1)
         alert_mock.assert_called_once()

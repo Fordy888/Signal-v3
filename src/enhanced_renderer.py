@@ -147,7 +147,13 @@ def render_enhanced_email(
     )
 
     for index, action in enumerate(plan["executive_actions"], 1):
-        html.append(f'<tr><td style="padding:6px 0;">{_p(f"<strong style=\"color:#E8533A;\">{index}.</strong> {escape(action)}", size=14, colour="#333")}</td></tr>')
+        action_html = (
+            f'<strong style="color:#E8533A;">{index}.</strong> {escape(action)}'
+        )
+        html.append(
+            f'<tr><td style="padding:6px 0;">'
+            f'{_p(action_html, size=14, colour="#333")}</td></tr>'
+        )
     html.append('</table></td></tr>')
 
     counter = plan["counter_signal"]

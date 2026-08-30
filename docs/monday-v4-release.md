@@ -48,6 +48,36 @@ The complete 37-file release candidate was committed on `feature/development-the
 
 Merge, live Render deploy and the deployed canary remain outstanding.
 
+## Authenticated Render verification — 30 August 2026
+
+Fordy authenticated the live Render dashboard and the production service was inspected read-only. The service is still deployed from `master` at legacy commit `7ae66b2`, still runs `python -m src.main --send`, and has no build after 24 August. Auto-Deploy displays `On Commit`, but the 30 August GitHub merge to `da2ef3e` did not trigger a build, confirming the webhook remains stale.
+
+The live schedule remains `0 20 * * *` UTC, equivalent to 06:00 AEST. The hidden dashboard build command still contains the four Base64-decoded source mutation shims. Therefore Monday is **not yet GO**: the source-controlled release has reached GitHub, but not the live Render runtime.
+
+The required correction is now exact rather than inferred: update the live build command to the source-controlled build/test command, update the live command to `python -m src.main --send --enhanced --alive-moment`, add the v4.0 release-identity environment values from `render.yaml`, then manually deploy `da2ef3e` and verify a deployed proof canary before Monday.
+
+### Live change log
+
+Fordy explicitly authorised the Render production correction on 30 August. The legacy hidden build mutation has been replaced in the editable field with `pip install -r requirements.txt && python -m unittest discover -s tests -v`; at this checkpoint the field is prepared but not yet submitted.
+
+The first Save and Enter attempts did not exit Render's edit state; the field still displays the approved command alongside Cancel and Save Changes. This is recorded as **not yet saved** and will be verified from the read-only settings state before any later step is treated as complete.
+
+The build command was subsequently accepted and automatically triggered build `bld-daa0u467bikc73f4cqa0` for master commit `da2ef3e`. Dependency installation succeeded, but the test gate failed during module loading for three release-test modules. Render correctly stopped the deploy, so production remains on legacy commit `7ae66b2` and no subscriber send occurred. The exact traceback is being isolated before any retry; Monday remains HELD until a clean live build succeeds.
+
+The authenticated settings page now confirms the source-controlled build command is persisted. The scheduled runtime command intentionally remains `python -m src.main --send` until a corrected commit passes the live build gate; this prevents an unbuilt v4.0 runtime from being activated.
+
+Render's log filter confirms three Python tracebacks at 11:08:15 UTC, corresponding to the three failed test-module imports. The filtered interface exposes only the traceback headers, so the saved page payload is being parsed next for the exception lines; no retry or command weakening has occurred.
+
+A targeted search returned no `No module named` lines. The next diagnosis therefore focuses on incompatible package/API imports shared by the three affected test modules rather than absent Git files.
+
+Searches for both `cannot import name` and unittest's `Error importing test module` heading returned no detailed exception lines in Render's filtered interface. The investigation is therefore moving to a local clean Python 3.11 environment using the exact freshly resolved dependency versions shown in the live build, rather than weakening the build gate or guessing from truncated logs.
+
+The decisive Render filter is `enhanced_renderer`: all three collection failures terminate at `/opt/render/project/src/src/enhanced_renderer.py`, line 150. The exact Git commit passes renderer imports in a fresh local environment, so this is a live build-workspace source mutation or syntax issue at that line—not a third-party dependency or missing-module problem. The deployed source line is being compared with Git next.
+
+The root cause was Python-version grammar, not a missing dependency: line 150 used a nested f-string with escaped quotes, accepted by the sandbox interpreter but rejected by Render's Python 3.11 parser. The action-row construction now uses a separate `action_html` variable and contains no nested escaped f-string. A second time-dependent test was also made deterministic after the fresh Sunday reproduction showed it could exit before reaching the intended empty-subscriber hold.
+
+The corrected code passes all **47 tests** in the same fresh dependency environment that reproduced the failed build. The source-controlled test gate remains intact; no test was removed or weakened.
+
 ## References
 
 [1]: https://render.com/docs/environment-variables "Render — Default Environment Variables"
