@@ -717,13 +717,13 @@ def main() -> int:
 
         subject_override = None
         if edition_type == "weekly_wrap":
-            week_ending = datetime.now(BRISBANE).strftime('%d %B %Y')
+            week_ending = runtime_now.strftime('%d %B %Y')
             if args.proof:
                 subject_override = f"[PROOF] DTL Signal Weekly Wrap | Week Ending {week_ending}"
             else:
                 subject_override = f"DTL Signal Weekly Wrap | Week Ending {week_ending}"
         elif args.proof:
-            subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
+            subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {runtime_now.strftime('%A %d %B %Y')}"
 
         # Personalise gauge links for this subscriber
         personalised_html = personalise_gauge_for_subscriber(html, email)

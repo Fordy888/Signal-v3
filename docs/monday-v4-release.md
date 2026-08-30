@@ -78,6 +78,72 @@ The root cause was Python-version grammar, not a missing dependency: line 150 us
 
 The corrected code passes all **47 tests** in the same fresh dependency environment that reproduced the failed build. The source-controlled test gate remains intact; no test was removed or weakened.
 
+The Python 3.11 correction was committed and pushed to production master as `f47caf17f246714b8452445ab25c0e13c3dae683`; GitHub reports the identical remote SHA. Render's build history did not create a build for this push despite Auto-Deploy remaining `On Commit`, reconfirming the stale webhook condition. A manual build of the latest master commit is therefore required and remains protected by the persisted 47-test build gate.
+
+Manual build `bld-daa14h67bikc73f4stvg` is now in progress. Render confirms it checked out the exact corrected master commit `f47caf17f246714b8452445ab25c0e13c3dae683`. No runtime command change or subscriber send has occurred while the guarded build runs.
+
+Build `bld-daa14h67bikc73f4stvg` completed successfully on exact commit `f47caf17f246714b8452445ab25c0e13c3dae683`. Render reports all 47 tests passed and the build artefact uploaded successfully. The live settings page confirms the new test-gated build command is persisted, but the scheduled runtime command is still legacy `python -m src.main --send`. Activating the approved v4.0 runtime command is now the remaining configuration step before environment verification and canary.
+
+The approved runtime command `python -m src.main --send --enhanced --alive-moment` has been entered in the live Render editor. It is recorded as **not yet persisted** until the settings page exits edit mode and shows the command read-only.
+
+The first pointer save and keyboard focus attempt did not leave edit mode; the page still shows Cancel and Save Changes. The v4.0 text remains in the field but is **not yet counted as active**. Monday remains HELD until a read-only settings refresh confirms the command.
+
+The read-only settings refresh now confirms the active scheduled command is `python -m src.main --send --enhanced --alive-moment`. The live schedule remains `0 20 * * *` UTC and the test-gated build command remains persisted. Runtime environment identity and the deployed canary are the remaining gates before Monday GO.
+
+The authenticated environment page was inspected without revealing any secret values. It contains the existing production API, sender, timezone and website variables but none of the six non-secret v4.0 release-identity keys. These must be added before canary execution; otherwise Monday's new hard identity gate will hold the send as designed.
+
+Environment edit mode is open and one blank variable row has been added. No existing key or secret value has been viewed, edited or deleted. The change remains unsaved until all six approved non-secret rows are populated and the read-only page confirms them by name.
+
+Six blank rows are now present for the six approved v4.0 values. Existing production keys and masked values remain untouched. No environment change has yet been saved or applied.
+
+Render represents the six new key fields as empty values rather than the visual `NAME_OF_VARIABLE` placeholder. DOM inspection confirms exactly 18 key rows: 12 existing named variables followed by six empty rows. No secret textarea values were inspected. The six rows can now be populated by their verified positions without touching the existing 12.
+
+All six new rows are now populated with the approved non-secret values: release profile `v4.0`, launch date `2026-08-31`, renderer `enhanced-v4`, branch `master`, service ID `crn-d8ouk0bsq97s73fgc36g`, and the Edition 0043 governed image fixture path. Existing variables remain unchanged. The environment edit is still unsaved pending the explicit Render apply action.
+
+The first environment submit click did not exit edit mode; the six values remain visible alongside the Save control. They are therefore still treated as **not active**. Render's split-button apply option must be selected and then verified from a read-only reload before Monday can move to GO.
+
+Subsequent DOM inspection found no active Save, Choose or Cancel control even though the extracted page view still showed the earlier editor labels. This indicates an asynchronous state transition or stale rendered snapshot. No second submission was attempted; the page will be reloaded cleanly and the environment will be accepted only if all six key names appear in read-only mode.
+
+A clean read-only reload confirms all six v4.0 keys are persisted by name and the environment editor is closed. Existing secret values remain masked. The active command remains `python -m src.main --send --enhanced --alive-moment`. Render is now rebuilding the exact `f47caf1` commit to apply the environment change; the canary remains the next gate.
+
+Render's build history confirms `f47caf17f246714b8452445ab25c0e13c3dae683` is the latest successful build. The environment update did not create a second visible build record, which is acceptable because the six values are runtime configuration; they are verified in read-only mode and apply to the next run. The release is now at the deployed-canary gate.
+
+The cron service's One-Off Jobs page confirms no existing one-off jobs and exposes no create/run control. The global Trigger Run control would execute the active subscriber command and is therefore not being used for canary testing. Render's service shell is being evaluated as the safer route; if unavailable, a temporary proof-only command with verified restoration will be required.
+
+The authenticated Render Web Shell is available against the service's latest build image and exposes a dedicated terminal input. This allows the approved proof-only Edition 0043 canary command to run without altering the scheduled subscriber command and without using Trigger Run.
+
+The first coordinate-based terminal input navigated away from the shell and did not execute the command. No canary, subscriber run or proof email was created. The shell has been reopened; the next attempt will target its dedicated `Terminal input` element directly.
+
+The direct input-event attempt also did not transmit the command text to the terminal; it produced only blank prompts. Again, no canary, subscriber run or proof email was created. The next attempt will use the terminal's paste-event pathway and will be accepted only if the full proof command is visible in shell output.
+
+The terminal paste pathway succeeded. The deployed service started the exact proof-only command for Monday 31 August 06:00 AEST, reported code version `f47caf17f246714b8452445ab25c0e13c3dae683`, selected the weekday Daily Signal route, resolved Edition 0043, and confirmed `PROOF MODE: sending to paul.ford@gmail.com only` with one valid recipient. Source fetching has started. No subscriber command was invoked; canary completion and receipt remain pending.
+
+The canary continues normally through the live 111-source inventory. The expected blocked-source warning for The Information has appeared, but no fatal error or audience-boundary change is present. Synthesis, release identity, QA and one-recipient delivery remain pending.
+
+Source collection has progressed through the technology, leadership, finance and Australian business feeds without a fatal error. The proof-only recipient boundary remains unchanged. The canary has not yet reached scoring or synthesis, so Monday is still awaiting the completed deployed proof.
+
+The canary has now progressed through the governance, labour, sales, marketing and customer-source groups as well. Only expected source-level warnings are visible; no pipeline hold or recipient-boundary change has occurred. Completion, scoring and synthesis remain to be verified at the terminal tail.
+
+The live source pass has reached the end of the configured inventory without a fatal pipeline error. The embedded terminal's extracted markdown truncates before the newest scoring/synthesis lines, so completion is not yet inferred from the screenshot alone. The proof-only recipient boundary remains intact while the tail and Gmail evidence are checked.
+
+Keyword-level terminal inspection confirms Stage 1 completed with **173 raw items**, **102/111 sources succeeding** and nine failed sources classified as six HTTP 403 blocks plus three empty feeds. The canary entered Stage 2 scoring. Stage 3 synthesis is not yet present, so completion remains pending rather than assumed.
+
+Two subsequent checks still show no Stage 3 marker. This is consistent with the live scorer processing 173 items, but it is not treated as success. Monday remains HELD until the deployed process either advances to synthesis or reports a scored-content hold.
+
+Stage 2 completed successfully: all 173 fetched items were scored and 71 cleared the threshold. The canary entered Enhanced Stage 3. The first judgement-plan response was correctly rejected because one evidence headline exceeded the eight-word contract, and the built-in retry started. No unvalidated content was rendered or delivered; the final retry outcome remains pending.
+
+The automatic retry succeeded. Stage 3 produced **22,796 characters** of Enhanced v4 HTML on live commit `f47caf17f246714b8452445ab25c0e13c3dae683`, with SHA-256 `4b3342a3699b872e2260e75c97d6ff571e8ebf4f7eb3cbb8b45b3cf574e74579`. The process then entered the pre-send QA gate. QA outcome, release-identity result and one-recipient delivery remain pending.
+
+No explicit QA-pass or release-gate marker is yet present in the terminal search results. The canary is therefore still classified as incomplete; Monday GO is not inferred from successful rendering alone.
+
+The terminal now confirms the proof-mode release identity observation passed, the live HTML was saved to `data/deployed-canary-0043.html`, and Stage 4 began with exactly one recipient. A final delivery-success marker is not yet visible, so the deployed canary is still pending rather than counted as complete.
+
+Gmail confirms the deployed proof arrived from `DTL Signal <signal@signal.dtlc.ai>` to `paul.ford@gmail.com` at 11:41 UTC. Its body begins with the correct Edition 0043, Monday 31 August metadata and the v4.0 signature. The canary also exposed a clock-consistency defect: the subject says `Sunday 30 August 2026` because subject construction used the actual wall clock instead of the proof-only release clock. Monday's real scheduled run would naturally use Monday, but the canary must reproduce the production identity exactly before GO. This defect is being fixed and regression-protected; Monday remains HELD.
+
+Subject construction now uses the same Brisbane `runtime_now` release clock as edition numbering, body metadata and QA for both daily proofs and Weekly Wrap proofs. A dedicated no-delivery test asserts the exact Monday Edition 0043 subject, and the complete suite now reports **48 passing tests**.
+
+Render's embedded terminal does not expose a functional scroll container through browser automation, so the final lines cannot be treated as visible evidence yet. Canary completion will be cross-checked through the one-recipient proof email and operational receipt in Fordy's Gmail, then reconciled with Render logs if needed.
+
 ## References
 
 [1]: https://render.com/docs/environment-variables "Render — Default Environment Variables"

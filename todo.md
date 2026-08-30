@@ -206,11 +206,13 @@
 - [x] Commit and push release candidate `5f316db76bcbed19f9ab9a4b598f2d0ae4c60758` to the feature branch
 - [ ] Merge the reviewed release candidate into master with the current production commit preserved as rollback
 - [x] Inspect the authenticated Render service and confirm it is still on legacy commit `7ae66b2` with legacy command `python -m src.main --send`
-- [ ] Update the live Render build command, v4.0 command and release-identity environment to match source control
-- [ ] Manually deploy production master `da2ef3eaa2e7a2876bbec7b68b9dbcd86bb12698`
+- [x] Update the live Render build command and v4.0 scheduled command to match source control
+- [x] Add and verify the live v4.0 release-identity environment values without changing existing secrets
+- [x] Manually build and deploy corrected production master `f47caf17f246714b8452445ab25c0e13c3dae683` with all 47 tests passing live
 - [x] Fix the Render Python 3.11 nested-f-string failure exposed by build `bld-daa0u467bikc73f4cqa0` and make the Sunday-sensitive release test deterministic
 - [ ] Verify Render deployed the exact master commit and live v4.0 command
 - [ ] Generate a canary from the deployed service and send only to Fordy’s proof inbox
+- [x] Fix the deployed canary subject to use the same Brisbane release clock as the Edition 0043 body and receipt; 48 tests pass
 - [ ] Confirm Gmail mobile, Gmail desktop and Apple Mail rendering from the deployed canary
 - [ ] Issue a factual Monday GO or HELD status before the scheduled run
 - [ ] Verify Monday’s live receipt includes commit, renderer, artefact identity, audience count and delivery result

@@ -61,6 +61,7 @@ class ReleaseSimulationTests(unittest.TestCase):
                 "ANTHROPIC_API_KEY": "test-only",
                 "RESEND_API_KEY": "test-only",
                 "RESEND_FROM_EMAIL": "signal@signal.dtlc.ai",
+                "PROOF_RECIPIENT_EMAIL": "paul.ford@gmail.com",
                 "ENABLE_GAUGE": "static",
                 "SIGNAL_RELEASE_PROFILE": "v4.0",
                 "SIGNAL_V4_LAUNCH_DATE": "2026-08-31",
@@ -220,6 +221,44 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertIn("REMEMBER THE WORLD", html)
         self.assertIn("DAD JOKE OF THE DAY", html)
         self.assertIn("PF::SIGNAL-0043 // 31.08.2026 // 06:00 AEST", html)
+
+    def test_monday_proof_subject_uses_the_same_release_clock_as_the_body(self) -> None:
+        plan = json.loads((ROOT / "data" / "edition0042-enhanced-plan.json").read_text())
+        evidence = json.loads(
+            (ROOT / "data" / "fixtures" / "edition0042_evidence.json").read_text()
+        )
+        patches = self._common_patches()
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6] as send_mock, patch(
+            "src.main.scored_items_to_evidence", return_value=evidence
+        ), patch(
+            "src.main.generate_judgement_plan", return_value=plan
+        ), patch(
+            "src.main.load_signal_memory", return_value={"version": 1, "positions": [], "events": []}
+        ), patch(
+            "src.main.load_alive_history", return_value=[]
+        ), patch(
+            "src.main.send_receipt_email"
+        ), patch(
+            "src.main.ping_heartbeat"
+        ), patch(
+            "sys.argv",
+            [
+                "signal",
+                "--proof",
+                "--enhanced",
+                "--alive-moment",
+                "--as-of",
+                "2026-08-31T06:00:00+10:00",
+            ],
+        ), redirect_stdout(io.StringIO()):
+            result = main()
+
+        self.assertEqual(result, 0)
+        self.assertEqual(send_mock.call_count, 1)
+        self.assertEqual(
+            send_mock.call_args.kwargs["subject_override"],
+            "[PROOF] DTL Signal | Edition 0043 | Monday 31 August 2026",
+        )
 
     def test_saturday_weekly_wrap_full_dry_run_never_delivers(self) -> None:
         output = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
