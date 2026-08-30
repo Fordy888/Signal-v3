@@ -5,6 +5,7 @@ know about Render, Resend, subscriber APIs or HTML delivery infrastructure.
 """
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import os
@@ -35,6 +36,75 @@ class JudgementPlanError(ValueError):
 
 def _words(value: Any) -> int:
     return len(str(value).split())
+
+
+def _trim_words(value: Any, limit: int) -> str:
+    return " ".join(str(value).split()[:limit]).strip()
+
+
+def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Deterministically cap bounded copy after LLM retries are exhausted.
+
+    This repairs presentation-only word-limit overruns. Structural, provenance,
+    confidence, action-tag and minimum-length errors remain hard failures.
+    """
+    normalised = copy.deepcopy(plan)
+    repairs: list[str] = []
+
+    def cap(container: dict[str, Any], key: str, limit: int, path: str) -> None:
+        value = container.get(key)
+        if isinstance(value, str) and _words(value) > limit:
+            container[key] = _trim_words(value, limit)
+            repairs.append(path)
+
+    one_thing = normalised.get("one_thing")
+    if isinstance(one_thing, dict):
+        cap(one_thing, "statement", 24, "one_thing.statement")
+        cap(one_thing, "business_implication", 38, "one_thing.business_implication")
+
+    items = normalised.get("evidence_items")
+    if isinstance(items, list):
+        for index, item in enumerate(items):
+            if isinstance(item, dict):
+                cap(item, "headline", 8, f"evidence_items[{index}].headline")
+                cap(item, "evidence", 28, f"evidence_items[{index}].evidence")
+
+    if isinstance(normalised.get("interpretation"), str) and _words(normalised["interpretation"]) > 55:
+        normalised["interpretation"] = _trim_words(normalised["interpretation"], 55)
+        repairs.append("interpretation")
+
+    founders_note = normalised.get("founders_note")
+    if isinstance(founders_note, dict):
+        cap(founders_note, "headline", 12, "founders_note.headline")
+        body = founders_note.get("body")
+        if isinstance(body, str) and body.endswith("— Paul") and _words(body) > 180:
+            core = body[: -len("— Paul")].strip()
+            founders_note["body"] = f"{_trim_words(core, 178)} — Paul"
+            repairs.append("founders_note.body")
+
+    counter = normalised.get("counter_signal")
+    if isinstance(counter, dict):
+        cap(counter, "statement", 60, "counter_signal.statement")
+        cap(counter, "would_change_view_if", 45, "counter_signal.would_change_view_if")
+
+    actions = normalised.get("executive_actions")
+    if isinstance(actions, list):
+        for index, action in enumerate(actions):
+            if isinstance(action, str) and _words(action) > 24:
+                actions[index] = _trim_words(action, 24)
+                repairs.append(f"executive_actions[{index}]")
+
+    executive_read = normalised.get("executive_read")
+    if isinstance(executive_read, dict):
+        cap(executive_read, "dtl_view", 75, "executive_read.dtl_view")
+        watch_items = executive_read.get("watch_items")
+        if isinstance(watch_items, list):
+            for index, item in enumerate(watch_items):
+                if isinstance(item, str) and _words(item) > 32:
+                    watch_items[index] = _trim_words(item, 32)
+                    repairs.append(f"executive_read.watch_items[{index}]")
+
+    return normalised, repairs
 
 
 def _extract_json_object(text: str) -> dict[str, Any]:
@@ -173,7 +243,15 @@ def generate_judgement_plan(
             text = "\n".join(
                 block.text for block in response.content if getattr(block, "type", None) == "text"
             )
-            return validate_judgement_plan(_extract_json_object(text), source_ids)
+            candidate = _extract_json_object(text)
+            if attempt == 2:
+                candidate, repairs = normalise_word_bound_fields(candidate)
+                if repairs:
+                    log.warning(
+                        "Judgement planning final attempt normalised bounded fields: %s",
+                        ", ".join(repairs),
+                    )
+            return validate_judgement_plan(candidate, source_ids)
         except Exception as exc:
             last_error = exc
             if attempt < 2:

@@ -6,11 +6,18 @@ import unittest
 from datetime import datetime
 from html import escape
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 from zoneinfo import ZoneInfo
 
 from src.enhanced_renderer import render_enhanced_email
 from src.human_signal import load_jokes, select_joke
-from src.judgement_plan import JudgementPlanError, validate_judgement_plan
+from src.judgement_plan import (
+    JudgementPlanError,
+    generate_judgement_plan,
+    normalise_word_bound_fields,
+    validate_judgement_plan,
+)
 from src.signal_memory import apply_memory_update
 from src.visual_signal import render_visual_signal
 
@@ -121,6 +128,48 @@ class JudgementArchitectureTests(unittest.TestCase):
         plan["founders_note"]["body"] = "Compressed CEO view without the established founder format."
         with self.assertRaises(JudgementPlanError):
             validate_judgement_plan(plan, {f"S0{i}" for i in range(1, 8)})
+
+    def test_word_bound_normaliser_repairs_copy_without_weakening_structure(self) -> None:
+        plan = valid_plan()
+        plan["interpretation"] = " ".join(["interpretation"] * 60)
+        plan["evidence_items"][0]["headline"] = "one two three four five six seven eight nine ten"
+        plan["founders_note"]["body"] = " ".join(["Founder"] * 190) + " — Paul"
+
+        normalised, repairs = normalise_word_bound_fields(plan)
+
+        self.assertEqual(len(normalised["interpretation"].split()), 55)
+        self.assertEqual(len(normalised["evidence_items"][0]["headline"].split()), 8)
+        self.assertLessEqual(len(normalised["founders_note"]["body"].split()), 180)
+        self.assertTrue(normalised["founders_note"]["body"].endswith("— Paul"))
+        self.assertIn("interpretation", repairs)
+        self.assertIn("evidence_items[0].headline", repairs)
+        self.assertIn("founders_note.body", repairs)
+        self.assertIs(
+            validate_judgement_plan(normalised, {f"S0{i}" for i in range(1, 8)}),
+            normalised,
+        )
+
+    def test_planner_final_attempt_normalises_superficial_word_overruns(self) -> None:
+        plan = valid_plan()
+        plan["interpretation"] = " ".join(["interpretation"] * 60)
+        plan["evidence_items"][0]["headline"] = "one two three four five six seven eight nine"
+        response = SimpleNamespace(
+            content=[SimpleNamespace(type="text", text=json.dumps(plan))]
+        )
+        client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
+        evidence = [{"source_id": f"S0{i}"} for i in range(1, 8)]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prompt_path = Path(tmpdir) / "prompt.md"
+            prompt_path.write_text("{EVIDENCE_ITEMS}\n{SIGNAL_MEMORY}")
+            with patch("src.judgement_plan.Anthropic", return_value=client), patch(
+                "src.judgement_plan.time.sleep"
+            ), patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+                result = generate_judgement_plan(evidence, {}, prompt_path)
+
+        self.assertEqual(client.messages.create.call_count, 3)
+        self.assertEqual(len(result["interpretation"].split()), 55)
+        self.assertEqual(len(result["evidence_items"][0]["headline"].split()), 8)
 
     def test_visual_signal_is_optional_and_governed(self) -> None:
         self.assertEqual(render_visual_signal({"eligible": False, "type": "NONE", "rows": []}), "")

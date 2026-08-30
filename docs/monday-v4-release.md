@@ -164,6 +164,24 @@ The pipeline now supports `--release-canary`, valid only with `--proof --enhance
 
 The complete suite now reports **49 passing tests**, including an end-to-end proof-canary simulation that asserts the Monday subject, exactly one delivery call and a `DELIVERED — RELEASE IDENTITY MATCHED` receipt. The source-controlled proof command includes `--release-canary`.
 
+The enforced-canary release was committed and pushed to production master as `2b43e81cb40fa971b44787b6f50362b96aada426`; GitHub reports the identical SHA. Render's build history still ends at `8eb0d28`, confirming the stale On Commit webhook missed this push as well. One final guarded manual build of `2b43e81` is required before the enforced canary can run.
+
+Manual build `bld-daa1qmpf2nfc738uus9g` checked out exact commit `2b43e81cb40fa971b44787b6f50362b96aada426` on `master`, used Python 3.11.9, ran the persisted source-controlled build command and passed all 49 tests. The final enforced one-recipient canary is now the only remaining technical GO gate.
+
+The final deployed canary was started in the Render web shell with `--proof --release-canary --enhanced --alive-moment`, the Monday 31 August release clock and a dedicated HTML output path. The command retains the proof-only recipient boundary while enforcing the same renderer, branch, commit, service and v4.0 profile checks as subscriber-send mode. No subscriber command was triggered.
+
+The final canary confirms exact commit `2b43e81cb40fa971b44787b6f50362b96aada426`, Edition 0043, Monday 06:00 AEST and one-recipient proof mode. It fetched 174 items, scored 65 above threshold and entered Enhanced synthesis. No proof or MATCH receipt has yet appeared, so Monday remains HELD until the planner, QA, identity gate and delivery complete.
+
+After the full scoring interval, no `Release Identity` marker or new Monday-subject proof is yet visible. The canary is therefore not being treated as complete or successful; the live terminal tail is being inspected for a synthesis retry or hard hold before any Monday status is issued.
+
+The enforced canary did not deliver. It reached Enhanced synthesis on exact commit `2b43e81`, but the planner failed all three attempts on bounded-copy validation: attempt 1 exceeded the 55-word interpretation limit; attempts 2 and 3 produced an evidence headline longer than eight words. The pipeline then aborted, saved a critical Edition 0043 receipt and sent an `ABORTED` alert only to Paul. No subscriber delivery occurred.
+
+This is a real Monday reliability blocker. The release controls worked correctly by holding the run, but a stochastic formatting miss cannot be allowed to consume all retries and prevent an otherwise valid edition. Monday remains HELD while bounded fields are made deterministically compliant and the enforced deployed canary is rerun.
+
+The planner now applies deterministic word-bound compliance only on the final attempt. It caps THE ONE THING, evidence headlines and facts, interpretation, FOUNDER'S NOTE maximum length while preserving `— Paul`, Counter-Signal, executive actions and watch items. Structural completeness, source provenance, action tags, confidence values and minimum FOUNDER'S NOTE length remain hard failures.
+
+Two new tests prove the normaliser preserves the plan contract and that three overlong LLM attempts recover on the final attempt. The complete suite now reports **51 passing tests**.
+
 Render's embedded terminal does not expose a functional scroll container through browser automation, so the final lines cannot be treated as visible evidence yet. Canary completion will be cross-checked through the one-recipient proof email and operational receipt in Fordy's Gmail, then reconciled with Render logs if needed.
 
 ## References

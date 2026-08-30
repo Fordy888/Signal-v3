@@ -214,6 +214,8 @@
 - [x] Generate two canaries from the deployed service and send only to Fordy’s proof inbox; the corrected canary matches Monday subject and body identity
 - [x] Add a one-recipient release-canary mode that enforces the same v4.0 identity gate as Monday subscriber-send mode; all 49 tests pass
 - [ ] Require the canary receipt to state VERIFIED before issuing Monday GO
+- [x] Make Enhanced planner word-bound fields deterministically compliant only on the final attempt while preserving structural and provenance hard gates; 51 tests pass
+- [ ] Rerun all tests, rebuild Render and repeat the enforced one-recipient canary after the synthesis-abort fix
 - [x] Fix the deployed canary subject to use the same Brisbane release clock as the Edition 0043 body and receipt; 48 tests pass
 - [ ] Confirm Gmail mobile, Gmail desktop and Apple Mail rendering from the deployed canary
 - [ ] Issue a factual Monday GO or HELD status before the scheduled run
