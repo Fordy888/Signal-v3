@@ -132,6 +132,8 @@ The frozen HTML SHA-256 remains `56226e2f1f955cc137d9b621b07504732390924d25dcc1c
 
 An isolated worktree created from production commit `6c39f001c256c8d401f34cfbbdaa23ce5041b24a` plus only the staged release patch reproduced the same proof checksum and passed all 57 tests. This confirms the approved result depends only on Git-contained files, not local ignored artefacts.
 
+The pre-release production state is preserved by Git tag `pre-v4-dynamic-headlines-20260901` at commit `6c39f001c256c8d401f34cfbbdaa23ce5041b24a`. The exact approved code revision was committed and pushed to production `master` as `965909a1acf1b71b92700a4f13ea95e318fc1ed3`; GitHub remote master matched that commit after push.
+
 ## References
 
 [1]: https://commons.wikimedia.org/wiki/File:Incense_in_Vietnam.jpg "Wikimedia Commons — Incense in Vietnam by Trantuanviet"

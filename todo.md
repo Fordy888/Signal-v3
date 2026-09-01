@@ -260,7 +260,7 @@
 - [x] Obtain Fordy's final approval of the complete dynamic-headline and Quang Phu Cau proof
 - [x] Freeze the approved HTML checksum, image provenance and no-further-editorial-change lock
 - [x] Run all 57 regressions, clean-diff, secret-pattern and production content gates
-- [ ] Create a rollback tag and commit the exact approved revision to production master
+- [x] Create rollback tag `pre-v4-dynamic-headlines-20260901` and push the exact approved revision to production master
 - [ ] Complete a guarded Render build without triggering a subscriber broadcast
 - [ ] Run a one-recipient live release canary and verify commit, renderer, image identity and receipt
 - [ ] Report the deployed revision state and retain the editorial lock
