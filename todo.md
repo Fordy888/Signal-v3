@@ -222,3 +222,46 @@
 - [ ] Verify Monday’s live receipt includes commit, renderer, artefact identity, audience count and delivery result
 - [ ] Adapt the five-story Weekly Wrap to the v4.0 visual language without changing its editorial purpose
 - [ ] Send and approve an exact v4.0 Weekly Wrap proof before the following Saturday
+
+## Dynamic Headline Revision
+
+- [x] Replace procedural reader-facing labels with quiet utility labels plus declarative business headlines
+- [x] Apply the editorial test: every section must be clear on first read, clever in framing and balanced in judgement
+- [x] Give the Visual Signal a dynamic headline that states the business shift rather than naming the component
+- [x] Replace EXECUTIVE READ / INTERPRETATION stacking with one clear WHY IT MATTERS headline and concise interpretation
+- [x] Remove S01, S02 and other internal provenance codes from all reader-facing copy
+- [x] Replace methodology language inside WHAT CHANGED with a reader-relevant declarative headline and plain-English evidence
+- [x] Replace EXECUTIVE ACTION / WATCH with WHAT TO DO NOW and give every action its own active headline
+- [x] Give the Counter-Signal a dynamic headline that states the actual constraint or opposing view
+- [x] Preserve source traceability, counter-evidence and judgement rigour underneath the reader-facing presentation
+- [x] Prohibit clickbait, forced wordplay and cleverness that obscures meaning
+- [x] Translate technical evidence into plain commercial meaning before it reaches Signal headlines, actions or DTL perspective
+- [x] Prohibit unexplained acronyms, system-of-record shorthand and implementation jargon in reader-facing copy
+- [x] Add a reader-language QA gate that fails any edition requiring technical knowledge to understand DTL’s perspective
+- [x] Build and send a checksum-locked revised proof only to Fordy before any production deployment
+- [x] Keep the current live v4 format unchanged until Fordy explicitly approves the revision
+- [x] Lock Fordy’s approval that the dynamic-headline format and changes are perfect
+
+## REMEMBER THE WORLD Repetition Incident
+
+- [x] Confirm the same Moorea whale asset was approved for consecutive Edition 0042 and Edition 0043 candidates
+- [x] Confirm Render began without durable delivered-image history, allowing the duplicate asset through validation
+- [x] Remove the duplicated Edition 0043 whale approval from future candidate selection
+- [x] Persist delivered image identity outside Render’s ephemeral local filesystem
+- [x] Reconstruct delivered-image history from provider-backed production email metadata without treating proofs as subscriber history
+- [x] Reject any candidate whose image, source or identity matches a recently delivered REMEMBER THE WORLD asset
+- [x] Omit REMEMBER THE WORLD when no new approved photograph clears authenticity, rights, alignment and repetition gates
+- [x] Add regression coverage for consecutive-day duplicate rejection, proof exclusion and empty-history recovery
+- [x] Keep live production unchanged until the dynamic-headline and image-history fixes pass proof review
+- [x] Source a new exceptional REMEMBER THE WORLD photograph that has not appeared in Signal
+- [x] Verify the original photographer, exact location, real-image authenticity and CC BY-SA 4.0 commercial reuse licence
+- [x] Build and verify a complete desktop/mobile proof with the new image while preserving the approved dynamic-headline format unchanged
+- [x] Send the complete checksum-locked proof only to Fordy; provider status opened
+- [x] Obtain Fordy's final approval of the complete dynamic-headline and Quang Phu Cau proof
+- [x] Freeze the approved HTML checksum, image provenance and no-further-editorial-change lock
+- [x] Run all 57 regressions, clean-diff, secret-pattern and production content gates
+- [ ] Create a rollback tag and commit the exact approved revision to production master
+- [ ] Complete a guarded Render build without triggering a subscriber broadcast
+- [ ] Run a one-recipient live release canary and verify commit, renderer, image identity and receipt
+- [ ] Report the deployed revision state and retain the editorial lock
+- [ ] Obtain Fordy’s explicit approval of the replacement image before production deployment

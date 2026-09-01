@@ -17,6 +17,8 @@ from src.share_block import (
 )
 from src.signal_gauge import GAUGE_BLOCK_MARKER, generate_gauge_html, inject_gauge_into_html
 from src.signal_memory import (
+    apply_alive_moment_update,
+    alive_history_from_memory,
     embed_delivery_memory,
     extract_delivery_memory,
     recover_signal_memory_from_resend,
@@ -79,6 +81,26 @@ class ProductionParityTests(unittest.TestCase):
         self.assertTrue(rendered.startswith("<table></table><!-- dtl-signal-memory:"))
         self.assertEqual(extract_delivery_memory(rendered), memory)
 
+    def test_delivery_memory_carries_image_identity(self) -> None:
+        memory = {"version": 1, "positions": [], "events": []}
+        moment = {
+            "id": "image-1",
+            "date": "2026-09-01",
+            "location": "Sydney",
+            "country": "Australia",
+            "category": "human_life",
+            "species": "",
+            "image_url": "https://images.example.com/one.jpg",
+            "image_original_url": "https://original.example.com/one.jpg",
+            "image_source_url": "https://source.example.com/one",
+            "photographer": "Example Photographer",
+        }
+        updated = apply_alive_moment_update(
+            memory, moment, edition_number=44, delivered_at="2026-09-01T06:00:00+10:00"
+        )
+        self.assertEqual(len(alive_history_from_memory(updated)), 1)
+        self.assertEqual(updated["alive_moments"][0]["image_source_url"], moment["image_source_url"])
+
     @patch("src.signal_memory.requests.get")
     def test_resend_memory_recovery_excludes_proofs_and_requires_live_tags(self, get: Mock) -> None:
         memory = {"version": 1, "positions": [{"position_id": "live"}], "events": []}
@@ -108,12 +130,23 @@ class ProductionParityTests(unittest.TestCase):
                 {"name": "format", "value": "enhanced-v4"},
                 {"name": "delivery_mode", "value": "production"},
             ],
-            "html": embed_delivery_memory("<table></table>", memory),
+            "html": embed_delivery_memory(
+                '<table><tr><td>REMEMBER THE WORLD'
+                '<img src="https://images.example.com/whale.jpg" alt="Whale and calf">'
+                '<a href="https://source.example.com/whale">image source</a>'
+                '</td></tr></table>',
+                memory,
+            ),
         }
         get.side_effect = [list_response, email_response]
 
         recovered = recover_signal_memory_from_resend("secret")
-        self.assertEqual(recovered, memory)
+        self.assertEqual(recovered["positions"], memory["positions"])
+        self.assertEqual(len(recovered["alive_moments"]), 1)
+        self.assertEqual(
+            recovered["alive_moments"][0]["image_source_url"],
+            "https://source.example.com/whale",
+        )
         self.assertEqual(get.call_count, 2)
         self.assertTrue(get.call_args_list[1].args[0].endswith("/live-id"))
 

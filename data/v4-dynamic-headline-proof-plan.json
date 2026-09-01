@@ -1,0 +1,119 @@
+{
+  "editorial_revision": "dynamic-headlines-v1",
+  "one_thing": {
+    "statement": "The AI divide is no longer adoption. It is economic control.",
+    "business_implication": "Value is concentrating where leaders connect the work, measure returns, assign ownership and protect the human capability their efficiency gains may quietly erode.",
+    "confidence": "HIGH",
+    "evidence_ids": ["S01", "S02", "S03", "S04", "S05"]
+  },
+  "evidence_items": [
+    {
+      "source_ids": ["S01"],
+      "category": "Strategy & Business Model",
+      "action_tag": "WATCH",
+      "headline": "Productivity is rising faster than profit",
+      "evidence": "Eighty percent report individual productivity gains, while 37% report positive enterprise profit impact and 6% qualify as high performers."
+    },
+    {
+      "source_ids": ["S02"],
+      "category": "Operations & Delivery",
+      "action_tag": "ACT",
+      "headline": "Strategy is running ahead of returns",
+      "evidence": "Ninety-seven percent call AI strategic and 67% have dedicated budgets, but only 13% report measurable financial impact."
+    },
+    {
+      "source_ids": ["S03"],
+      "category": "Finance & Capital",
+      "action_tag": "ACT",
+      "headline": "Finance is adopting before measuring",
+      "evidence": "Seventy-seven percent use AI, but 35% measure returns effectively and only 14% use it under a defined strategy."
+    },
+    {
+      "source_ids": ["S04"],
+      "category": "Sales, Marketing & Customer",
+      "action_tag": "OPPORTUNITY",
+      "headline": "Salesforce proves customers will pay",
+      "evidence": "AI and data annual recurring revenue neared $3.9 billion, up more than 210%; premium product bookings more than doubled quarter-on-quarter."
+    },
+    {
+      "source_ids": ["S05"],
+      "category": "People & Culture",
+      "action_tag": "ACT",
+      "headline": "Entry-level hiring is the pressure point",
+      "evidence": "Employment for 22–25-year-olds in AI-exposed roles is 19% below the level implied by less-exposed occupations, mainly through reduced hiring; researchers call the evidence descriptive."
+    },
+    {
+      "source_ids": ["S06"],
+      "category": "Technology & Data",
+      "action_tag": "WATCH",
+      "headline": "Digital growth carries physical risk",
+      "evidence": "Annual investment may exceed $1 trillion by 2027, while 79% of global data-centre capacity faces elevated natural-catastrophe risk."
+    }
+  ],
+  "interpretation_headline": "Adoption is easy. Accountability is the advantage.",
+  "interpretation": "AI is creating genuine productivity and customer demand. But broad business returns remain concentrated where leaders redesign the work, name an owner, measure the financial result and protect the people capability the business will need next.",
+  "founders_note": {
+    "headline": "Stop counting tools. Start counting consequences.",
+    "body": "Most businesses can now point to a list of AI tools. Far fewer can point to the profit line that moved because of them. That is the gap. Productivity is real. Customer demand is real. So are the costs, the broken processes and the early pressure showing up in entry-level hiring. Adoption was the first chapter. Economic control is the next one. Pick one piece of work. Name the owner. Trace the cost. Measure the result. Then ask what capability the business must preserve while the machine takes on more of the work. If you cannot see the consequence, you do not yet have an AI strategy. You have activity. The winners will be the companies that turn activity into accountable advantage. — Paul"
+  },
+  "what_changed": {
+    "position_id": "ai-advantage-operating-system",
+    "classification": "STRENGTHENS",
+    "headline": "The gap now has a price tag",
+    "prior_position": "Earlier evidence showed that data, governance, process and ownership were becoming more differentiating than model choice.",
+    "current_position": "Fresh evidence moves that position from operating design into economics: organisations now need cost, return and workforce visibility around AI.",
+    "explanation": "Earlier evidence showed that operating discipline mattered. The new evidence puts numbers around the gap: adoption and personal productivity are rising, while measurable returns remain concentrated where cost, ownership, work and people are managed together.",
+    "confidence": "HIGH"
+  },
+  "visual_signal": {
+    "eligible": true,
+    "type": "TENSION_MAP",
+    "title": "AI is creating activity faster than returns",
+    "subtitle": "Separate 2026 surveys point in the same direction; their samples are not directly comparable.",
+    "rows": [
+      {"label": "Individual productivity", "status": "VISIBLE", "detail": "80% report gains in McKinsey's survey"},
+      {"label": "Enterprise profit", "status": "CONCENTRATED", "detail": "37% report a positive impact; 6% are high performers"},
+      {"label": "Logistics return", "status": "SCARCE", "detail": "13% report measurable financial impact"},
+      {"label": "Finance measurement", "status": "WEAK", "detail": "35% say they measure returns effectively"}
+    ]
+  },
+  "counter_signal": {
+    "headline": "Some customers are already finding the value",
+    "statement": "Salesforce's growth is a useful challenge: customers are paying for AI products, and some organisations are already turning adoption into material revenue and productivity.",
+    "would_change_view_if": "Broad-based profit improvement, stronger return measurement and stable entry-level hiring would show the operating gap is closing faster than current evidence suggests.",
+    "confidence_effect": "That evidence would shift the conclusion from an operating divide to a temporary measurement lag."
+  },
+  "executive_actions": [
+    {
+      "action_tag": "ACT",
+      "headline": "Put one workflow on trial",
+      "instruction": "Name its owner, cost and commercial result before approving another AI tool."
+    },
+    {
+      "action_tag": "ACT",
+      "headline": "Redesign the work, not the tool",
+      "instruction": "Map the full process and remove the bottleneck before adding more technology."
+    },
+    {
+      "action_tag": "WATCH",
+      "headline": "Protect tomorrow's leadership bench",
+      "instruction": "Track whether entry-level hiring is shrinking the experience your future leaders need."
+    }
+  ],
+  "executive_read": {
+    "dtl_view": "AI capability is spreading faster than commercial control. The strongest organisations are connecting the work, assigning ownership, measuring financial impact and protecting the people capability on which future performance depends.",
+    "watch_headline": "The next proof is profit and people",
+    "watch_items": [
+      "Whether enterprise profit impact moves above the current 37% plateau in the next global survey.",
+      "Whether AI vendors expose cost by piece of work instead of only total usage bills.",
+      "Whether entry-level hiring stabilises as roles are redesigned around AI support."
+    ]
+  },
+  "memory_update": {
+    "position_id": "ai-advantage-operating-system",
+    "theme": "AI commercial advantage",
+    "statement": "The operating system around AI now includes economic and workforce control: connected work, accountable ownership, cost visibility, measurable returns and a protected talent pipeline.",
+    "confidence": "HIGH",
+    "supporting_source_ids": ["S01", "S02", "S03", "S04", "S05"]
+  }
+}

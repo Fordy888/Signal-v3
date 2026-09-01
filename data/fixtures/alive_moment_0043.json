@@ -31,7 +31,7 @@
   "recent_location_check": "PASS",
   "recent_category_check": "PASS",
   "recent_species_check": "PASS",
-  "editorial_status": "APPROVED",
+  "editorial_status": "RETIRED_DUPLICATE",
   "selected_at": "2026-08-28T08:30:00+10:00",
   "published_at": null
 }

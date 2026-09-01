@@ -28,6 +28,13 @@ MOVEMENT_TYPES = {
 CONFIDENCE_LEVELS = {"HIGH", "MEDIUM", "LOW"}
 ACTION_TAGS = {"ACT", "WATCH", "OPPORTUNITY", "NOTE"}
 VISUAL_TYPES = {"DIRECTION_OF_TRAVEL", "TENSION_MAP", "COMPARISON", "EXPOSURE_MAP", "NONE"}
+DYNAMIC_HEADLINE_REVISION = "dynamic-headlines-v1"
+SOURCE_ID_RE = re.compile(r"\bS\d{2,}\b", re.IGNORECASE)
+UNEXPLAINED_READER_TERMS = {
+    "CRM", "UI", "API", "LLM", "RAG", "MCP", "GPU", "ERP", "SaaS", "SoR",
+    "EBIT", "ARR", "ROI", "SKU",
+    "agentic", "system of record",
+}
 
 
 class JudgementPlanError(ValueError):
@@ -40,6 +47,71 @@ def _words(value: Any) -> int:
 
 def _trim_words(value: Any, limit: int) -> str:
     return " ".join(str(value).split()[:limit]).strip()
+
+
+def _is_dynamic_revision(plan: dict[str, Any]) -> bool:
+    return plan.get("editorial_revision") == DYNAMIC_HEADLINE_REVISION
+
+
+def _reader_fields(plan: dict[str, Any]) -> list[tuple[str, str]]:
+    """Return reader-facing judgement copy; source names and internal memory stay out."""
+    fields: list[tuple[str, str]] = []
+
+    def add(path: str, value: Any) -> None:
+        if isinstance(value, str):
+            fields.append((path, value))
+
+    one = plan.get("one_thing") or {}
+    add("one_thing.statement", one.get("statement"))
+    add("one_thing.business_implication", one.get("business_implication"))
+    for index, item in enumerate(plan.get("evidence_items") or []):
+        if isinstance(item, dict):
+            add(f"evidence_items[{index}].headline", item.get("headline"))
+            add(f"evidence_items[{index}].evidence", item.get("evidence"))
+    add("interpretation_headline", plan.get("interpretation_headline"))
+    add("interpretation", plan.get("interpretation"))
+    note = plan.get("founders_note") or {}
+    add("founders_note.headline", note.get("headline"))
+    add("founders_note.body", note.get("body"))
+    changed = plan.get("what_changed") or {}
+    add("what_changed.headline", changed.get("headline"))
+    add("what_changed.explanation", changed.get("explanation"))
+    visual = plan.get("visual_signal") or {}
+    add("visual_signal.title", visual.get("title"))
+    add("visual_signal.subtitle", visual.get("subtitle"))
+    for index, row in enumerate(visual.get("rows") or []):
+        if isinstance(row, dict):
+            add(f"visual_signal.rows[{index}].label", row.get("label"))
+            add(f"visual_signal.rows[{index}].detail", row.get("detail"))
+    counter = plan.get("counter_signal") or {}
+    add("counter_signal.headline", counter.get("headline"))
+    add("counter_signal.statement", counter.get("statement"))
+    add("counter_signal.would_change_view_if", counter.get("would_change_view_if"))
+    for index, action in enumerate(plan.get("executive_actions") or []):
+        if isinstance(action, dict):
+            add(f"executive_actions[{index}].headline", action.get("headline"))
+            add(f"executive_actions[{index}].instruction", action.get("instruction"))
+    executive_read = plan.get("executive_read") or {}
+    add("executive_read.watch_headline", executive_read.get("watch_headline"))
+    for index, item in enumerate(executive_read.get("watch_items") or []):
+        add(f"executive_read.watch_items[{index}]", item)
+    return fields
+
+
+def validate_reader_language(plan: dict[str, Any]) -> None:
+    """Reject internal evidence codes and unexplained technical shorthand."""
+    issues: list[str] = []
+    for path, value in _reader_fields(plan):
+        if SOURCE_ID_RE.search(value):
+            issues.append(f"{path}: internal source ID")
+        for term in UNEXPLAINED_READER_TERMS:
+            if re.search(rf"\b{re.escape(term)}\b", value, re.IGNORECASE):
+                issues.append(f"{path}: {term}")
+    if issues:
+        raise JudgementPlanError(
+            "Reader-facing copy contains internal or unexplained technical language: "
+            + "; ".join(sorted(set(issues)))
+        )
 
 
 def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
@@ -73,6 +145,11 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
         normalised["interpretation"] = _trim_words(normalised["interpretation"], 55)
         repairs.append("interpretation")
 
+    if _is_dynamic_revision(normalised):
+        if isinstance(normalised.get("interpretation_headline"), str) and _words(normalised["interpretation_headline"]) > 10:
+            normalised["interpretation_headline"] = _trim_words(normalised["interpretation_headline"], 10)
+            repairs.append("interpretation_headline")
+
     founders_note = normalised.get("founders_note")
     if isinstance(founders_note, dict):
         cap(founders_note, "headline", 12, "founders_note.headline")
@@ -84,18 +161,29 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
 
     counter = normalised.get("counter_signal")
     if isinstance(counter, dict):
+        if _is_dynamic_revision(normalised):
+            cap(counter, "headline", 10, "counter_signal.headline")
         cap(counter, "statement", 60, "counter_signal.statement")
         cap(counter, "would_change_view_if", 45, "counter_signal.would_change_view_if")
+
+    changed = normalised.get("what_changed")
+    if _is_dynamic_revision(normalised) and isinstance(changed, dict):
+        cap(changed, "headline", 10, "what_changed.headline")
 
     actions = normalised.get("executive_actions")
     if isinstance(actions, list):
         for index, action in enumerate(actions):
-            if isinstance(action, str) and _words(action) > 24:
+            if _is_dynamic_revision(normalised) and isinstance(action, dict):
+                cap(action, "headline", 6, f"executive_actions[{index}].headline")
+                cap(action, "instruction", 20, f"executive_actions[{index}].instruction")
+            elif isinstance(action, str) and _words(action) > 24:
                 actions[index] = _trim_words(action, 24)
                 repairs.append(f"executive_actions[{index}]")
 
     executive_read = normalised.get("executive_read")
     if isinstance(executive_read, dict):
+        if _is_dynamic_revision(normalised):
+            cap(executive_read, "watch_headline", 10, "executive_read.watch_headline")
         cap(executive_read, "dtl_view", 75, "executive_read.dtl_view")
         watch_items = executive_read.get("watch_items")
         if isinstance(watch_items, list):
@@ -138,6 +226,9 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
     missing = required.difference(plan)
     if missing:
         raise JudgementPlanError(f"Planner omitted required keys: {sorted(missing)}")
+    dynamic_revision = _is_dynamic_revision(plan)
+    if plan.get("editorial_revision") not in {None, DYNAMIC_HEADLINE_REVISION}:
+        raise JudgementPlanError("Planner returned an unsupported editorial revision")
 
     one_thing = plan["one_thing"]
     if not str(one_thing.get("statement", "")).strip():
@@ -166,6 +257,10 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
 
     if not str(plan.get("interpretation", "")).strip() or _words(plan["interpretation"]) > 55:
         raise JudgementPlanError("Edition-level interpretation is missing or exceeds 55 words")
+    if dynamic_revision:
+        interpretation_headline = str(plan.get("interpretation_headline", "")).strip()
+        if not interpretation_headline or _words(interpretation_headline) > 10:
+            raise JudgementPlanError("WHY IT MATTERS headline is missing or exceeds 10 words")
 
     founders_note = plan["founders_note"]
     headline = str(founders_note.get("headline", "")).strip()
@@ -180,6 +275,10 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
     what_changed = plan["what_changed"]
     if what_changed.get("classification") not in MOVEMENT_TYPES:
         raise JudgementPlanError("WHAT CHANGED has an invalid classification")
+    if dynamic_revision:
+        changed_headline = str(what_changed.get("headline", "")).strip()
+        if not changed_headline or _words(changed_headline) > 10:
+            raise JudgementPlanError("WHAT CHANGED headline is missing or exceeds 10 words")
 
     visual = plan["visual_signal"]
     if visual.get("type") not in VISUAL_TYPES:
@@ -188,17 +287,34 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
         raise JudgementPlanError("Eligible Visual Signal cannot use type NONE")
     if visual.get("eligible") and not 2 <= len(visual.get("rows") or []) <= 5:
         raise JudgementPlanError("Eligible Visual Signal requires 2-5 rows")
+    if dynamic_revision and visual.get("eligible"):
+        if not str(visual.get("title", "")).strip() or _words(visual.get("title", "")) > 12:
+            raise JudgementPlanError("THE SHIFT headline is missing or exceeds 12 words")
 
     counter = plan["counter_signal"]
     if not str(counter.get("statement", "")).strip() or not str(counter.get("would_change_view_if", "")).strip():
         raise JudgementPlanError("Counter-Signal is incomplete")
     if _words(counter["statement"]) > 60 or _words(counter["would_change_view_if"]) > 45:
         raise JudgementPlanError("Counter-Signal exceeds the compression limit")
+    if dynamic_revision:
+        counter_headline = str(counter.get("headline", "")).strip()
+        if not counter_headline or _words(counter_headline) > 10:
+            raise JudgementPlanError("THE OTHER SIDE headline is missing or exceeds 10 words")
 
     actions = plan["executive_actions"]
     if not isinstance(actions, list) or not 1 <= len(actions) <= 3:
         raise JudgementPlanError("Edition requires 1-3 executive actions")
-    if any(_words(action) > 24 for action in actions):
+    if dynamic_revision:
+        for action in actions:
+            if not isinstance(action, dict):
+                raise JudgementPlanError("Dynamic executive actions must be structured")
+            if action.get("action_tag") not in ACTION_TAGS:
+                raise JudgementPlanError("Executive action has an invalid action tag")
+            if not str(action.get("headline", "")).strip() or _words(action["headline"]) > 6:
+                raise JudgementPlanError("Executive action headline is missing or exceeds six words")
+            if not str(action.get("instruction", "")).strip() or _words(action["instruction"]) > 20:
+                raise JudgementPlanError("Executive action instruction is missing or exceeds 20 words")
+    elif any(_words(action) > 24 for action in actions):
         raise JudgementPlanError("Executive action exceeds 24 words")
 
     executive_read = plan["executive_read"]
@@ -206,6 +322,12 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
         raise JudgementPlanError("Executive Read exceeds 75 words")
     if any(_words(item) > 32 for item in executive_read.get("watch_items", [])):
         raise JudgementPlanError("What to Watch item exceeds 32 words")
+
+    if dynamic_revision:
+        watch_headline = str(executive_read.get("watch_headline", "")).strip()
+        if not watch_headline or _words(watch_headline) > 10:
+            raise JudgementPlanError("WATCH FOR THIS headline is missing or exceeds 10 words")
+        validate_reader_language(plan)
 
     return plan
 

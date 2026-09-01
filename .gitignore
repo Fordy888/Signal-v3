@@ -13,11 +13,13 @@ test_*.py
 source_test_*
 data/*
 !data/edition0042-enhanced-plan.json
+!data/v4-dynamic-headline-proof-plan.json
 !data/fixtures/
 data/fixtures/*
 !data/fixtures/alive_moment_0038.json
 !data/fixtures/alive_moment_0042.json
 !data/fixtures/alive_moment_0043.json
+!data/fixtures/alive_moment_0044.json
 !data/fixtures/edition0038_evidence.json
 !data/fixtures/edition0042_evidence.json
 !data/locked_editions/

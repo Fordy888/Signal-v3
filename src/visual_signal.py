@@ -28,7 +28,7 @@ def _status_colour(status: str) -> str:
     return "#888888"
 
 
-def render_visual_signal(spec: dict[str, Any]) -> str:
+def render_visual_signal(spec: dict[str, Any], *, dynamic_headlines: bool = False) -> str:
     if not spec.get("eligible") or spec.get("type") == "NONE":
         return ""
     rows = spec.get("rows") or []
@@ -47,11 +47,12 @@ def render_visual_signal(spec: dict[str, Any]) -> str:
             '</tr>'
         )
 
+    utility_label = "THE SHIFT" if dynamic_headlines else "VISUAL SIGNAL"
     return (
         '<tr><td style="padding:24px 40px 8px 40px;">'
         '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dfe9e7;border-radius:4px;background:#fbfefd;">'
         '<tr><td colspan="3" style="padding:18px 18px 6px 18px;">'
-        '<p style="margin:0 0 4px 0;font-size:11px;font-family:monospace;color:#17A398;letter-spacing:1.5px;font-weight:800;text-transform:uppercase;">VISUAL SIGNAL</p>'
+        f'<p style="margin:0 0 4px 0;font-size:11px;font-family:monospace;color:#17A398;letter-spacing:1.5px;font-weight:800;text-transform:uppercase;">{utility_label}</p>'
         f'<p style="margin:0;font-size:17px;font-weight:750;color:#1a1a1a;">{escape(str(spec.get("title", "")))}</p>'
         f'<p style="margin:5px 0 8px 0;font-size:13px;color:#666;">{escape(str(spec.get("subtitle", "")))}</p>'
         '</td></tr>'

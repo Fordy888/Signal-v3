@@ -76,6 +76,7 @@ def render_enhanced_email(
     time_text = generated_at.strftime("%H:%M")
     one = plan["one_thing"]
     founders_note = plan["founders_note"]
+    dynamic_headlines = plan.get("editorial_revision") == "dynamic-headlines-v1"
 
     html = [
         '<table width="100%" cellpadding="0" cellspacing="0" style="max-width:900px;margin:0 auto;background:#fff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Arial,sans-serif;">',
@@ -128,49 +129,92 @@ def render_enhanced_email(
     changed = plan["what_changed"]
     movement = changed["classification"]
     movement_colour = MOVEMENT_COLOURS[movement]
-    html.extend(
-        [
-            render_visual_signal(plan["visual_signal"]),
-            '<tr><td style="padding:24px 40px 6px 40px;"><p style="margin:0;font:800 11px monospace;color:#17A398;letter-spacing:1.5px;">EXECUTIVE READ</p></td></tr>',
-            '<tr><td style="padding:0 40px 4px 40px;"><p style="margin:0 0 5px 0;font:800 10px monospace;color:#999;letter-spacing:1px;">INTERPRETATION</p></td></tr>',
-            f'<tr><td style="padding:0 40px 14px 40px;">{_p(escape(plan["interpretation"]), colour="#444")}</td></tr>',
-            '<tr><td style="padding:18px 40px 8px 40px;">',
-            '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fffe;border:2px solid #4ECDC4;border-radius:4px;">',
-            '<tr><td style="padding:20px 22px;">',
-            '<p style="margin:0 0 8px 0;font:800 11px monospace;color:#E8533A;letter-spacing:1.5px;">WHAT CHANGED?</p>',
-            f'<p style="margin:0 0 10px 0;"><span style="display:inline-block;background:{movement_colour};color:#fff;font:800 10px monospace;letter-spacing:1px;padding:4px 9px;border-radius:2px;">{escape(movement.replace("_", " "))}</span></p>',
-            _p(escape(changed["explanation"]), colour="#333"),
-            '</td></tr></table></td></tr>',
-            '<tr><td style="padding:22px 40px 8px 40px;"><p style="margin:0;font:800 11px monospace;color:#E8533A;letter-spacing:1.5px;">EXECUTIVE ACTION / WATCH</p></td></tr>',
-            '<tr><td style="padding:0 40px 14px 40px;"><table width="100%">',
-        ]
-    )
-
-    for index, action in enumerate(plan["executive_actions"], 1):
-        action_html = (
-            f'<strong style="color:#E8533A;">{index}.</strong> {escape(action)}'
+    if dynamic_headlines:
+        html.extend(
+            [
+                render_visual_signal(plan["visual_signal"], dynamic_headlines=True),
+                '<tr><td style="padding:24px 40px 6px 40px;"><p style="margin:0 0 6px 0;font:800 11px monospace;color:#17A398;letter-spacing:1.5px;">WHY IT MATTERS</p>',
+                f'<p style="margin:0 0 10px 0;font-size:20px;font-weight:800;line-height:1.35;color:#1a1a1a;">{escape(plan["interpretation_headline"])}</p>',
+                f'{_p(escape(plan["interpretation"]), colour="#444")}</td></tr>',
+                '<tr><td style="padding:18px 40px 8px 40px;">',
+                f'<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fffe;border-left:4px solid {movement_colour};border-radius:4px;">',
+                '<tr><td style="padding:20px 22px;">',
+                '<p style="margin:0 0 7px 0;font:800 11px monospace;color:#E8533A;letter-spacing:1.5px;">WHAT CHANGED</p>',
+                f'<p style="margin:0 0 9px 0;font-size:19px;font-weight:800;line-height:1.35;color:#1a1a1a;">{escape(changed["headline"])}</p>',
+                _p(escape(changed["explanation"]), colour="#333"),
+                '</td></tr></table></td></tr>',
+                '<tr><td style="padding:22px 40px 8px 40px;"><p style="margin:0;font:800 11px monospace;color:#E8533A;letter-spacing:1.5px;">WHAT TO DO NOW</p></td></tr>',
+                '<tr><td style="padding:0 40px 14px 40px;"><table width="100%">',
+            ]
         )
-        html.append(
-            f'<tr><td style="padding:6px 0;">'
-            f'{_p(action_html, size=14, colour="#333")}</td></tr>'
+        for action in plan["executive_actions"]:
+            colour = ACTION_COLOURS[action["action_tag"]]
+            label = ACTION_LABELS[action["action_tag"]]
+            html.extend(
+                [
+                    '<tr><td style="padding:8px 0 12px 0;">',
+                    f'<p style="margin:0 0 6px 0;"><span style="display:inline-block;background:{colour};color:#1A1A1A;font:800 9px monospace;letter-spacing:1.2px;padding:3px 8px;border-radius:2px;">{escape(label)}</span></p>',
+                    f'<p style="margin:0 0 4px 0;font-size:17px;font-weight:800;line-height:1.35;color:#1a1a1a;">{escape(action["headline"])}</p>',
+                    f'{_p(escape(action["instruction"]), size=14, colour="#444")}</td></tr>',
+                ]
+            )
+        html.append('</table></td></tr>')
+        counter = plan["counter_signal"]
+        html.extend(
+            [
+                '<tr><td style="padding:24px 40px 8px 40px;">',
+                '<table width="100%" cellpadding="0" cellspacing="0" style="background:#fffaf1;border-left:4px solid #E6A817;">',
+                '<tr><td style="padding:18px 20px;">',
+                '<p style="margin:0 0 7px 0;font:800 11px monospace;color:#9b6c00;letter-spacing:1.5px;">THE OTHER SIDE</p>',
+                f'<p style="margin:0 0 9px 0;font-size:19px;font-weight:800;line-height:1.35;color:#1a1a1a;">{escape(counter["headline"])}</p>',
+                _p(escape(counter["statement"]), colour="#333", margin="0 0 10px 0"),
+                '<p style="margin:0 0 4px 0;font:800 9px monospace;color:#9b6c00;letter-spacing:1px;">WHAT WOULD CHANGE OUR VIEW</p>',
+                _p(escape(counter["would_change_view_if"]), size=13, colour="#666"),
+                '</td></tr></table></td></tr>',
+                '<tr><td style="padding:18px 40px 5px 40px;">',
+                '<p style="margin:0 0 6px 0;font:800 10px monospace;color:#E6A817;letter-spacing:1px;">WATCH FOR THIS</p>',
+                f'<p style="margin:0;font-size:17px;font-weight:800;line-height:1.35;color:#1a1a1a;">{escape(plan["executive_read"]["watch_headline"])}</p></td></tr>',
+            ]
         )
-    html.append('</table></td></tr>')
-
-    counter = plan["counter_signal"]
-    html.extend(
-        [
-            '<tr><td style="padding:24px 40px 8px 40px;">',
-            '<table width="100%" cellpadding="0" cellspacing="0" style="background:#fffaf1;border-left:4px solid #E6A817;">',
-            '<tr><td style="padding:18px 20px;">',
-            '<p style="margin:0 0 8px 0;font:800 11px monospace;color:#9b6c00;letter-spacing:1.5px;">COUNTER-SIGNAL</p>',
-            _p(escape(counter["statement"]), colour="#333", margin="0 0 8px 0"),
-            _p(f'<strong>What would change our view:</strong> {escape(counter["would_change_view_if"])}', size=13, colour="#666"),
-            '</td></tr></table></td></tr>',
-            '<tr><td style="padding:18px 40px 5px 40px;"><p style="margin:0;font:800 10px monospace;color:#E6A817;letter-spacing:1px;text-transform:uppercase;">What to Watch</p></td></tr>',
-        ]
-    )
-    for watch in plan["executive_read"]["watch_items"]:
-        html.append(f'<tr><td style="padding:3px 40px;">{_p("• " + escape(watch), size=13, colour="#555")}</td></tr>')
+        for watch in plan["executive_read"]["watch_items"]:
+            html.append(f'<tr><td style="padding:3px 40px;">{_p("• " + escape(watch), size=13, colour="#555")}</td></tr>')
+    else:
+        html.extend(
+            [
+                render_visual_signal(plan["visual_signal"]),
+                '<tr><td style="padding:24px 40px 6px 40px;"><p style="margin:0;font:800 11px monospace;color:#17A398;letter-spacing:1.5px;">EXECUTIVE READ</p></td></tr>',
+                '<tr><td style="padding:0 40px 4px 40px;"><p style="margin:0 0 5px 0;font:800 10px monospace;color:#999;letter-spacing:1px;">INTERPRETATION</p></td></tr>',
+                f'<tr><td style="padding:0 40px 14px 40px;">{_p(escape(plan["interpretation"]), colour="#444")}</td></tr>',
+                '<tr><td style="padding:18px 40px 8px 40px;">',
+                '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fffe;border:2px solid #4ECDC4;border-radius:4px;">',
+                '<tr><td style="padding:20px 22px;">',
+                '<p style="margin:0 0 8px 0;font:800 11px monospace;color:#E8533A;letter-spacing:1.5px;">WHAT CHANGED?</p>',
+                f'<p style="margin:0 0 10px 0;"><span style="display:inline-block;background:{movement_colour};color:#fff;font:800 10px monospace;letter-spacing:1px;padding:4px 9px;border-radius:2px;">{escape(movement.replace("_", " "))}</span></p>',
+                _p(escape(changed["explanation"]), colour="#333"),
+                '</td></tr></table></td></tr>',
+                '<tr><td style="padding:22px 40px 8px 40px;"><p style="margin:0;font:800 11px monospace;color:#E8533A;letter-spacing:1.5px;">EXECUTIVE ACTION / WATCH</p></td></tr>',
+                '<tr><td style="padding:0 40px 14px 40px;"><table width="100%">',
+            ]
+        )
+        for index, action in enumerate(plan["executive_actions"], 1):
+            action_html = f'<strong style="color:#E8533A;">{index}.</strong> {escape(action)}'
+            html.append(f'<tr><td style="padding:6px 0;">{_p(action_html, size=14, colour="#333")}</td></tr>')
+        html.append('</table></td></tr>')
+        counter = plan["counter_signal"]
+        html.extend(
+            [
+                '<tr><td style="padding:24px 40px 8px 40px;">',
+                '<table width="100%" cellpadding="0" cellspacing="0" style="background:#fffaf1;border-left:4px solid #E6A817;">',
+                '<tr><td style="padding:18px 20px;">',
+                '<p style="margin:0 0 8px 0;font:800 11px monospace;color:#9b6c00;letter-spacing:1.5px;">COUNTER-SIGNAL</p>',
+                _p(escape(counter["statement"]), colour="#333", margin="0 0 8px 0"),
+                _p(f'<strong>What would change our view:</strong> {escape(counter["would_change_view_if"])}', size=13, colour="#666"),
+                '</td></tr></table></td></tr>',
+                '<tr><td style="padding:18px 40px 5px 40px;"><p style="margin:0;font:800 10px monospace;color:#E6A817;letter-spacing:1px;text-transform:uppercase;">What to Watch</p></td></tr>',
+            ]
+        )
+        for watch in plan["executive_read"]["watch_items"]:
+            html.append(f'<tr><td style="padding:3px 40px;">{_p("• " + escape(watch), size=13, colour="#555")}</td></tr>')
     if alive_moment:
         html.append(render_alive_moment(alive_moment))
     html.extend(

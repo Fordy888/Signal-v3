@@ -31,6 +31,8 @@ from .share_block import inject_share_block, personalise_share_for_subscriber
 from .history import load_history, record_edition
 from .judgement_plan import generate_judgement_plan, scored_items_to_evidence
 from .signal_memory import (
+    alive_history_from_memory,
+    apply_alive_moment_update,
     apply_memory_update,
     embed_delivery_memory,
     load_signal_memory,
@@ -40,7 +42,7 @@ from .signal_memory import (
 )
 from .enhanced_renderer import render_enhanced_email
 from .human_signal import load_joke_history, load_jokes, record_joke, select_joke
-from .alive_moment import load_alive_history, load_alive_moment, record_alive_moment, validate_alive_moment
+from .alive_moment import AliveMomentError, load_alive_history, load_alive_moment, record_alive_moment, validate_alive_moment
 from .edition_counter import edition_for_date, get_next_edition, increment_edition
 from .locked_edition import render_locked_edition
 from .weekly_wrap_qa import validate_weekly_wrap_html
@@ -463,10 +465,21 @@ def main() -> int:
                 )
                 if args.alive_moment:
                     alive_path = root / os.environ.get("SIGNAL_ALIVE_MOMENT_PATH", "data/alive_moment.json")
-                    alive_moment = validate_alive_moment(
-                        load_alive_moment(alive_path),
-                        load_alive_history(alive_history_path),
+                    delivered_alive_history = (
+                        alive_history_from_memory(signal_memory)
+                        if args.send
+                        else load_alive_history(alive_history_path)
                     )
+                    try:
+                        alive_moment = validate_alive_moment(
+                            load_alive_moment(alive_path),
+                            delivered_alive_history,
+                            expected_edition_id=f"{edition_number:04d}",
+                            expected_date=now_brisbane.strftime("%Y-%m-%d"),
+                        )
+                    except AliveMomentError as exc:
+                        alive_moment = None
+                        log.warning("REMEMBER THE WORLD omitted: %s", exc)
                 html = render_enhanced_email(
                     plan=enhanced_plan,
                     sources=planner_evidence,
@@ -554,11 +567,18 @@ def main() -> int:
         if weekly_issues:
             log.error("Weekly Wrap gate issues: %s", "; ".join(weekly_issues))
     elif use_enhanced:
-        has_key_section = all(
-            label in html
-            for label in ("THE ONE THING", "THE EVIDENCE", "WHAT CHANGED?", "COUNTER-SIGNAL", "EXECUTIVE READ", "What to Watch")
-        )
-        gate_label = "Development Thesis V1 intelligence sequence"
+        if enhanced_plan and enhanced_plan.get("editorial_revision") == "dynamic-headlines-v1":
+            has_key_section = all(
+                label in html
+                for label in ("THE ONE THING", "THE EVIDENCE", "THE SHIFT", "WHY IT MATTERS", "WHAT CHANGED", "WHAT TO DO NOW", "THE OTHER SIDE", "WATCH FOR THIS")
+            )
+            gate_label = "v4 dynamic-headline intelligence sequence"
+        else:
+            has_key_section = all(
+                label in html
+                for label in ("THE ONE THING", "THE EVIDENCE", "WHAT CHANGED?", "COUNTER-SIGNAL", "EXECUTIVE READ", "What to Watch")
+            )
+            gate_label = "Development Thesis V1 intelligence sequence"
     else:
         has_key_section = ("EXECUTIVE READ" in html and "What to Watch" in html)
         gate_label = "Executive Read section"
@@ -717,6 +737,13 @@ def main() -> int:
             edition_number=edition_number,
             delivered_at=datetime.now(BRISBANE).isoformat(),
         )
+        if alive_moment is not None:
+            delivery_memory = apply_alive_moment_update(
+                delivery_memory,
+                alive_moment,
+                edition_number=edition_number,
+                delivered_at=datetime.now(BRISBANE).isoformat(),
+            )
 
     for i, recipient in enumerate(recipients):
         email = recipient["email"]
@@ -794,6 +821,13 @@ def main() -> int:
                     edition_number=edition_number,
                     delivered_at=delivered_at,
                 )
+                if alive_moment:
+                    updated_memory = apply_alive_moment_update(
+                        updated_memory,
+                        alive_moment,
+                        edition_number=edition_number,
+                        delivered_at=delivered_at,
+                    )
                 save_signal_memory(memory_path, updated_memory)
                 record_joke(joke_history_path, selected_joke["id"])
                 if alive_moment:

@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def valid_plan() -> dict:
     return {
+        "editorial_revision": "dynamic-headlines-v1",
         "one_thing": {
             "statement": "AI advantage is moving from model choice to operating discipline.",
             "business_implication": "Leaders should fund governance, knowledge quality and workflow design before adding more models.",
@@ -54,6 +55,7 @@ def valid_plan() -> dict:
                 1,
             )
         ],
+        "interpretation_headline": "The advantage now comes from redesigning the work",
         "interpretation": "The collective evidence indicates that AI value is being limited by operating discipline more than access to models.",
         "founders_note": {
             "headline": "AI is infrastructure now. Price it that way.",
@@ -70,6 +72,7 @@ def valid_plan() -> dict:
         "what_changed": {
             "position_id": "ai-advantage-operating-system",
             "classification": "STRENGTHENS",
+            "headline": "This is no longer a pilot story",
             "prior_position": "The operating system around AI matters more than model choice.",
             "current_position": "New evidence strengthens the operating-discipline thesis.",
             "explanation": "Constrained agents, cheaper models and data-quality failures point in the same direction.",
@@ -87,14 +90,22 @@ def valid_plan() -> dict:
             ],
         },
         "counter_signal": {
+            "headline": "Premium capability may still win specialist work",
             "statement": "Premium model capability may still dominate in high-value specialist work.",
-            "would_change_view_if": "Enterprises demonstrate materially higher ROI from premium autonomous models than constrained workflows.",
+            "would_change_view_if": "Enterprises demonstrate materially higher commercial returns from premium autonomous models than constrained workflows.",
             "confidence_effect": "That evidence would weaken the operating-discipline thesis.",
         },
-        "executive_actions": ["Audit one AI workflow for data, permission and human-review constraints."],
+        "executive_actions": [
+            {
+                "action_tag": "ACT",
+                "headline": "Map the work AI can touch",
+                "instruction": "Review one process for data quality, permission and human judgement before expanding it.",
+            }
+        ],
         "executive_read": {
             "dtl_view": "The next AI advantage is operational, not theatrical.",
-            "watch_items": ["Whether premium models produce measurable ROI advantages."],
+            "watch_headline": "Look for proof beyond technology teams",
+            "watch_items": ["Whether premium models produce measurable commercial returns."],
         },
         "memory_update": {
             "position_id": "ai-advantage-operating-system",
@@ -175,6 +186,7 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertEqual(render_visual_signal({"eligible": False, "type": "NONE", "rows": []}), "")
         rendered = render_visual_signal(valid_plan()["visual_signal"])
         self.assertIn("VISUAL SIGNAL", rendered)
+        self.assertIn("THE SHIFT", render_visual_signal(valid_plan()["visual_signal"], dynamic_headlines=True))
         self.assertIn("Knowledge quality", rendered)
 
     def test_joke_library_has_100_and_rotation_blocks_recent(self) -> None:
@@ -219,11 +231,16 @@ class JudgementArchitectureTests(unittest.TestCase):
             "— Paul",
             "THE EVIDENCE",
             "YOUR SIGNAL AT A GLANCE",
-            "VISUAL SIGNAL",
-            "INTERPRETATION",
-            "WHAT CHANGED?",
-            "EXECUTIVE ACTION / WATCH",
-            "COUNTER-SIGNAL",
+            "THE SHIFT",
+            "WHY IT MATTERS",
+            valid_plan()["interpretation_headline"],
+            "WHAT CHANGED",
+            valid_plan()["what_changed"]["headline"],
+            "WHAT TO DO NOW",
+            valid_plan()["executive_actions"][0]["headline"],
+            "THE OTHER SIDE",
+            valid_plan()["counter_signal"]["headline"],
+            "WATCH FOR THIS",
             "REMEMBER THE WORLD",
             "DAD JOKE OF THE DAY",
         ]
@@ -248,7 +265,11 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertIn("background:#E8533A", html)
         self.assertIn("background:#E6A817", html)
         self.assertIn("background:#17A398", html)
-        self.assertIn("INTERPRETATION", html)
+        self.assertNotIn("EXECUTIVE READ", html)
+        self.assertNotIn("INTERPRETATION", html)
+        self.assertNotIn("WHAT CHANGED?", html)
+        self.assertNotIn("EXECUTIVE ACTION / WATCH", html)
+        self.assertNotIn("COUNTER-SIGNAL", html)
         self.assertIn("FOUNDER'S NOTE", html)
         self.assertEqual(html.count("FOUNDER'S NOTE"), 1)
         self.assertIn(valid_plan()["founders_note"]["headline"], html)
@@ -281,6 +302,31 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertNotIn(">licence</a>", html)
         self.assertEqual(html.count("DAD JOKE OF THE DAY"), 1)
         self.assertLess(html.index("DAD JOKE OF THE DAY"), html.index("PF::SIGNAL-0038"))
+
+    def test_dynamic_reader_language_rejects_internal_codes_and_jargon(self) -> None:
+        for field, value in (
+            (("what_changed", "explanation"), "S01 and S02 now confirm the pattern."),
+            (("interpretation",), "The CRM UI is becoming optional."),
+            (("counter_signal", "headline"), "SoR control may slow adoption"),
+        ):
+            plan = valid_plan()
+            container = plan
+            for key in field[:-1]:
+                container = container[key]
+            container[field[-1]] = value
+            with self.assertRaises(JudgementPlanError):
+                validate_judgement_plan(plan, {f"S0{i}" for i in range(1, 8)})
+
+    def test_historical_plan_can_still_render_locked_v4(self) -> None:
+        plan = valid_plan()
+        plan.pop("editorial_revision")
+        plan.pop("interpretation_headline")
+        plan["what_changed"].pop("headline")
+        plan["counter_signal"].pop("headline")
+        plan["executive_actions"] = ["Audit one workflow before expanding it."]
+        plan["executive_read"].pop("watch_headline")
+        validated = validate_judgement_plan(plan, {f"S0{i}" for i in range(1, 8)})
+        self.assertIs(validated, plan)
 
 
 if __name__ == "__main__":

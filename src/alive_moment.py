@@ -15,6 +15,7 @@ ALLOWED_LICENCES = {"CC0", "CC BY 4.0", "CC BY-SA 4.0", "PUBLIC DOMAIN"}
 ALLOWED_CATEGORIES = {
     "animals", "birds", "marine_life", "flowers", "forests", "landscapes",
     "weather", "seasons", "new_life", "migration", "water", "sky",
+    "human_craft", "culture", "architecture",
 }
 PROHIBITED_TERMS = {
     "disaster", "catastrophe", "death", "dead", "killed", "campaign",
@@ -60,6 +61,8 @@ def validate_alive_moment(
     history: list[dict[str, Any]] | None = None,
     *,
     recent_window: int = 21,
+    expected_edition_id: str | None = None,
+    expected_date: str | None = None,
 ) -> dict[str, Any]:
     required = {
         "id", "edition_id", "date", "location", "country", "region",
@@ -74,11 +77,15 @@ def validate_alive_moment(
     if missing:
         raise AliveMomentError(f"Missing alive_moment fields: {', '.join(missing)}")
     if moment["verification_status"] != "VERIFIED":
-        raise AliveMomentError("Natural phenomenon is not verified")
+        raise AliveMomentError("Moment is not verified")
     if moment["editorial_status"] not in {"APPROVED_FOR_PROOF", "APPROVED"}:
         raise AliveMomentError("Moment lacks human editorial approval")
+    if expected_edition_id and str(moment.get("edition_id")) != expected_edition_id:
+        raise AliveMomentError("Moment is not approved for this edition")
+    if expected_date and str(moment.get("date")) != expected_date:
+        raise AliveMomentError("Moment is not approved for this issue date")
     if moment["category"] not in ALLOWED_CATEGORIES:
-        raise AliveMomentError("Category is outside the peaceful editorial palette")
+        raise AliveMomentError("Category is outside the grounding editorial palette")
     if moment["licence_type"] not in ALLOWED_LICENCES:
         raise AliveMomentError("Image licence is not approved for commercial reuse")
     if moment["is_ai_generated"] or moment["image_authenticity"] != "REAL_PHOTOGRAPH":
@@ -90,7 +97,7 @@ def validate_alive_moment(
     if _normalise(moment["image_location"]) != _normalise(f'{moment["location"]}, {moment["country"]}'):
         raise AliveMomentError("Photograph location does not match the stated moment")
     if not is_seasonally_current(moment):
-        raise AliveMomentError("Natural phenomenon is not seasonally current on the edition date")
+        raise AliveMomentError("Moment is not current on the edition date")
     combined = _normalise(f'{moment["caption"]} {moment["phenomenon"]}')
     if any(term in combined for term in PROHIBITED_TERMS):
         raise AliveMomentError("Moment contains excluded editorial framing")
@@ -99,7 +106,21 @@ def validate_alive_moment(
     location = _normalise(moment["location"])
     category = _normalise(moment["category"])
     species = _normalise(moment.get("species"))
+    candidate_identities = {
+        _normalise(moment.get("id")),
+        _normalise(moment.get("image_url")),
+        _normalise(moment.get("image_original_url")),
+        _normalise(moment.get("image_source_url")),
+    } - {""}
     for used in recent:
+        used_identities = {
+            _normalise(used.get("id")),
+            _normalise(used.get("image_url")),
+            _normalise(used.get("image_original_url")),
+            _normalise(used.get("image_source_url")),
+        } - {""}
+        if candidate_identities & used_identities:
+            raise AliveMomentError("Image identity was used too recently")
         if _normalise(used.get("location")) == location:
             raise AliveMomentError("Location was used too recently")
         if species and _normalise(used.get("species")) == species:
@@ -121,6 +142,10 @@ def record_alive_moment(path: Path, moment: dict[str, Any], published_at: str) -
             "category": moment["category"],
             "species": moment.get("species"),
             "phenomenon": moment["phenomenon"],
+            "image_url": moment.get("image_url"),
+            "image_original_url": moment.get("image_original_url"),
+            "image_source_url": moment.get("image_source_url"),
+            "photographer": moment.get("photographer"),
             "published_at": published_at,
         }
     )

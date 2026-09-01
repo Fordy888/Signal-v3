@@ -1,4 +1,5 @@
 import copy
+import copy
 import json
 import unittest
 from pathlib import Path
@@ -15,6 +16,21 @@ class AliveMomentTests(unittest.TestCase):
 
     def test_valid_real_licensed_seasonal_moment_passes(self):
         self.assertEqual(validate_alive_moment(self.moment, []), self.moment)
+
+    def test_real_licensed_human_craft_moment_passes(self):
+        moment = json.loads(
+            (ROOT / "data" / "fixtures" / "alive_moment_0044.json").read_text()
+        )
+        history = [{"image_source_url": self.moment["image_source_url"], "location": "Moorea", "category": "marine_life"}]
+        self.assertEqual(
+            validate_alive_moment(
+                moment,
+                history,
+                expected_edition_id="0044",
+                expected_date="2026-09-01",
+            ),
+            moment,
+        )
 
     def test_ai_image_is_rejected(self):
         candidate = copy.deepcopy(self.moment)
@@ -45,6 +61,25 @@ class AliveMomentTests(unittest.TestCase):
         history = [{"location": "Moorea", "species": "Megaptera novaeangliae", "category": "marine_life"}]
         with self.assertRaises(AliveMomentError):
             validate_alive_moment(self.moment, history)
+
+    def test_exact_delivered_image_is_rejected_even_if_candidate_metadata_changes(self):
+        history = [{"image_source_url": self.moment["image_source_url"]}]
+        candidate = copy.deepcopy(self.moment)
+        candidate["location"] = "Bora Bora"
+        candidate["image_location"] = "Bora Bora, French Polynesia"
+        candidate["species"] = "Different species"
+        candidate["category"] = "human_life"
+        with self.assertRaises(AliveMomentError):
+            validate_alive_moment(candidate, history)
+
+    def test_candidate_must_match_the_current_edition_and_date(self):
+        with self.assertRaises(AliveMomentError):
+            validate_alive_moment(
+                self.moment,
+                [],
+                expected_edition_id="0044",
+                expected_date="2026-09-01",
+            )
 
 
 if __name__ == "__main__":
