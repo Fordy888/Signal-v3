@@ -1,0 +1,141 @@
+{
+  "editorial_revision": "focus-on-the-numbers-v1",
+  "founders_note": {
+    "headline": "AI earns attention when it changes the business.",
+    "body": "AI is no longer interesting because it can do something clever. It earns attention when it changes revenue, margin, work, customers or risk. That is the line we hold in Signal. Today’s mix keeps the biggest business pressures in view, but puts AI where it belongs: inside the decisions leaders are already making. Six items show AI changing business; four show the market changing around it. Read both. Judge what moves your business. — Paul"
+  },
+  "evidence_items": [
+    {
+      "source_ids": ["S06"],
+      "category": "Strategy & Business Model",
+      "action_tag": "WATCH",
+      "mix_classification": "AI_BUSINESS",
+      "ai_business_connection": "AI is improving individual work faster than companies are converting those gains into enterprise earnings.",
+      "headline": "Productivity is outrunning the profit line",
+      "evidence": "Most workers report gains from AI, but enterprise earnings impact remains limited and only a small group qualifies as high-performing."
+    },
+    {
+      "source_ids": ["S07"],
+      "category": "Operations & Delivery",
+      "action_tag": "ACT",
+      "mix_classification": "AI_BUSINESS",
+      "ai_business_connection": "AI budgets are failing to improve logistics economics when tools, data and workflows remain disconnected.",
+      "headline": "AI budgets are missing the bottom line",
+      "evidence": "Almost every logistics operator calls AI strategic, yet only a small minority can point to measurable financial impact."
+    },
+    {
+      "source_ids": ["S08"],
+      "category": "People & Culture",
+      "action_tag": "WATCH",
+      "mix_classification": "AI_BUSINESS",
+      "ai_business_connection": "AI exposure is changing entry-level hiring patterns before producing broad economy-wide job displacement.",
+      "headline": "Young workers are feeling AI first",
+      "evidence": "Employment pressure is concentrated among younger workers in AI-exposed roles, mainly through reduced hiring rather than increased layoffs."
+    },
+    {
+      "source_ids": ["S09"],
+      "category": "Finance & Capital",
+      "action_tag": "WATCH",
+      "mix_classification": "MAJOR_BUSINESS",
+      "headline": "Oil and rates squeeze the same margin",
+      "evidence": "Fresh Iran strikes lifted oil and bond yields, pushing markets lower and increasing the chance of another rate rise."
+    },
+    {
+      "source_ids": ["S10"],
+      "category": "Strategy & Business Model",
+      "action_tag": "WATCH",
+      "mix_classification": "MAJOR_BUSINESS",
+      "headline": "Trade uncertainty is moving factories",
+      "evidence": "New investment in Mexico fell as companies reconsidered factories and supply chains amid yearly reviews of the North American trade pact."
+    }
+  ],
+  "focus_numbers": [
+    {
+      "source_ids": ["S01"],
+      "entity": "Australian economy",
+      "number": "0.4% quarterly growth",
+      "meaning": "Growth held, but flat private investment says business confidence is still selective rather than broad.",
+      "mix_classification": "MAJOR_BUSINESS"
+    },
+    {
+      "source_ids": ["S02"],
+      "entity": "NVIDIA",
+      "number": "$96.2 billion revenue — up 106%",
+      "meaning": "AI infrastructure spending is still accelerating, raising both the opportunity and the price of competing at scale.",
+      "mix_classification": "AI_BUSINESS",
+      "ai_business_connection": "Enterprise AI demand is creating measurable infrastructure revenue and changing capital requirements across the market."
+    },
+    {
+      "source_ids": ["S03"],
+      "entity": "Salesforce AI and data",
+      "number": "$3.9 billion recurring revenue — up 210%",
+      "meaning": "Enterprise customers are converting AI interest into measurable recurring software demand.",
+      "mix_classification": "AI_BUSINESS",
+      "ai_business_connection": "AI products are producing recurring revenue and changing enterprise sales, service and software-buying decisions."
+    },
+    {
+      "source_ids": ["S04"],
+      "entity": "Australia Post",
+      "number": "$107.6 million underlying loss",
+      "meaning": "Parcel growth cannot yet outrun the cost of maintaining a declining letters network.",
+      "mix_classification": "MAJOR_BUSINESS"
+    },
+    {
+      "source_ids": ["S05"],
+      "entity": "New York service firms",
+      "number": "61% use AI; 4% reported layoffs",
+      "meaning": "The first workforce response is redesign and retraining, not the mass job removal many expected.",
+      "mix_classification": "AI_BUSINESS",
+      "ai_business_connection": "AI adoption is changing roles and training before producing widespread workforce reductions."
+    }
+  ],
+  "interpretation_headline": "AI is spreading faster than its returns",
+  "interpretation": "AI use is expanding across software, logistics, sales and work, but financial proof remains uneven. At the same time, oil, rates, trade and legacy costs are reshaping the conditions in which leaders invest. The opportunity is real; operating discipline decides who captures it.",
+  "what_changed": {
+    "position_id": "business-change-needs-commercial-proof",
+    "classification": "STRENGTHENS",
+    "prior_position": "Business change deserves attention when it moves a commercial or operating measure.",
+    "current_position": "Current evidence strengthens the need to judge change through numbers rather than announcements.",
+    "explanation": "The Newsroom stories and five numerical signals show market pressure, investment, portfolio choices, growth, profit, structural cost and workforce effects moving at different speeds.",
+    "confidence": "HIGH"
+  },
+  "counter_signal": {
+    "headline": "Adoption still outruns the evidence",
+    "statement": "These signals show real AI adoption and some commercial traction, but they do not prove broad enterprise returns. Different sectors, workflows and labour markets are moving at different speeds.",
+    "would_change_view_if": "Several quarters showed wider profit, productivity and customer gains from AI across industries rather than mainly among technology suppliers and isolated high performers.",
+    "confidence_effect": "That would support a stronger conclusion that AI adoption is translating into broad business value."
+  },
+  "executive_actions": [
+    {
+      "action_tag": "ACT",
+      "headline": "Choose one commercial outcome",
+      "instruction": "Tie one AI initiative to revenue, margin, cash, customers or risk before funding another tool."
+    },
+    {
+      "action_tag": "WATCH",
+      "headline": "Redesign the whole workflow",
+      "instruction": "Check whether AI removes the bottleneck or merely moves it to the next manual step."
+    },
+    {
+      "action_tag": "OPPORTUNITY",
+      "headline": "Keep market pressure visible",
+      "instruction": "Test AI investment against higher costs, rates and supply uncertainty—not against a frictionless plan."
+    }
+  ],
+  "executive_read": {
+    "dtl_view": "AI is moving into the business, but adoption alone is not advantage. The winners will connect it to a real workflow, a measurable result and the economic conditions surrounding the decision.",
+    "watch_headline": "Watch whether AI reaches the profit line",
+    "watch_items": [
+      "Whether AI productivity gains begin producing broader enterprise earnings and customer improvements.",
+      "Whether logistics and other operators connect isolated tools into complete workflows.",
+      "Whether retraining remains more common than job reduction as workplace adoption spreads."
+    ]
+  },
+  "memory_update": {
+    "position_id": "business-change-needs-commercial-proof",
+    "theme": "Commercial proof of business change",
+    "statement": "DTL Signal should judge AI through measurable business value while keeping major market and operating pressures in view.",
+    "confidence": "HIGH",
+    "supporting_source_ids": ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10"]
+  }
+}

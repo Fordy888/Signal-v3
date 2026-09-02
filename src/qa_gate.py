@@ -17,6 +17,7 @@ v4.1 — QA gate redesigned from blunt percentage to content-readiness:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -36,6 +37,38 @@ RECEIPT_FILE = "data/run_receipts.json"
 SOURCE_HEALTH_FILE = "data/source_health.json"
 MAX_RECEIPTS = 30  # Keep last 30 run receipts
 ALERT_RECIPIENT = "paul.ford@gmail.com"
+DEFAULT_RELEASE_MANIFEST = Path(__file__).resolve().parents[1] / "data" / "release_manifest.json"
+
+
+def load_release_manifest() -> dict[str, Any]:
+    """Load the source-controlled approved release contract."""
+    configured = os.environ.get("SIGNAL_RELEASE_MANIFEST_PATH", "").strip()
+    path = Path(configured) if configured else DEFAULT_RELEASE_MANIFEST
+    if not path.is_absolute():
+        path = Path(__file__).resolve().parents[1] / path
+    try:
+        manifest = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"release manifest could not be loaded from {path}: {exc}") from exc
+    required = {
+        "release_id", "status", "approved_proof_path", "approved_proof_sha256", "expected_renderer",
+        "required_markers", "forbidden_markers",
+    }
+    missing = required.difference(manifest)
+    if missing:
+        raise ValueError(f"release manifest omitted required fields: {sorted(missing)}")
+    proof_path = Path(str(manifest["approved_proof_path"]))
+    if not proof_path.is_absolute():
+        proof_path = Path(__file__).resolve().parents[1] / proof_path
+    try:
+        actual_proof_sha = hashlib.sha256(proof_path.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise ValueError(f"approved proof could not be read from {proof_path}: {exc}") from exc
+    if actual_proof_sha != str(manifest["approved_proof_sha256"]):
+        raise ValueError(
+            "approved proof checksum does not match the source-controlled release manifest"
+        )
+    return manifest
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -142,8 +175,16 @@ def check_release_identity(
     actual_branch = os.environ.get("RENDER_GIT_BRANCH", "").strip()
     actual_commit = os.environ.get("RENDER_GIT_COMMIT", "").strip()
     actual_service = os.environ.get("RENDER_SERVICE_ID", "").strip()
+    expected_commit = os.environ.get("SIGNAL_EXPECTED_GIT_COMMIT", "").strip()
+    target_release_id = os.environ.get("SIGNAL_TARGET_RELEASE_ID", "").strip()
+    target_proof_sha = os.environ.get("SIGNAL_EXPECTED_APPROVED_PROOF_SHA256", "").strip()
 
     issues = []
+    try:
+        manifest = load_release_manifest()
+    except ValueError as exc:
+        manifest = {}
+        issues.append(str(exc))
     if os.environ.get("RENDER", "").lower() != "true":
         issues.append("runtime is not verified as Render")
     if release_profile != "v4.0":
@@ -162,6 +203,46 @@ def check_release_identity(
         )
     if not actual_commit:
         issues.append("RENDER_GIT_COMMIT is missing")
+    if not expected_commit:
+        issues.append("SIGNAL_EXPECTED_GIT_COMMIT is missing")
+    elif actual_commit != expected_commit:
+        issues.append(
+            f"deployed commit is {actual_commit[:12] or 'missing'}, target is {expected_commit[:12]}"
+        )
+    manifest_release_id = str(manifest.get("release_id", "")).strip()
+    if not target_release_id or target_release_id != manifest_release_id:
+        issues.append(
+            f"target release is {target_release_id or 'missing'}, approved manifest is {manifest_release_id or 'missing'}"
+        )
+    manifest_proof_sha = str(manifest.get("approved_proof_sha256", "")).strip()
+    if not target_proof_sha or target_proof_sha != manifest_proof_sha:
+        issues.append("approved proof checksum target does not match the release manifest")
+    if manifest.get("status") != "APPROVED":
+        issues.append(f"release manifest status is {manifest.get('status') or 'missing'}, expected APPROVED")
+    manifest_renderer = str(manifest.get("expected_renderer", "")).strip()
+    if manifest_renderer and manifest_renderer != expected_renderer:
+        issues.append(
+            f"manifest renderer is {manifest_renderer}, environment target is {expected_renderer or 'missing'}"
+        )
+    image_required_on = str(manifest.get("approved_image_required_on", "")).strip()
+    approved_image_identity = str(manifest.get("approved_image_identity", "")).strip()
+    if image_required_on == runtime.date().isoformat() and approved_image_identity:
+        configured_image_path = os.environ.get("SIGNAL_ALIVE_MOMENT_PATH", "").strip()
+        if not configured_image_path:
+            issues.append("date-bound approved image path is missing")
+        else:
+            image_path = Path(configured_image_path)
+            if not image_path.is_absolute():
+                image_path = Path(__file__).resolve().parents[1] / image_path
+            try:
+                actual_image_identity = str(json.loads(image_path.read_text()).get("id", "")).strip()
+            except (OSError, json.JSONDecodeError) as exc:
+                issues.append(f"approved image contract could not be read: {exc}")
+            else:
+                if actual_image_identity != approved_image_identity:
+                    issues.append(
+                        f"image identity is {actual_image_identity or 'missing'}, target is {approved_image_identity}"
+                    )
 
     if issues:
         return QAResult(
@@ -175,8 +256,9 @@ def check_release_identity(
         passed=True,
         severity="info",
         message=(
-            f"MATCH — {release_profile}, renderer {renderer_id}, branch {actual_branch}, "
-            f"commit {actual_commit[:12]}, service {actual_service}."
+            f"TARGET MATCH — release {manifest_release_id}, {release_profile}, renderer {renderer_id}, "
+            f"branch {actual_branch}, commit {actual_commit[:12]}, service {actual_service}, "
+            f"approved proof {manifest_proof_sha[:12]}."
         ),
     )
 
@@ -241,6 +323,13 @@ class RunReceipt:
     renderer_id: str = ""
     expected_renderer_id: str = ""
     release_identity_status: str = "UNVERIFIED"
+    target_release_id: str = ""
+    release_contract_id: str = ""
+    target_git_commit: str = ""
+    approved_proof_sha256: str = ""
+    target_approved_proof_sha256: str = ""
+    approved_image_identity: str = ""
+    configured_image_identity: str = ""
     html_sha256: str = ""
     render_git_commit: str = ""
     render_git_branch: str = ""
@@ -250,7 +339,23 @@ class RunReceipt:
         """Plain-English summary for Paul. One glance tells you if everything is OK."""
         edition = f"Edition {self.edition_number:04d}"
 
-        if self.pipeline_result == "success":
+        target_match = self.release_identity_status in ("MATCH", "NOT_APPLICABLE")
+        if (
+            self.pipeline_result == "success"
+            and self.edition_type == "daily"
+            and self.mode == "proof"
+            and self.release_identity_status == "OBSERVED_ONLY"
+        ):
+            summary = (
+                f"{edition}: One-recipient proof delivered. This is not evidence that the target release is deployed or subscriber-visible."
+            )
+        elif self.pipeline_result == "success" and self.edition_type == "daily" and not target_match:
+            summary = (
+                f"{edition}: Delivery succeeded to {self.recipients_delivered}/{self.recipients_attempted}, "
+                f"but TARGET RELEASE {self.release_identity_status}. The approved release is not proven subscriber-visible. "
+                f"Target commit: {self.target_git_commit or 'missing'}. Actual commit: {self.render_git_commit or 'missing'}."
+            )
+        elif self.pipeline_result == "success":
             summary = (
                 f"{edition}: QA passed. "
                 f"Delivered to {self.recipients_delivered}/{self.recipients_attempted} active subscribers. "
@@ -324,13 +429,27 @@ class RunReceipt:
             status_color = "#dc2626"
             action_text = self._get_action_text()
             tomorrow_text = self._get_tomorrow_safety()
+        elif self.mode == "proof" and self.release_identity_status == "OBSERVED_ONLY":
+            status_label = "PROOF DELIVERED — TARGET RELEASE NOT VERIFIED"
+            status_color = "#d97706"
+            action_text = "No subscriber action occurred. This proof does not establish that the target release is deployed."
+            tomorrow_text = "NOT pre-certified. Deployment and a release canary remain required."
+        elif self.edition_type == "daily" and not identity_ok:
+            status_label = f"DELIVERY SUCCEEDED — TARGET RELEASE {self.release_identity_status}"
+            status_color = "#dc2626"
+            action_text = "The approved release is not proven live. Verify the target commit, deployed commit, release contract and renderer before any further send."
+            tomorrow_text = "NOT safe until the target release is deployed and a one-recipient canary matches."
         elif self.pipeline_result == "partial_failure":
             status_label = "SENT WITH ISSUES"
             status_color = "#d97706"
             action_text = "Check delivery failures. These subscribers did not receive today's edition."
             tomorrow_text = "Tomorrow's edition should send normally unless the same delivery issues persist."
         elif identity_ok:
-            status_label = "DELIVERED — RELEASE IDENTITY MATCHED"
+            status_label = (
+                "CANARY DELIVERED — TARGET RELEASE MATCHED"
+                if self.mode == "proof"
+                else "DELIVERED — TARGET RELEASE MATCHED"
+            )
             status_color = "#16a34a"
             action_text = "No delivery action required. Reverify the live release identity before the next run."
             tomorrow_text = "Not pre-certified. Every scheduled run must prove its release identity again."
@@ -397,16 +516,23 @@ class RunReceipt:
         identity_html = (
             "<div style='margin-top:16px;padding:12px;background:#f8fafc;border-radius:6px;"
             "border:1px solid #cbd5e1;'>"
-            "<strong style='font-size:14px;'>Release Identity</strong>"
+            "<strong style='font-size:14px;'>Target Release</strong>"
             "<table style='width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;'>"
             f"<tr><td style='padding:4px 0;color:#666;width:180px;'>Status</td><td style='color:{identity_color};font-weight:700;'>{self.release_identity_status}</td></tr>"
             f"<tr><td style='padding:4px 0;color:#666;'>Profile</td><td>{self.release_profile or 'missing'}</td></tr>"
             f"<tr><td style='padding:4px 0;color:#666;'>Renderer</td><td>{self.renderer_id or 'missing'}</td></tr>"
             f"<tr><td style='padding:4px 0;color:#666;'>Expected renderer</td><td>{self.expected_renderer_id or 'missing'}</td></tr>"
-            f"<tr><td style='padding:4px 0;color:#666;'>Commit</td><td>{self.render_git_commit or self.code_version or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Target release</td><td>{self.target_release_id or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Manifest release</td><td>{self.release_contract_id or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Target commit</td><td>{self.target_git_commit or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Actual commit</td><td>{self.render_git_commit or self.code_version or 'missing'}</td></tr>"
             f"<tr><td style='padding:4px 0;color:#666;'>Branch</td><td>{self.render_git_branch or 'missing'}</td></tr>"
             f"<tr><td style='padding:4px 0;color:#666;'>Render service</td><td>{self.render_service_id or 'missing'}</td></tr>"
-            f"<tr><td style='padding:4px 0;color:#666;'>HTML SHA-256</td><td style='font-family:monospace;'>{self.html_sha256 or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Approved proof SHA-256</td><td style='font-family:monospace;'>{self.approved_proof_sha256 or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Configured proof target</td><td style='font-family:monospace;'>{self.target_approved_proof_sha256 or 'missing'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Approved image</td><td>{self.approved_image_identity or 'optional'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Configured image</td><td>{self.configured_image_identity or 'omitted'}</td></tr>"
+            f"<tr><td style='padding:4px 0;color:#666;'>Actual HTML SHA-256</td><td style='font-family:monospace;'>{self.html_sha256 or 'missing'}</td></tr>"
             "</table></div>"
         )
 
@@ -512,6 +638,30 @@ class RunReceipt:
                 return "Category coverage issues will persist until failing sources are fixed or replaced."
 
         return "Uncertain — monitor tomorrow's run closely."
+
+    def alert_email_subject(self) -> str:
+        """Return a subject that never lets delivery counts hide release mismatch."""
+        edition_label = (
+            "DTL Signal Weekly Wrap"
+            if self.edition_type == "weekly_wrap"
+            else f"DTL Signal {self.edition_number:04d}"
+        )
+        target_match = self.release_identity_status in ("MATCH", "NOT_APPLICABLE")
+        if self.pipeline_result == "success" and self.mode == "proof" and not target_match:
+            return f"[PROOF] {edition_label} — Delivered; target release not verified"
+        if self.pipeline_result == "success" and self.edition_type == "daily" and not target_match:
+            return f"[CRITICAL] {edition_label} — Delivered; target release {self.release_identity_status}"
+        if self.pipeline_result == "success" and self.mode == "proof":
+            return f"[CANARY] {edition_label} — Target release matched"
+        if self.pipeline_result == "success":
+            return f"[OK] {edition_label} — Delivered; target release matched"
+        if self.pipeline_result == "held":
+            return f"[HELD] {edition_label} — QA failed; not sent"
+        if self.pipeline_result == "partial_failure":
+            return f"[WARNING] {edition_label} — Sent with {self.recipients_failed} failure(s)"
+        if self.pipeline_result == "aborted":
+            return f"[ABORTED] {edition_label} — Not sent"
+        return f"{edition_label} — Run Receipt"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1119,6 +1269,20 @@ def create_receipt(
         if edition_type == "daily"
         else "weekly-wrap-current"
     )
+    try:
+        release_manifest = load_release_manifest()
+    except ValueError:
+        release_manifest = {}
+    configured_image_identity = ""
+    configured_image_path = os.environ.get("SIGNAL_ALIVE_MOMENT_PATH", "").strip()
+    if configured_image_path:
+        image_path = Path(configured_image_path)
+        if not image_path.is_absolute():
+            image_path = Path(__file__).resolve().parents[1] / image_path
+        try:
+            configured_image_identity = str(json.loads(image_path.read_text()).get("id", ""))
+        except (OSError, json.JSONDecodeError):
+            configured_image_identity = ""
     identity_result = check_release_identity(
         renderer_id=renderer_id,
         edition_type=edition_type,
@@ -1176,6 +1340,13 @@ def create_receipt(
         renderer_id=renderer_id,
         expected_renderer_id=expected_renderer,
         release_identity_status=identity_status,
+        target_release_id=os.environ.get("SIGNAL_TARGET_RELEASE_ID", ""),
+        release_contract_id=str(release_manifest.get("release_id", "")),
+        target_git_commit=os.environ.get("SIGNAL_EXPECTED_GIT_COMMIT", ""),
+        approved_proof_sha256=str(release_manifest.get("approved_proof_sha256", "")),
+        target_approved_proof_sha256=os.environ.get("SIGNAL_EXPECTED_APPROVED_PROOF_SHA256", ""),
+        approved_image_identity=str(release_manifest.get("approved_image_identity", "")),
+        configured_image_identity=configured_image_identity,
         html_sha256=html_sha256,
         render_git_commit=os.environ.get("RENDER_GIT_COMMIT", ""),
         render_git_branch=os.environ.get("RENDER_GIT_BRANCH", ""),
@@ -1227,18 +1398,7 @@ def send_receipt_email(receipt: RunReceipt) -> None:
 
         resend.api_key = api_key
 
-        # Subject line reflects status clearly
-        edition_label = "DTL Signal Weekly Wrap" if receipt.edition_type == "weekly_wrap" else f"DTL Signal {receipt.edition_number:04d}"
-        if receipt.pipeline_result == "success":
-            subject = f"✓ {edition_label} — Delivered ({receipt.recipients_delivered}/{receipt.recipients_attempted})"
-        elif receipt.pipeline_result == "held":
-            subject = f"⚠️ {edition_label} — HELD (QA failed)"
-        elif receipt.pipeline_result == "partial_failure":
-            subject = f"⚠️ {edition_label} — Sent with {receipt.recipients_failed} failure(s)"
-        elif receipt.pipeline_result == "aborted":
-            subject = f"🚨 {edition_label} — ABORTED"
-        else:
-            subject = f"{edition_label} — Run Receipt"
+        subject = receipt.alert_email_subject()
 
         resend.Emails.send({
             "from": f"DTL Signal Ops <{from_email}>",

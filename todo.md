@@ -264,4 +264,123 @@
 - [ ] Complete a guarded Render build without triggering a subscriber broadcast
 - [ ] Run a one-recipient live release canary and verify commit, renderer, image identity and receipt
 - [ ] Report the deployed revision state and retain the editorial lock
+
+## Dynamic Revision Live-Activation Incident
+
+- [x] Confirm Edition 0045 delivered the previous v4 format and repeated Moorea image to 33/33 subscribers
+- [x] Read the Edition 0045 receipt: live commit `6c39f00`, renderer `enhanced-v4`, release identity MATCH for the old release
+- [ ] Compare GitHub production master with the live Render deployed commit and scheduled command
+- [x] Identify why the approved proof and GitHub commit did not become subscriber-visible: Render remained on the previous deployed commit and the live build/canary were never completed
+- [x] Prevent any duplicate recovery broadcast while diagnosing or deploying
+- [ ] Deploy only the already approved dynamic-headline and Quang Phu Cau revision; make no editorial changes
+- [ ] Verify the live revision with one recipient before the next subscriber schedule
+- [x] Report approved, committed, deployed and subscriber-visible states separately
+
+## Commitment Integrity Protocol
+
+- [x] Define mandatory status terms: PROPOSED, APPROVED, BUILT, COMMITTED, DEPLOYED, CANARY VERIFIED, LIVE and SUBSCRIBER VERIFIED
+- [x] Define the evidence required before each status may be reported
+- [x] Prohibit READY, GO, CONFIRMED or COMPLETE unless the customer-visible state is explicitly named and evidenced
+- [x] Require every scheduled-release commitment to include target time, current state, remaining blocker and next verification deadline
+- [x] Require a HELD escalation before the scheduled send when live activation cannot be proven
+- [ ] Separate delivery success from release success in every operational receipt
+- [ ] Add expected commit, expected renderer and expected artefact identity to the scheduled-release contract
+- [ ] Apply the protocol to the approved dynamic-headline revision without requesting another editorial approval
+- [ ] Do not send a duplicate edition while correcting the live activation
 - [ ] Obtain Fordy’s explicit approval of the replacement image before production deployment
+
+## Founder-Led Focus on the Numbers Revision
+
+- [x] Remove `THE ONE THING` heading and content from the daily reader-facing email
+- [x] Make `FOUNDER’S NOTE` the first substantive section after the masthead and colour guide
+- [x] Reduce the Founder’s Note target length by approximately 50% while preserving a headline, substantive founder judgement and inline `— Paul`
+- [x] Replace `THE SHIFT` with `FOCUS ON THE NUMBERS`
+- [x] Require exactly five compact number entries: company or organisation, defining number, and one plain-commercial-meaning sentence
+- [x] Require every number to be current, sourced, prominent and commercially meaningful rather than decorative
+- [x] Remove `WHAT CHANGED` heading and content from the daily reader-facing email
+- [x] Preserve the approved clear, clever, balanced and non-technical language standard throughout the remaining sections
+- [x] Preserve `WHAT TO DO NOW`, `THE OTHER SIDE`, `WATCH FOR THIS`, `REMEMBER THE WORLD`, the Daily Dad Joke and the four-colour signature unless separately changed
+- [x] Keep the Weekly Wrap on its separately approved route; do not apply this daily-format revision to it
+- [x] Update planner schema, planner prompt, renderer and regression tests as one coherent contract
+- [x] Map the approved reader sequence, compact-number schema, internal-memory boundary and photography governance before coding
+- [ ] Build and verify a complete no-send proof before any production commit or Render change
+- [ ] Send any proof to `paul.ford@gmail.com` only and never resend Edition 0045 to subscribers
+- [x] Add authentic Signal-colour harmony as a REMEMBER THE WORLD selection preference, never as a reason to alter or artificially tint a photograph
+- [x] Record each candidate’s natural dominant colour family as coral, amber, aqua, deep teal or neutral
+- [x] Prefer natural colour rotation across editions only after artistic power, authenticity, rights, provenance and non-repetition gates pass
+- [x] Preserve the Quang Phu Cau photograph as the first coral-aligned example without changing the original image
+- [x] Build the complete Edition 0046 founder-led proof with five current, independently verified business figures
+- [x] Pass deterministic desktop and mobile rendering checks for the complete proof
+- [x] Send the checksum-locked proof to `paul.ford@gmail.com` only and verify provider status `delivered`
+- [x] Receive Fordy’s explicit approval of the complete founder-led proof before committing or deploying it
+- [ ] Re-run the complete test suite and deterministic proof build from the exact approved working tree
+- [ ] Confirm the approved HTML checksum remains `69cc4d23c9a1315cc815aa21983b255404560e6967d31fc9911c6ec008ecebfc`
+- [ ] Complete commitment-integrity receipt enforcement so delivery success cannot mask a target-release mismatch
+- [ ] Commit and push the approved final founder-led format only after clean-tree gates pass
+- [ ] Verify the actual Render build ID and deployed Git commit before claiming DEPLOYED
+- [ ] Send a one-recipient post-deployment proof/canary to `paul.ford@gmail.com` and verify its provider record
+- [x] Remove the reader-facing `THE EVIDENCE` story list because it duplicates the same five developments under `FOCUS ON THE NUMBERS`
+- [x] Keep `YOUR SIGNAL AT A GLANCE` as the non-repeating colour key immediately before `FOCUS ON THE NUMBERS`
+- [x] Ensure every business development headline, meaning and source link appears exactly once in the daily email
+- [ ] Revoke the earlier proof’s release approval and require fresh approval of the deduplicated complete proof
+- [ ] Rebuild the proof manifest and checksum after the structural correction; never reuse `69cc4d23…ecebfc`
+- [x] Replace the superseded two-line Newsroom draft with the exact single heading `DTL SIGNAL NEWSROOM — READ THIS`
+- [x] Preserve the visible `FOCUS ON THE NUMBERS` heading and five compact number-led entries unchanged
+- [x] Keep the Newsroom doorway free of duplicated story headlines, summaries and source links
+- [x] Rebuild the deduplicated complete proof with checksum `cd61cc9d4374c2d13de6bde3b9573f8f9d77375d9bac89d7e9ec688bedc7f93b`
+- [x] Pass 62/62 full regressions and desktop/mobile rendering checks for the corrected proof
+- [x] Deliver the corrected Newsroom proof to `paul.ford@gmail.com` only and verify provider status `delivered`
+- [ ] Receive Fordy’s fresh approval of the exact corrected Newsroom proof before release-integrity work continues
+- [x] Restore exactly five `DTL SIGNAL NEWSROOM — READ THIS` stories before `FOCUS ON THE NUMBERS`
+- [x] Render each Newsroom story as a short action/category lead-in, a large clear headline, concise context and one source link
+- [x] Keep `FOCUS ON THE NUMBERS` in its existing compact three-line format
+- [x] Curate Focus entries around meaningful business results, growth, profit, loss, investment, jobs, pricing or remuneration
+- [x] Balance positive and negative numerical developments without forcing symmetry
+- [x] Enforce zero source overlap between the five Newsroom stories and five Focus number snippets
+- [x] Reject any proof containing a repeated story, fact or source link across the two sections
+- [x] Verify the five distinct Newsroom stories against full Reuters source pages
+- [x] Pass desktop and mobile visual checks for the corrected two-part hierarchy
+- [x] Run the complete regression suite (63/63) and freeze replacement proof checksum `dd2b5375247eeedae0ee80c46992fce8c49919fcb37fda4a69f693f942ce38bb`
+- [x] Send the corrected two-part proof to `paul.ford@gmail.com` only and verify provider status `delivered`
+- [ ] Receive Fordy’s explicit approval of checksum `dd2b5375247eeedae0ee80c46992fce8c49919fcb37fda4a69f693f942ce38bb`
+- [x] Withdraw checksum `dd2b5375247eeedae0ee80c46992fce8c49919fcb37fda4a69f693f942ce38bb` because its Newsroom moved too far into general business news
+- [x] Restore `business-led, AI-informed and significance-first` as the hard selection rule for both daily intelligence sections
+- [x] Prioritise practical AI-in-business stories when they are among the day’s most important developments within the approved minimum 60% mix
+- [x] Permit major non-AI stories when they genuinely affect executive judgement, capital, customers, operations, people, risk or competitive position
+- [x] Never force an AI angle onto a major business story whose real consequence stands on its own
+- [x] Reject model rivalry, founder drama and technical product updates unless they materially change a business decision
+- [x] Keep the approved five-story Newsroom followed by five compact Focus on the Numbers structure
+- [x] Use Focus snippets for the day’s most meaningful results, growth, profit, loss, investment, jobs, pricing, adoption or customer figures, whether AI-related or not
+- [x] Identify an AI opportunity only where the evidence supports one; never bolt it onto unrelated news
+- [x] Enforce ten distinct source records and no repeated story, fact or link across Newsroom and Focus on the Numbers
+- [x] Rewrite the Founder’s Note and interpretation so the edition clearly reconnects AI to business performance
+- [x] Build a fresh complete 60/40 proof before any commit or production action
+- [x] Classify every Newsroom story and Focus snippet as `AI_BUSINESS` or `MAJOR_BUSINESS`
+- [x] Require at least six of the ten combined items to classify as `AI_BUSINESS`
+- [x] Permit no more than four of the ten combined items to classify as `MAJOR_BUSINESS`
+- [x] Use a normal section split of three AI-in-business and two major-business items in Newsroom, plus three AI-in-business and two major-business items in Focus
+- [x] Hold the edition when fewer than six items show a substantive AI-to-business connection
+- [x] Define substantive AI-in-business as evidence of impact on sales, marketing, customers, operations, people, finance, leadership, business models, cost, risk or value
+- [x] Reject AI classification based only on a company being a technology vendor or an article merely mentioning AI
+- [x] Add regression tests proving 6/4 passes, 5/5 holds and section order/source separation remain intact
+- [x] Select and verify three AI-in-business Newsroom stories across strategy, operations and people
+- [x] Select and verify three AI-in-business Focus numbers across infrastructure, sales/service and workforce adoption
+- [x] Select and verify two major-business Newsroom stories across finance and supply-chain investment
+- [x] Preserve two major-business Focus numbers covering Australian growth and Australia Post’s underlying loss
+- [x] Confirm the combined proof mix is exactly six `AI_BUSINESS` and four `MAJOR_BUSINESS` items
+- [x] Pass the complete 64/64 regression suite for the 60/40 proof
+- [x] Pass desktop and mobile visual checks for the exact six-AI/four-business edition
+- [x] Deliver the checksum-locked 60/40 proof to `paul.ford@gmail.com` only and verify provider status `delivered`
+- [x] Obtain Fordy’s approval of exact SHA-256 `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`
+- [x] Complete target-release receipt enforcement so provider delivery cannot mask an old or mismatched deployed release
+- [x] Add the source-controlled approved release manifest, proof checksum, renderer, 60/40 contract and date-bound image identity
+- [x] Require `RENDER_GIT_COMMIT` to match `SIGNAL_EXPECTED_GIT_COMMIT` before any production send or release canary
+- [x] Make successful delivery with a mismatched target release produce a critical receipt and subject rather than a green success
+- [x] Make ordinary proof delivery explicitly state that deployment and subscriber visibility are not verified
+- [x] Re-run the exact approved checksum and complete clean release gate: 67/67 tests; SHA-256 `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`
+- [x] Enforce the approved release manifest, target release ID, target commit, renderer, proof checksum and date-bound Edition 0046 image identity
+- [x] Record target and actual commit, approved and actual artefact, and approved and configured image identity separately in run receipts
+- [x] Pass the final 67/67 release suite after receipt and manifest enforcement; reproduce approved SHA-256 `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`
+- [ ] Commit and push the approved 60/40 revision to production master
+- [ ] Verify the Render build ID and actual deployed Git commit before claiming DEPLOYED
+- [ ] Send and verify a one-recipient post-deployment canary to `paul.ford@gmail.com`

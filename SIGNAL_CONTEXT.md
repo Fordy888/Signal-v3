@@ -169,6 +169,20 @@ Styled in coral (#E8533A) with numbered items. Instructions and examples are in 
 
 ---
 
+## Founder-Led Newsroom + Focus on the Numbers Daily Format (approved 2 September 2026)
+
+The current approved daily format leads with a shorter `FOUNDER’S NOTE`, then presents exactly five big stories under `DTL SIGNAL NEWSROOM — READ THIS`, followed by exactly five separate compact entries under `FOCUS ON THE NUMBERS`. Newsroom stories use a short action/category lead-in, large clear headline, concise source-backed context and one source link. Each Focus entry identifies a company, organisation, person or market; one defining figure; and one sentence explaining what changed and why it matters commercially.
+
+The ten core items must use ten distinct source records and contain no repeated story, fact or source link across the two sections. At least six of the ten items must qualify as substantive `AI_BUSINESS` intelligence, and no more than four may be `MAJOR_BUSINESS`. AI qualifies only when the evidence shows a real effect on a business function, decision, customer outcome, operating model, cost, risk or value. Major non-AI developments remain valid when they materially improve executive judgement; Signal must not force an AI angle onto them.
+
+`THE ONE THING`, `THE SHIFT` and the reader-facing `WHAT CHANGED` section are not part of this format. Position movement remains internal to Signal Memory. The lower sequence remains `WHY IT MATTERS` → `WHAT TO DO NOW` → `THE OTHER SIDE` → `WATCH FOR THIS` → optional `REMEMBER THE WORLD` → mandatory Daily Dad Joke → minimal footer.
+
+The daily revision identifier remains `focus-on-the-numbers-v1`, and its renderer identity is `enhanced-v4-focus-numbers`. Weekly Wrap remains on its separately approved route.
+
+REMEMBER THE WORLD candidates approved from 1 September 2026 onward must record a natural dominant colour family. Brand harmony is a curation preference only: photographs must never be recoloured or artificially tinted, and artistic power, authenticity, rights, provenance, date validity and non-repetition remain the hard gates.
+
+---
+
 ## Run Receipt — Subscriber Insights
 
 Every run receipt now includes a **Subscriber Insights** section:

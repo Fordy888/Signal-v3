@@ -17,6 +17,8 @@ ALLOWED_CATEGORIES = {
     "weather", "seasons", "new_life", "migration", "water", "sky",
     "human_craft", "culture", "architecture",
 }
+ALLOWED_DOMINANT_COLOUR_FAMILIES = {"coral", "amber", "aqua", "deep_teal", "neutral"}
+COLOUR_GOVERNANCE_START = date(2026, 9, 1)
 PROHIBITED_TERMS = {
     "disaster", "catastrophe", "death", "dead", "killed", "campaign",
     "sponsored", "book now", "click", "learn more", "why it matters",
@@ -86,6 +88,11 @@ def validate_alive_moment(
         raise AliveMomentError("Moment is not approved for this issue date")
     if moment["category"] not in ALLOWED_CATEGORIES:
         raise AliveMomentError("Category is outside the grounding editorial palette")
+    if date.fromisoformat(moment["date"]) >= COLOUR_GOVERNANCE_START:
+        if moment.get("dominant_colour_family") not in ALLOWED_DOMINANT_COLOUR_FAMILIES:
+            raise AliveMomentError("Photograph has an unsupported natural colour family")
+        if not str(moment.get("colour_harmony_note", "")).strip():
+            raise AliveMomentError("Photograph colour-harmony assessment is missing")
     if moment["licence_type"] not in ALLOWED_LICENCES:
         raise AliveMomentError("Image licence is not approved for commercial reuse")
     if moment["is_ai_generated"] or moment["image_authenticity"] != "REAL_PHOTOGRAPH":
@@ -140,6 +147,8 @@ def record_alive_moment(path: Path, moment: dict[str, Any], published_at: str) -
             "location": moment["location"],
             "country": moment["country"],
             "category": moment["category"],
+            "dominant_colour_family": moment.get("dominant_colour_family"),
+            "colour_harmony_note": moment.get("colour_harmony_note"),
             "species": moment.get("species"),
             "phenomenon": moment["phenomenon"],
             "image_url": moment.get("image_url"),

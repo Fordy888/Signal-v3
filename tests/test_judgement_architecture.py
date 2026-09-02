@@ -23,6 +23,7 @@ from src.visual_signal import render_visual_signal
 
 
 ROOT = Path(__file__).resolve().parents[1]
+FOCUS_SOURCE_IDS = {f"S{i:02d}" for i in range(1, 11)}
 
 
 def valid_plan() -> dict:
@@ -117,10 +118,93 @@ def valid_plan() -> dict:
     }
 
 
+def focus_numbers_plan() -> dict:
+    plan = valid_plan()
+    plan["editorial_revision"] = "focus-on-the-numbers-v1"
+    plan.pop("one_thing")
+    plan.pop("visual_signal")
+    plan["evidence_items"] = plan["evidence_items"][:5]
+    for index, item in enumerate(plan["evidence_items"], 6):
+        item["source_ids"] = [f"S{index:02d}"]
+        item["mix_classification"] = "AI_BUSINESS" if index <= 8 else "MAJOR_BUSINESS"
+        if item["mix_classification"] == "AI_BUSINESS":
+            item["ai_business_connection"] = "AI changes a real operating decision, commercial outcome or workforce process."
+    plan["founders_note"]["body"] = (
+        "The most useful business stories usually have a number hiding inside them. Revenue, price, wages, customers and investment tell us whether change is real or merely interesting. This edition puts those figures in the open. Do not chase every headline. Find the number that changes a decision, then ask what it means for your business today. — Paul"
+    )
+    plan["focus_numbers"] = [
+        {
+            "source_ids": ["S01"],
+            "entity": "SpaceX",
+            "number": "$400 billion valuation",
+            "meaning": "The new valuation raises the price of competing for private capital and specialist talent.",
+        },
+        {
+            "source_ids": ["S02"],
+            "entity": "Xero",
+            "number": "$3 million remuneration increase",
+            "meaning": "The rise puts performance, pay and shareholder value under the same governance lens.",
+        },
+        {
+            "source_ids": ["S03"],
+            "entity": "Australian retailers",
+            "number": "20% quarterly growth",
+            "meaning": "Faster growth shifts attention from demand generation to fulfilment capacity and margin discipline.",
+        },
+        {
+            "source_ids": ["S04"],
+            "entity": "Enterprise software",
+            "number": "$12 billion invested",
+            "meaning": "Capital is moving toward tools that can demonstrate operating savings rather than novelty.",
+        },
+        {
+            "source_ids": ["S05"],
+            "entity": "Australian employers",
+            "number": "8,000 roles added",
+            "meaning": "Hiring demand points to where confidence is returning and where capability gaps may widen.",
+        },
+    ]
+    for index, item in enumerate(plan["focus_numbers"], 1):
+        item["mix_classification"] = "AI_BUSINESS" if index <= 3 else "MAJOR_BUSINESS"
+        if item["mix_classification"] == "AI_BUSINESS":
+            item["ai_business_connection"] = "AI changes a real operating decision, commercial outcome or workforce process."
+    return plan
+
+
 class JudgementArchitectureTests(unittest.TestCase):
     def test_valid_plan_passes_contract(self) -> None:
         plan = valid_plan()
         self.assertIs(validate_judgement_plan(plan, {f"S0{i}" for i in range(1, 8)}), plan)
+
+    def test_focus_numbers_plan_requires_exactly_five_sourced_defining_figures(self) -> None:
+        plan = focus_numbers_plan()
+        self.assertIs(validate_judgement_plan(plan, FOCUS_SOURCE_IDS), plan)
+        for invalid in (plan["focus_numbers"][:4], plan["focus_numbers"] + [plan["focus_numbers"][0]]):
+            candidate = focus_numbers_plan()
+            candidate["focus_numbers"] = invalid
+            with self.assertRaises(JudgementPlanError):
+                validate_judgement_plan(candidate, FOCUS_SOURCE_IDS)
+
+    def test_focus_number_rejects_unsourced_or_non_numeric_copy(self) -> None:
+        for field, value in (("source_ids", ["S99"]), ("number", "meaningful growth")):
+            plan = focus_numbers_plan()
+            plan["focus_numbers"][0][field] = value
+            with self.assertRaises(JudgementPlanError):
+                validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
+
+    def test_focus_revision_rejects_newsroom_and_number_source_overlap(self) -> None:
+        plan = focus_numbers_plan()
+        plan["evidence_items"][0]["source_ids"] = plan["focus_numbers"][0]["source_ids"]
+        with self.assertRaisesRegex(JudgementPlanError, "must use distinct sources"):
+            validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
+
+    def test_focus_revision_requires_minimum_sixty_percent_ai_business_mix(self) -> None:
+        plan = focus_numbers_plan()
+        self.assertIs(validate_judgement_plan(plan, FOCUS_SOURCE_IDS), plan)
+        plan["focus_numbers"][2]["mix_classification"] = "MAJOR_BUSINESS"
+        plan["focus_numbers"][2].pop("ai_business_connection")
+        with self.assertRaisesRegex(JudgementPlanError, "at least 6 substantive AI-in-business"):
+            validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
 
     def test_unknown_source_is_rejected(self) -> None:
         plan = valid_plan()
@@ -159,6 +243,13 @@ class JudgementArchitectureTests(unittest.TestCase):
             validate_judgement_plan(normalised, {f"S0{i}" for i in range(1, 8)}),
             normalised,
         )
+
+    def test_focus_revision_caps_founders_note_at_half_the_previous_maximum(self) -> None:
+        plan = focus_numbers_plan()
+        plan["founders_note"]["body"] = " ".join(["Founder"] * 120) + " — Paul"
+        normalised, repairs = normalise_word_bound_fields(plan)
+        self.assertLessEqual(len(normalised["founders_note"]["body"].split()), 90)
+        self.assertIn("founders_note.body", repairs)
 
     def test_planner_final_attempt_normalises_superficial_word_overruns(self) -> None:
         plan = valid_plan()
@@ -211,9 +302,18 @@ class JudgementArchitectureTests(unittest.TestCase):
 
     def test_renderer_follows_intelligence_sequence_and_boundaries(self) -> None:
         sources = json.loads((ROOT / "data" / "fixtures" / "edition0038_evidence.json").read_text())
+        existing_ids = {source["source_id"] for source in sources}
+        for index in range(1, 11):
+            source_id = f"S{index:02d}"
+            if source_id not in existing_ids:
+                sources.append({
+                    "source_id": source_id,
+                    "source": f"Source {index}",
+                    "url": f"https://example.com/source-{index}",
+                })
         joke = load_jokes(ROOT / "data" / "dad_jokes.json")[0]
         html = render_enhanced_email(
-            valid_plan(),
+            focus_numbers_plan(),
             sources,
             joke,
             edition_number=38,
@@ -223,30 +323,49 @@ class JudgementArchitectureTests(unittest.TestCase):
         signature = ["THINK.", "DECIDE.", "LOOK UP.", "SMILE."]
         signature_positions = [html.index(label) for label in signature]
         self.assertEqual(signature_positions, sorted(signature_positions))
-        self.assertLess(signature_positions[-1], html.index("THE ONE THING"))
+        self.assertLess(signature_positions[-1], html.index("FOUNDER'S NOTE"))
         sequence = [
-            "THE ONE THING",
             "FOUNDER'S NOTE",
             "AI is infrastructure now. Price it that way.",
             "— Paul",
-            "THE EVIDENCE",
+            "DTL SIGNAL NEWSROOM — READ THIS",
             "YOUR SIGNAL AT A GLANCE",
-            "THE SHIFT",
+            focus_numbers_plan()["evidence_items"][0]["headline"],
+            "FOCUS ON THE NUMBERS",
+            "SpaceX",
+            "$400 billion valuation",
             "WHY IT MATTERS",
-            valid_plan()["interpretation_headline"],
-            "WHAT CHANGED",
-            valid_plan()["what_changed"]["headline"],
+            focus_numbers_plan()["interpretation_headline"],
             "WHAT TO DO NOW",
-            valid_plan()["executive_actions"][0]["headline"],
+            focus_numbers_plan()["executive_actions"][0]["headline"],
             "THE OTHER SIDE",
-            valid_plan()["counter_signal"]["headline"],
+            focus_numbers_plan()["counter_signal"]["headline"],
             "WATCH FOR THIS",
             "REMEMBER THE WORLD",
             "DAD JOKE OF THE DAY",
         ]
         positions = [html.index(label) for label in sequence]
         self.assertEqual(positions, sorted(positions))
-        self.assertIn("THE EVIDENCE", html)
+        self.assertNotIn("THE EVIDENCE", html)
+        self.assertEqual(html.count("DTL SIGNAL NEWSROOM — READ THIS"), 1)
+        self.assertNotIn("TODAY'S NEWSROOM", html)
+        self.assertNotIn("Be smart — read this.", html)
+        self.assertNotIn("THE ONE THING", html)
+        self.assertNotIn("THE SHIFT", html)
+        self.assertNotIn("WHAT CHANGED", html)
+        self.assertEqual(html.count("FOCUS ON THE NUMBERS"), 1)
+        self.assertEqual(html.count("Source:"), 5)
+        selected_ids = {
+            source_id
+            for item in (
+                focus_numbers_plan()["evidence_items"]
+                + focus_numbers_plan()["focus_numbers"]
+            )
+            for source_id in item["source_ids"]
+        }
+        for source in sources:
+            if source["source_id"] in selected_ids:
+                self.assertEqual(html.count(source["url"]), 1)
         self.assertEqual(html.count("YOUR SIGNAL AT A GLANCE"), 1)
         self.assertEqual(html.count("THINK."), 1)
         self.assertEqual(html.count("DECIDE."), 1)
@@ -272,8 +391,8 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertNotIn("COUNTER-SIGNAL", html)
         self.assertIn("FOUNDER'S NOTE", html)
         self.assertEqual(html.count("FOUNDER'S NOTE"), 1)
-        self.assertIn(valid_plan()["founders_note"]["headline"], html)
-        self.assertIn(escape(valid_plan()["founders_note"]["body"]), html)
+        self.assertIn(focus_numbers_plan()["founders_note"]["headline"], html)
+        self.assertIn(escape(focus_numbers_plan()["founders_note"]["body"]), html)
         self.assertEqual(html.count("— Paul"), 1)
         self.assertNotIn("CEO VIEW", html)
         self.assertNotIn("Do something different today … Paul", html)
@@ -287,7 +406,7 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertIn('color:#17A398;letter-spacing:1px;">Edition 0038', html)
         self.assertIn('font-size:12px;color:#17A398;letter-spacing:1.5px', html)
         self.assertIn('border-top:2px solid #4ECDC4;padding-top:14px;', html)
-        self.assertIn('padding:14px 40px 8px 40px;', html)
+        self.assertIn('padding:18px 40px 22px 40px;', html)
         self.assertNotIn('color:#aaa;letter-spacing:2px;text-transform:uppercase;">THINK</p>', html)
         self.assertNotIn('color:#aaa;letter-spacing:2px;text-transform:uppercase;">DECIDE</p>', html)
         self.assertNotIn('color:#aaa;letter-spacing:2px;text-transform:uppercase;">LOOK UP</p>', html)
@@ -316,6 +435,11 @@ class JudgementArchitectureTests(unittest.TestCase):
             container[field[-1]] = value
             with self.assertRaises(JudgementPlanError):
                 validate_judgement_plan(plan, {f"S0{i}" for i in range(1, 8)})
+
+        focus_plan = focus_numbers_plan()
+        focus_plan["focus_numbers"][0]["meaning"] = "S01 proves the CRM change."
+        with self.assertRaises(JudgementPlanError):
+            validate_judgement_plan(focus_plan, FOCUS_SOURCE_IDS)
 
     def test_historical_plan_can_still_render_locked_v4(self) -> None:
         plan = valid_plan()

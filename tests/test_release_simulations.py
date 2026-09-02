@@ -29,6 +29,63 @@ def _scored_items() -> list[dict[str, str]]:
     return [{"category": categories[index % 4]} for index in range(25)]
 
 
+def _focus_numbers_plan() -> dict:
+    plan = json.loads((ROOT / "data" / "edition0042-enhanced-plan.json").read_text())
+    plan["editorial_revision"] = "focus-on-the-numbers-v1"
+    plan.pop("one_thing")
+    plan.pop("visual_signal")
+    plan["evidence_items"] = plan["evidence_items"][:5]
+    for index, item in enumerate(plan["evidence_items"], 6):
+        item["source_ids"] = [f"S{index:02d}"]
+        item["mix_classification"] = "AI_BUSINESS" if index <= 8 else "MAJOR_BUSINESS"
+        if item["mix_classification"] == "AI_BUSINESS":
+            item["ai_business_connection"] = "AI changes a real business process, decision or commercial result."
+    plan["interpretation_headline"] = "The numbers are changing operating priorities"
+    plan["executive_actions"] = [
+        {
+            "action_tag": "ACT",
+            "headline": "Follow the commercial proof",
+            "instruction": "Identify which reported number would genuinely change a decision in your business.",
+        }
+    ]
+    plan["counter_signal"]["headline"] = "One day does not make a pattern"
+    plan["executive_read"]["watch_headline"] = "Look for numbers that repeat"
+    plan["founders_note"]["body"] = (
+        "The most useful business stories usually have a number hiding inside them. Revenue, price, wages, customers and investment tell us whether change is real or merely interesting. Do not chase every headline. Find the number that changes a decision, then ask what it means for your business today. — Paul"
+    )
+    plan["focus_numbers"] = [
+        {
+            "source_ids": [f"S0{index}"],
+            "entity": f"Business {index}",
+            "number": f"{index * 10}% movement",
+            "meaning": "The reported movement changes the commercial decision leaders need to consider today.",
+        }
+        for index in range(1, 6)
+    ]
+    for index, item in enumerate(plan["focus_numbers"], 1):
+        item["mix_classification"] = "AI_BUSINESS" if index <= 3 else "MAJOR_BUSINESS"
+        if item["mix_classification"] == "AI_BUSINESS":
+            item["ai_business_connection"] = "AI changes a real business process, decision or commercial result."
+    return plan
+
+
+def _focus_evidence() -> list[dict]:
+    evidence = json.loads(
+        (ROOT / "data" / "fixtures" / "edition0042_evidence.json").read_text()
+    )
+    for index in range(7, 11):
+        evidence.append({
+            "source_id": f"S{index:02d}",
+            "title": f"Distinct Newsroom story {index}",
+            "source": f"Source {index}",
+            "url": f"https://example.com/source-{index}",
+            "category": "Strategy & Business Model",
+            "score": 30,
+            "evidence": "A distinct source-backed business development for the Newsroom test.",
+        })
+    return evidence
+
+
 def _weekly_html() -> str:
     stories = []
     for index in range(1, 6):
@@ -65,10 +122,14 @@ class ReleaseSimulationTests(unittest.TestCase):
                 "ENABLE_GAUGE": "static",
                 "SIGNAL_RELEASE_PROFILE": "v4.0",
                 "SIGNAL_V4_LAUNCH_DATE": "2026-08-31",
-                "SIGNAL_EXPECTED_DAILY_RENDERER": "enhanced-v4",
+                "SIGNAL_EXPECTED_DAILY_RENDERER": "enhanced-v4-focus-numbers",
                 "SIGNAL_EXPECTED_GIT_BRANCH": "master",
+                "SIGNAL_EXPECTED_GIT_COMMIT": "abcdef1234567890",
                 "SIGNAL_EXPECTED_RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
-                "SIGNAL_ALIVE_MOMENT_PATH": "data/fixtures/alive_moment_0043.json",
+                "SIGNAL_TARGET_RELEASE_ID": "focus-numbers-60-40-v1",
+                "SIGNAL_EXPECTED_APPROVED_PROOF_SHA256": "7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3",
+                "SIGNAL_RELEASE_MANIFEST_PATH": "data/release_manifest.json",
+                "SIGNAL_ALIVE_MOMENT_PATH": "data/fixtures/alive_moment_0046.json",
             },
             clear=False,
         )
@@ -179,10 +240,8 @@ class ReleaseSimulationTests(unittest.TestCase):
     def test_monday_edition_0043_dynamic_v4_full_dry_run_never_delivers(self) -> None:
         output = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
         output.close()
-        plan = json.loads((ROOT / "data" / "edition0042-enhanced-plan.json").read_text())
-        evidence = json.loads(
-            (ROOT / "data" / "fixtures" / "edition0042_evidence.json").read_text()
-        )
+        plan = _focus_numbers_plan()
+        evidence = _focus_evidence()
         patches = self._common_patches()
         with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6] as send_mock, patch(
             "src.main.scored_items_to_evidence", return_value=evidence
@@ -218,15 +277,19 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertIn("SMILE.</span>", html)
         self.assertIn("YOUR SIGNAL AT A GLANCE", html)
         self.assertIn("FOUNDER'S NOTE", html)
+        self.assertIn("DTL SIGNAL NEWSROOM — READ THIS", html)
+        self.assertIn("FOCUS ON THE NUMBERS", html)
+        self.assertNotIn("THE EVIDENCE", html)
+        self.assertNotIn("THE ONE THING", html)
+        self.assertNotIn("THE SHIFT", html)
+        self.assertNotIn("WHAT CHANGED", html)
         self.assertNotIn("REMEMBER THE WORLD", html)
         self.assertIn("DAD JOKE OF THE DAY", html)
         self.assertIn("PF::SIGNAL-0043 // 31.08.2026 // 06:00 AEST", html)
 
     def test_monday_proof_subject_uses_the_same_release_clock_as_the_body(self) -> None:
-        plan = json.loads((ROOT / "data" / "edition0042-enhanced-plan.json").read_text())
-        evidence = json.loads(
-            (ROOT / "data" / "fixtures" / "edition0042_evidence.json").read_text()
-        )
+        plan = _focus_numbers_plan()
+        evidence = _focus_evidence()
         production_env = {
             "RENDER": "true",
             "RENDER_GIT_BRANCH": "master",
@@ -234,9 +297,13 @@ class ReleaseSimulationTests(unittest.TestCase):
             "RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
             "SIGNAL_RELEASE_PROFILE": "v4.0",
             "SIGNAL_V4_LAUNCH_DATE": "2026-08-31",
-            "SIGNAL_EXPECTED_DAILY_RENDERER": "enhanced-v4",
+            "SIGNAL_EXPECTED_DAILY_RENDERER": "enhanced-v4-focus-numbers",
             "SIGNAL_EXPECTED_GIT_BRANCH": "master",
+            "SIGNAL_EXPECTED_GIT_COMMIT": "abcdef1234567890",
             "SIGNAL_EXPECTED_RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
+            "SIGNAL_TARGET_RELEASE_ID": "focus-numbers-60-40-v1",
+            "SIGNAL_EXPECTED_APPROVED_PROOF_SHA256": "7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3",
+            "SIGNAL_RELEASE_MANIFEST_PATH": "data/release_manifest.json",
         }
         patches = self._common_patches()
         with patch.dict(os.environ, production_env, clear=False), patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6] as send_mock, patch(
@@ -269,7 +336,7 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertEqual(send_mock.call_count, 1)
         self.assertEqual(
             send_mock.call_args.kwargs["subject_override"],
-            "[PROOF] DTL Signal | Edition 0043 | Monday 31 August 2026",
+            "[PROOF] DTL Signal | Final Founder-Led Format | Edition 0043",
         )
         receipt = receipt_mock.call_args.args[0]
         self.assertEqual(receipt.release_identity_status, "MATCH")

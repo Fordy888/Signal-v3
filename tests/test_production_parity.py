@@ -127,7 +127,7 @@ class ProductionParityTests(unittest.TestCase):
             "last_event": "delivered",
             "tags": [
                 {"name": "message_type", "value": "signal"},
-                {"name": "format", "value": "enhanced-v4"},
+                {"name": "format", "value": "enhanced-v4-focus-numbers"},
                 {"name": "delivery_mode", "value": "production"},
             ],
             "html": embed_delivery_memory(

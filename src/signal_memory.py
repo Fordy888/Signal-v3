@@ -103,6 +103,8 @@ def apply_alive_moment_update(
         "location": moment.get("location"),
         "country": moment.get("country"),
         "category": moment.get("category"),
+        "dominant_colour_family": moment.get("dominant_colour_family"),
+        "colour_harmony_note": moment.get("colour_harmony_note"),
         "species": moment.get("species"),
         "image_url": moment.get("image_url"),
         "image_original_url": moment.get("image_original_url"),
@@ -247,7 +249,7 @@ def recover_signal_memory_from_resend(
         tags = _tags_by_name(email)
         if not (
             tags.get("message_type") == "signal"
-            and tags.get("format") == "enhanced-v4"
+            and tags.get("format") in {"enhanced-v4", "enhanced-v4-focus-numbers"}
             and tags.get("delivery_mode") == "production"
         ):
             continue

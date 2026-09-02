@@ -38,6 +38,21 @@ class AliveMomentTests(unittest.TestCase):
         with self.assertRaises(AliveMomentError):
             validate_alive_moment(candidate, [])
 
+    def test_candidate_requires_an_approved_natural_colour_family(self):
+        candidate = json.loads(
+            (ROOT / "data" / "fixtures" / "alive_moment_0044.json").read_text()
+        )
+        candidate["dominant_colour_family"] = "purple"
+        with self.assertRaises(AliveMomentError):
+            validate_alive_moment(candidate, [])
+
+    def test_quang_phu_cau_is_recorded_as_naturally_coral_without_image_manipulation(self):
+        candidate = json.loads(
+            (ROOT / "data" / "fixtures" / "alive_moment_0044.json").read_text()
+        )
+        self.assertEqual(candidate["dominant_colour_family"], "coral")
+        self.assertIn("not been recoloured or tinted", candidate["colour_harmony_note"])
+
     def test_uncertain_licence_is_rejected(self):
         candidate = copy.deepcopy(self.moment)
         candidate["licence_type"] = "UNKNOWN"

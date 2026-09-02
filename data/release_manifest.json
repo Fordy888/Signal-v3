@@ -1,0 +1,32 @@
+{
+  "release_id": "focus-numbers-60-40-v1",
+  "status": "APPROVED",
+  "approved_proof_path": "data/final-founder-led-proof.html",
+  "approved_proof_sha256": "7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3",
+  "expected_renderer": "enhanced-v4-focus-numbers",
+  "approved_image_identity": "REMEMBER-0046-QUANG-PHU-CAU-INCENSE",
+  "approved_image_required_on": "2026-09-03",
+  "required_markers": [
+    "FOUNDER'S NOTE",
+    "DTL SIGNAL NEWSROOM — READ THIS",
+    "YOUR SIGNAL AT A GLANCE",
+    "FOCUS ON THE NUMBERS",
+    "WHY IT MATTERS",
+    "WHAT TO DO NOW",
+    "THE OTHER SIDE",
+    "WATCH FOR THIS"
+  ],
+  "forbidden_markers": [
+    "THE EVIDENCE",
+    "THE ONE THING",
+    "THE SHIFT",
+    "WHAT CHANGED"
+  ],
+  "editorial_contract": {
+    "newsroom_items": 5,
+    "focus_number_items": 5,
+    "minimum_ai_business_items": 6,
+    "maximum_major_business_items": 4,
+    "source_overlap_allowed": false
+  }
+}

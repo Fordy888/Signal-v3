@@ -1,7 +1,7 @@
 {
-  "id": "REMEMBER-0044-QUANG-PHU-CAU-INCENSE",
-  "edition_id": "0044",
-  "date": "2026-09-01",
+  "id": "REMEMBER-0046-QUANG-PHU-CAU-INCENSE",
+  "edition_id": "0046",
+  "date": "2026-09-03",
   "location": "Quang Phu Cau",
   "country": "Vietnam",
   "region": "Southeast Asia",
@@ -34,6 +34,6 @@
   "recent_category_check": "PASS",
   "recent_species_check": "PASS",
   "editorial_status": "APPROVED_FOR_PROOF",
-  "selected_at": "2026-09-01T20:22:00+10:00",
+  "selected_at": "2026-09-02T17:00:00+10:00",
   "published_at": null
 }

@@ -259,7 +259,7 @@ def main() -> int:
         log.info("Weekday detected — running Daily Signal")
     use_enhanced = args.enhanced and edition_type == "daily"
     renderer_id = (
-        "enhanced-v4"
+        "enhanced-v4-focus-numbers"
         if use_enhanced
         else "weekly-wrap-current" if edition_type == "weekly_wrap" else "legacy-daily"
     )
@@ -567,7 +567,23 @@ def main() -> int:
         if weekly_issues:
             log.error("Weekly Wrap gate issues: %s", "; ".join(weekly_issues))
     elif use_enhanced:
-        if enhanced_plan and enhanced_plan.get("editorial_revision") == "dynamic-headlines-v1":
+        if enhanced_plan and enhanced_plan.get("editorial_revision") == "focus-on-the-numbers-v1":
+            required_labels = (
+                "FOUNDER'S NOTE",
+                "DTL SIGNAL NEWSROOM — READ THIS",
+                "YOUR SIGNAL AT A GLANCE",
+                "FOCUS ON THE NUMBERS",
+                "WHY IT MATTERS",
+                "WHAT TO DO NOW",
+                "THE OTHER SIDE",
+                "WATCH FOR THIS",
+            )
+            removed_labels = ("THE EVIDENCE", "THE ONE THING", "THE SHIFT", "WHAT CHANGED")
+            has_key_section = all(label in html for label in required_labels) and all(
+                label not in html for label in removed_labels
+            )
+            gate_label = "founder-led Focus on the Numbers intelligence sequence"
+        elif enhanced_plan and enhanced_plan.get("editorial_revision") == "dynamic-headlines-v1":
             has_key_section = all(
                 label in html
                 for label in ("THE ONE THING", "THE EVIDENCE", "THE SHIFT", "WHY IT MATTERS", "WHAT CHANGED", "WHAT TO DO NOW", "THE OTHER SIDE", "WATCH FOR THIS")
@@ -762,7 +778,10 @@ def main() -> int:
             else:
                 subject_override = f"DTL Signal Weekly Wrap | Week Ending {week_ending}"
         elif args.proof:
-            subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {runtime_now.strftime('%A %d %B %Y')}"
+            if use_enhanced and enhanced_plan and enhanced_plan.get("editorial_revision") == "focus-on-the-numbers-v1":
+                subject_override = f"[PROOF] DTL Signal | Final Founder-Led Format | Edition {edition_number:04d}"
+            else:
+                subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {runtime_now.strftime('%A %d %B %Y')}"
 
         # Personalise gauge links for this subscriber
         personalised_html = personalise_gauge_for_subscriber(html, email)
@@ -774,7 +793,7 @@ def main() -> int:
             {"name": "message_type", "value": "signal"},
             {"name": "edition", "value": f"{edition_number:04d}"},
             {"name": "edition_type", "value": edition_type},
-            {"name": "format", "value": "enhanced-v4" if use_enhanced else "legacy"},
+            {"name": "format", "value": renderer_id if use_enhanced else "legacy"},
             {"name": "delivery_mode", "value": "production" if args.send else "proof"},
         ]
         result = send_brief(

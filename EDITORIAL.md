@@ -92,4 +92,30 @@ Everything should move the reader from information to understanding to action as
 
 ---
 
+## 9. Make the Numbers Mean Something
+
+Numbers earn attention only when they change business judgement. Signal should prefer figures that reveal movement in revenue, profit, price, valuation, employment, remuneration, investment, customers, productivity, risk or market position.
+
+Every highlighted figure must be current, sourced and placed in its proper period or comparison. A large number without commercial meaning is decoration, not intelligence.
+
+---
+
+## 10. Let the World Stay Real
+
+REMEMBER THE WORLD exists to reconnect the reader with art, humanity, place, nature and craft. Its photographs must remain authentic and unmanipulated.
+
+Signal may prefer a qualifying photograph whose natural colour harmonises with coral, amber, aqua or deep teal. It must never recolour an image, weaken the rights or provenance threshold, or choose a lesser photograph merely to match the brand.
+
+---
+
+## 11. Keep the Mix AI-Informed and Business-Led
+
+The ten core daily items must contain at least **60% substantive AI-in-business intelligence** and no more than **40% major business news**.
+
+AI earns its place when it changes a real business function, decision, customer outcome, operating model, cost, risk or source of value. A vendor label, technical announcement or passing mention does not qualify.
+
+Major non-AI developments still belong when they materially improve executive judgement. Signal must never force an AI angle onto a story whose real business consequence stands on its own.
+
+---
+
 *Established 28 June 2026. These principles govern all editorial, technical, and product decisions for DTL Signal.*

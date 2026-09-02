@@ -26,13 +26,21 @@ services:
       - key: SIGNAL_V4_LAUNCH_DATE
         value: "2026-08-31"
       - key: SIGNAL_EXPECTED_DAILY_RENDERER
-        value: enhanced-v4
+        value: enhanced-v4-focus-numbers
       - key: SIGNAL_EXPECTED_GIT_BRANCH
         value: master
+      - key: SIGNAL_EXPECTED_GIT_COMMIT
+        sync: false
       - key: SIGNAL_EXPECTED_RENDER_SERVICE_ID
         value: crn-d8ouk0bsq97s73fgc36g
+      - key: SIGNAL_TARGET_RELEASE_ID
+        value: focus-numbers-60-40-v1
+      - key: SIGNAL_EXPECTED_APPROVED_PROOF_SHA256
+        value: 7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3
+      - key: SIGNAL_RELEASE_MANIFEST_PATH
+        value: data/release_manifest.json
       - key: SIGNAL_ALIVE_MOMENT_PATH
-        value: data/fixtures/alive_moment_0043.json
+        value: data/fixtures/alive_moment_0046.json
       - key: MODEL_SCORING
         value: claude-haiku-4-5-20251001
       - key: MODEL_SYNTHESIS
@@ -82,7 +90,7 @@ services:
     runtime: python
     schedule: "0 0 1 1 *"
     buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
-    startCommand: python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-08-31T06:00:00+10:00 --save-html data/deployed-canary-0043.html
+    startCommand: python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-09-03T06:00:00+10:00 --save-html data/deployed-canary-0046.html
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -99,9 +107,21 @@ services:
       - key: SIGNAL_RELEASE_PROFILE
         value: v4.0
       - key: SIGNAL_EXPECTED_DAILY_RENDERER
-        value: enhanced-v4
+        value: enhanced-v4-focus-numbers
+      - key: SIGNAL_EXPECTED_GIT_BRANCH
+        value: master
+      - key: SIGNAL_EXPECTED_GIT_COMMIT
+        sync: false
+      - key: SIGNAL_EXPECTED_RENDER_SERVICE_ID
+        sync: false
+      - key: SIGNAL_TARGET_RELEASE_ID
+        value: focus-numbers-60-40-v1
+      - key: SIGNAL_EXPECTED_APPROVED_PROOF_SHA256
+        value: 7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3
+      - key: SIGNAL_RELEASE_MANIFEST_PATH
+        value: data/release_manifest.json
       - key: SIGNAL_ALIVE_MOMENT_PATH
-        value: data/fixtures/alive_moment_0043.json
+        value: data/fixtures/alive_moment_0046.json
       - key: MODEL_SCORING
         value: claude-haiku-4-5-20251001
       - key: MODEL_SYNTHESIS

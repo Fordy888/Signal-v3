@@ -29,6 +29,9 @@ CONFIDENCE_LEVELS = {"HIGH", "MEDIUM", "LOW"}
 ACTION_TAGS = {"ACT", "WATCH", "OPPORTUNITY", "NOTE"}
 VISUAL_TYPES = {"DIRECTION_OF_TRAVEL", "TENSION_MAP", "COMPARISON", "EXPOSURE_MAP", "NONE"}
 DYNAMIC_HEADLINE_REVISION = "dynamic-headlines-v1"
+FOCUS_NUMBERS_REVISION = "focus-on-the-numbers-v1"
+CONTENT_MIX_TYPES = {"AI_BUSINESS", "MAJOR_BUSINESS"}
+MIN_AI_BUSINESS_ITEMS = 6
 SOURCE_ID_RE = re.compile(r"\bS\d{2,}\b", re.IGNORECASE)
 UNEXPLAINED_READER_TERMS = {
     "CRM", "UI", "API", "LLM", "RAG", "MCP", "GPU", "ERP", "SaaS", "SoR",
@@ -50,7 +53,14 @@ def _trim_words(value: Any, limit: int) -> str:
 
 
 def _is_dynamic_revision(plan: dict[str, Any]) -> bool:
-    return plan.get("editorial_revision") == DYNAMIC_HEADLINE_REVISION
+    return plan.get("editorial_revision") in {
+        DYNAMIC_HEADLINE_REVISION,
+        FOCUS_NUMBERS_REVISION,
+    }
+
+
+def _is_focus_numbers_revision(plan: dict[str, Any]) -> bool:
+    return plan.get("editorial_revision") == FOCUS_NUMBERS_REVISION
 
 
 def _reader_fields(plan: dict[str, Any]) -> list[tuple[str, str]]:
@@ -61,9 +71,11 @@ def _reader_fields(plan: dict[str, Any]) -> list[tuple[str, str]]:
         if isinstance(value, str):
             fields.append((path, value))
 
-    one = plan.get("one_thing") or {}
-    add("one_thing.statement", one.get("statement"))
-    add("one_thing.business_implication", one.get("business_implication"))
+    focus_numbers_revision = _is_focus_numbers_revision(plan)
+    if not focus_numbers_revision:
+        one = plan.get("one_thing") or {}
+        add("one_thing.statement", one.get("statement"))
+        add("one_thing.business_implication", one.get("business_implication"))
     for index, item in enumerate(plan.get("evidence_items") or []):
         if isinstance(item, dict):
             add(f"evidence_items[{index}].headline", item.get("headline"))
@@ -73,16 +85,23 @@ def _reader_fields(plan: dict[str, Any]) -> list[tuple[str, str]]:
     note = plan.get("founders_note") or {}
     add("founders_note.headline", note.get("headline"))
     add("founders_note.body", note.get("body"))
-    changed = plan.get("what_changed") or {}
-    add("what_changed.headline", changed.get("headline"))
-    add("what_changed.explanation", changed.get("explanation"))
-    visual = plan.get("visual_signal") or {}
-    add("visual_signal.title", visual.get("title"))
-    add("visual_signal.subtitle", visual.get("subtitle"))
-    for index, row in enumerate(visual.get("rows") or []):
-        if isinstance(row, dict):
-            add(f"visual_signal.rows[{index}].label", row.get("label"))
-            add(f"visual_signal.rows[{index}].detail", row.get("detail"))
+    if focus_numbers_revision:
+        for index, item in enumerate(plan.get("focus_numbers") or []):
+            if isinstance(item, dict):
+                add(f"focus_numbers[{index}].entity", item.get("entity"))
+                add(f"focus_numbers[{index}].number", item.get("number"))
+                add(f"focus_numbers[{index}].meaning", item.get("meaning"))
+    else:
+        changed = plan.get("what_changed") or {}
+        add("what_changed.headline", changed.get("headline"))
+        add("what_changed.explanation", changed.get("explanation"))
+        visual = plan.get("visual_signal") or {}
+        add("visual_signal.title", visual.get("title"))
+        add("visual_signal.subtitle", visual.get("subtitle"))
+        for index, row in enumerate(visual.get("rows") or []):
+            if isinstance(row, dict):
+                add(f"visual_signal.rows[{index}].label", row.get("label"))
+                add(f"visual_signal.rows[{index}].detail", row.get("detail"))
     counter = plan.get("counter_signal") or {}
     add("counter_signal.headline", counter.get("headline"))
     add("counter_signal.statement", counter.get("statement"))
@@ -141,6 +160,14 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
                 cap(item, "headline", 8, f"evidence_items[{index}].headline")
                 cap(item, "evidence", 28, f"evidence_items[{index}].evidence")
 
+    focus_numbers = normalised.get("focus_numbers")
+    if isinstance(focus_numbers, list):
+        for index, item in enumerate(focus_numbers):
+            if isinstance(item, dict):
+                cap(item, "entity", 6, f"focus_numbers[{index}].entity")
+                cap(item, "number", 10, f"focus_numbers[{index}].number")
+                cap(item, "meaning", 26, f"focus_numbers[{index}].meaning")
+
     if isinstance(normalised.get("interpretation"), str) and _words(normalised["interpretation"]) > 55:
         normalised["interpretation"] = _trim_words(normalised["interpretation"], 55)
         repairs.append("interpretation")
@@ -154,9 +181,10 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
     if isinstance(founders_note, dict):
         cap(founders_note, "headline", 12, "founders_note.headline")
         body = founders_note.get("body")
-        if isinstance(body, str) and body.endswith("— Paul") and _words(body) > 180:
+        body_limit = 90 if _is_focus_numbers_revision(normalised) else 180
+        if isinstance(body, str) and body.endswith("— Paul") and _words(body) > body_limit:
             core = body[: -len("— Paul")].strip()
-            founders_note["body"] = f"{_trim_words(core, 178)} — Paul"
+            founders_note["body"] = f"{_trim_words(core, body_limit - 2)} — Paul"
             repairs.append("founders_note.body")
 
     counter = normalised.get("counter_signal")
@@ -167,7 +195,7 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
         cap(counter, "would_change_view_if", 45, "counter_signal.would_change_view_if")
 
     changed = normalised.get("what_changed")
-    if _is_dynamic_revision(normalised) and isinstance(changed, dict):
+    if _is_dynamic_revision(normalised) and not _is_focus_numbers_revision(normalised) and isinstance(changed, dict):
         cap(changed, "headline", 10, "what_changed.headline")
 
     actions = normalised.get("executive_actions")
@@ -212,35 +240,48 @@ def _extract_json_object(text: str) -> dict[str, Any]:
 
 def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]) -> dict[str, Any]:
     required = {
-        "one_thing",
         "evidence_items",
         "interpretation",
         "founders_note",
         "what_changed",
-        "visual_signal",
         "counter_signal",
         "executive_actions",
         "executive_read",
         "memory_update",
     }
+    focus_numbers_revision = _is_focus_numbers_revision(plan)
+    if focus_numbers_revision:
+        required.add("focus_numbers")
+    else:
+        required.update({"one_thing", "visual_signal"})
     missing = required.difference(plan)
     if missing:
         raise JudgementPlanError(f"Planner omitted required keys: {sorted(missing)}")
     dynamic_revision = _is_dynamic_revision(plan)
-    if plan.get("editorial_revision") not in {None, DYNAMIC_HEADLINE_REVISION}:
+    if plan.get("editorial_revision") not in {
+        None,
+        DYNAMIC_HEADLINE_REVISION,
+        FOCUS_NUMBERS_REVISION,
+    }:
         raise JudgementPlanError("Planner returned an unsupported editorial revision")
 
-    one_thing = plan["one_thing"]
-    if not str(one_thing.get("statement", "")).strip():
-        raise JudgementPlanError("THE ONE THING is empty")
-    if _words(one_thing["statement"]) > 24 or _words(one_thing.get("business_implication", "")) > 38:
-        raise JudgementPlanError("THE ONE THING exceeds the executive-compression limit")
-    if one_thing.get("confidence") not in CONFIDENCE_LEVELS:
-        raise JudgementPlanError("THE ONE THING has an invalid confidence level")
+    if not focus_numbers_revision:
+        one_thing = plan["one_thing"]
+        if not str(one_thing.get("statement", "")).strip():
+            raise JudgementPlanError("THE ONE THING is empty")
+        if _words(one_thing["statement"]) > 24 or _words(one_thing.get("business_implication", "")) > 38:
+            raise JudgementPlanError("THE ONE THING exceeds the executive-compression limit")
+        if one_thing.get("confidence") not in CONFIDENCE_LEVELS:
+            raise JudgementPlanError("THE ONE THING has an invalid confidence level")
 
     items = plan["evidence_items"]
-    if not isinstance(items, list) or not 5 <= len(items) <= 8:
+    if focus_numbers_revision:
+        if not isinstance(items, list) or len(items) != 5:
+            raise JudgementPlanError("DTL SIGNAL NEWSROOM requires exactly five stories")
+    elif not isinstance(items, list) or not 5 <= len(items) <= 8:
         raise JudgementPlanError("Enhanced edition must contain 5-8 evidence items")
+    newsroom_source_ids: set[str] = set()
+    ai_business_items = 0
     for item in items:
         if item.get("action_tag") not in ACTION_TAGS:
             raise JudgementPlanError("Evidence item has an invalid action tag")
@@ -254,6 +295,18 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
             raise JudgementPlanError("Evidence headline exceeds eight words")
         if _words(item["evidence"]) > 28:
             raise JudgementPlanError("Evidence item exceeds 28 words")
+        newsroom_source_ids.update(source_ids)
+        if focus_numbers_revision:
+            mix_classification = str(item.get("mix_classification", "")).strip()
+            if mix_classification not in CONTENT_MIX_TYPES:
+                raise JudgementPlanError("Newsroom story has an invalid content-mix classification")
+            if mix_classification == "AI_BUSINESS":
+                connection = str(item.get("ai_business_connection", "")).strip()
+                if not connection or _words(connection) > 28:
+                    raise JudgementPlanError(
+                        "AI-in-business Newsroom story requires a substantive connection in no more than 28 words"
+                    )
+                ai_business_items += 1
 
     if not str(plan.get("interpretation", "")).strip() or _words(plan["interpretation"]) > 55:
         raise JudgementPlanError("Edition-level interpretation is missing or exceeds 55 words")
@@ -267,29 +320,85 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
     body = str(founders_note.get("body", "")).strip()
     if not headline or _words(headline) > 12:
         raise JudgementPlanError("FOUNDER'S NOTE headline is missing or exceeds 12 words")
-    if not 60 <= _words(body) <= 180:
-        raise JudgementPlanError("FOUNDER'S NOTE body must contain 60-180 words")
+    note_min, note_max = (45, 90) if focus_numbers_revision else (60, 180)
+    if not note_min <= _words(body) <= note_max:
+        raise JudgementPlanError(
+            f"FOUNDER'S NOTE body must contain {note_min}-{note_max} words"
+        )
     if not body.endswith("— Paul"):
         raise JudgementPlanError("FOUNDER'S NOTE must end with the inline sign-off — Paul")
 
     what_changed = plan["what_changed"]
     if what_changed.get("classification") not in MOVEMENT_TYPES:
-        raise JudgementPlanError("WHAT CHANGED has an invalid classification")
-    if dynamic_revision:
+        raise JudgementPlanError("Internal position movement has an invalid classification")
+    if not str(what_changed.get("explanation", "")).strip():
+        raise JudgementPlanError("Internal position movement requires an explanation")
+    if dynamic_revision and not focus_numbers_revision:
         changed_headline = str(what_changed.get("headline", "")).strip()
         if not changed_headline or _words(changed_headline) > 10:
             raise JudgementPlanError("WHAT CHANGED headline is missing or exceeds 10 words")
 
-    visual = plan["visual_signal"]
-    if visual.get("type") not in VISUAL_TYPES:
-        raise JudgementPlanError("Visual Signal has an invalid type")
-    if visual.get("eligible") and visual.get("type") == "NONE":
-        raise JudgementPlanError("Eligible Visual Signal cannot use type NONE")
-    if visual.get("eligible") and not 2 <= len(visual.get("rows") or []) <= 5:
-        raise JudgementPlanError("Eligible Visual Signal requires 2-5 rows")
-    if dynamic_revision and visual.get("eligible"):
-        if not str(visual.get("title", "")).strip() or _words(visual.get("title", "")) > 12:
-            raise JudgementPlanError("THE SHIFT headline is missing or exceeds 12 words")
+    if focus_numbers_revision:
+        focus_numbers = plan["focus_numbers"]
+        if not isinstance(focus_numbers, list) or len(focus_numbers) != 5:
+            raise JudgementPlanError("FOCUS ON THE NUMBERS requires exactly five entries")
+        focus_source_ids: set[str] = set()
+        for index, item in enumerate(focus_numbers):
+            if not isinstance(item, dict):
+                raise JudgementPlanError(f"Focus number {index + 1} is not structured")
+            source_ids = set(item.get("source_ids") or [])
+            if not source_ids or not source_ids.issubset(available_source_ids):
+                raise JudgementPlanError(
+                    f"Focus number {index + 1} cites unknown source IDs: {sorted(source_ids)}"
+                )
+            entity = str(item.get("entity", "")).strip()
+            number = str(item.get("number", "")).strip()
+            meaning = str(item.get("meaning", "")).strip()
+            if not entity or _words(entity) > 6:
+                raise JudgementPlanError(f"Focus number {index + 1} entity is missing or exceeds six words")
+            if not number or _words(number) > 10 or not re.search(r"\d", number):
+                raise JudgementPlanError(
+                    f"Focus number {index + 1} must contain a defining figure in no more than 10 words"
+                )
+            if not meaning or _words(meaning) > 26:
+                raise JudgementPlanError(
+                    f"Focus number {index + 1} meaning is missing or exceeds 26 words"
+                )
+            mix_classification = str(item.get("mix_classification", "")).strip()
+            if mix_classification not in CONTENT_MIX_TYPES:
+                raise JudgementPlanError(
+                    f"Focus number {index + 1} has an invalid content-mix classification"
+                )
+            if mix_classification == "AI_BUSINESS":
+                connection = str(item.get("ai_business_connection", "")).strip()
+                if not connection or _words(connection) > 28:
+                    raise JudgementPlanError(
+                        f"AI-in-business Focus number {index + 1} requires a substantive connection in no more than 28 words"
+                    )
+                ai_business_items += 1
+            focus_source_ids.update(source_ids)
+        overlap = newsroom_source_ids.intersection(focus_source_ids)
+        if overlap:
+            raise JudgementPlanError(
+                "Newsroom stories and FOCUS ON THE NUMBERS must use distinct sources; "
+                f"overlap: {sorted(overlap)}"
+            )
+        if ai_business_items < MIN_AI_BUSINESS_ITEMS:
+            raise JudgementPlanError(
+                "The combined Newsroom and FOCUS ON THE NUMBERS mix requires at least "
+                f"{MIN_AI_BUSINESS_ITEMS} substantive AI-in-business items; received {ai_business_items}"
+            )
+    else:
+        visual = plan["visual_signal"]
+        if visual.get("type") not in VISUAL_TYPES:
+            raise JudgementPlanError("Visual Signal has an invalid type")
+        if visual.get("eligible") and visual.get("type") == "NONE":
+            raise JudgementPlanError("Eligible Visual Signal cannot use type NONE")
+        if visual.get("eligible") and not 2 <= len(visual.get("rows") or []) <= 5:
+            raise JudgementPlanError("Eligible Visual Signal requires 2-5 rows")
+        if dynamic_revision and visual.get("eligible"):
+            if not str(visual.get("title", "")).strip() or _words(visual.get("title", "")) > 12:
+                raise JudgementPlanError("THE SHIFT headline is missing or exceeds 12 words")
 
     counter = plan["counter_signal"]
     if not str(counter.get("statement", "")).strip() or not str(counter.get("would_change_view_if", "")).strip():
