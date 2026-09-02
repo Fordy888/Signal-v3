@@ -36,3 +36,26 @@ No duplicate edition has been sent. Edition 0045 delivered successfully to 33/33
 ## Current operating status
 
 The approved revision is **COMMITTED / NOT DEPLOYED / NOT LIVE**. No further editorial approval is required. The next permitted status is DEPLOYED, and that status requires direct Render evidence tied to commit `345c20b` or a documented descendant containing only release records.
+
+## Edition 0046 recurrence — 3 September 2026
+
+The later founder-led 60/40 release was approved, built and committed to GitHub master at `5b83752deafb7dca394c27bc2533e829d04144c7`. Its exact approved proof SHA-256 is `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`. The release was not deployed after the Render session expired, and the scheduled run was not held.
+
+The subscriber-visible Edition 0046 PDF confirms the old release sent again. It contains `THE ONE THING`, a long Founder’s Note after that section, `THE EVIDENCE`, `VISUAL SIGNAL`, `EXECUTIVE READ`, `INTERPRETATION`, `WHAT CHANGED?`, `EXECUTIVE ACTION / WATCH`, reader-facing `S01 / S07 / S26 / S33` codes, `COUNTER-SIGNAL`, `WHAT TO WATCH` and the repeated Moorea whale photograph. It does not contain `DTL SIGNAL NEWSROOM — READ THIS` or `FOCUS ON THE NUMBERS`.
+
+The matching Gmail operational receipt has message ID `1a063c07171fe39d` and subject `✓ DTL Signal 0046 — Delivered (33/33)`. It records:
+
+| Field | Edition 0046 actual evidence |
+|---|---|
+| Delivery | `33/33` |
+| Live commit | `6c39f001c256c8d401f34cfbbdaa23ce5041b24a` |
+| Renderer | `enhanced-v4` |
+| Expected renderer in old environment | `enhanced-v4` |
+| Receipt identity | `MATCH` |
+| Actual HTML SHA-256 | `61c6dca5b914a459a977b55292fccf683c9cbefd1db576f9aae658fd85033caa` |
+| Approved target commit | `5b83752deafb7dca394c27bc2533e829d04144c7` |
+| Approved target proof SHA-256 | `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3` |
+
+The receipt’s `MATCH` proves only that the old runtime matched its stale environment. It does not prove the approved release went live. The commitment result is therefore: **DELIVERY SUCCEEDED / TARGET RELEASE FAILED**.
+
+No duplicate Edition 0046 will be sent. Recovery targets the next available scheduled edition only after the approved commit is deployed and a one-recipient canary proves the target release.

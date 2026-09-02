@@ -381,6 +381,17 @@
 - [x] Enforce the approved release manifest, target release ID, target commit, renderer, proof checksum and date-bound Edition 0046 image identity
 - [x] Record target and actual commit, approved and actual artefact, and approved and configured image identity separately in run receipts
 - [x] Pass the final 67/67 release suite after receipt and manifest enforcement; reproduce approved SHA-256 `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`
-- [ ] Commit and push the approved 60/40 revision to production master
+
+## Edition 0046 Subscriber-Visible Verification Incident
+
+- [x] Inspect the attached subscriber Edition 0046 PDF and record its actual reader-facing headings, content mix and REMEMBER THE WORLD image
+- [x] Obtain the matching Edition 0046 operational receipt and record live commit `6c39f00`, renderer `enhanced-v4`, artefact SHA `61c6dca5…33caa` and delivery `33/33`
+- [x] Compare Edition 0046 against approved release `focus-numbers-60-40-v1`, GitHub commit `5b83752deafb7dca394c27bc2533e829d04144c7` and proof SHA `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`
+- [x] Record that Edition 0046 was subscriber-visible on the old Render release: DELIVERY SUCCEEDED / TARGET RELEASE FAILED
+- [x] Do not resend Edition 0046 or trigger any subscriber broadcast during recovery
+- [x] Reconfirm the approved GitHub release remains reproducible after correcting the date-bound image regression: 67/67 tests and exact proof SHA `7ff05b54…7b606e3`
+- [ ] Deploy only after Render access is restored and the guarded build target is explicit
+- [ ] Run a one-recipient live canary before any future scheduled subscriber edition
+- [x] Commit and push the approved 60/40 revision to production master at `5b83752deafb7dca394c27bc2533e829d04144c7`
 - [ ] Verify the Render build ID and actual deployed Git commit before claiming DEPLOYED
 - [ ] Send and verify a one-recipient post-deployment canary to `paul.ford@gmail.com`

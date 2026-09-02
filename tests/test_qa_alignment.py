@@ -83,6 +83,7 @@ class ReleaseIdentityTests(unittest.TestCase):
             "SIGNAL_TARGET_RELEASE_ID": "focus-numbers-60-40-v1",
             "SIGNAL_EXPECTED_APPROVED_PROOF_SHA256": "7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3",
             "SIGNAL_RELEASE_MANIFEST_PATH": "data/release_manifest.json",
+            "SIGNAL_ALIVE_MOMENT_PATH": "data/fixtures/alive_moment_0046.json",
         }
 
     def test_monday_v4_identity_passes_only_with_complete_render_evidence(self):
