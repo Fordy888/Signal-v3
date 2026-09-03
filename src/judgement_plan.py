@@ -243,6 +243,62 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
     return normalised, repairs
 
 
+def add_final_attempt_action_fallback(plan: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Add one source-bound action only when a dynamic final attempt returns none.
+
+    The fallback is deliberately conservative: it uses a selected Newsroom item's
+    source IDs and action posture, adds no factual claim, and leaves every valid
+    planner-supplied action untouched.
+    """
+    repaired = copy.deepcopy(plan)
+    actions = repaired.get("executive_actions")
+    if not _is_dynamic_revision(repaired) or not isinstance(actions, list) or actions:
+        return repaired, []
+
+    evidence_items = repaired.get("evidence_items")
+    if not isinstance(evidence_items, list):
+        return repaired, []
+    source_item = next(
+        (
+            item
+            for item in evidence_items
+            if isinstance(item, dict)
+            and item.get("action_tag") == "ACT"
+            and item.get("source_ids")
+        ),
+        None,
+    )
+    if source_item is None:
+        source_item = next(
+            (
+                item
+                for item in evidence_items
+                if isinstance(item, dict) and item.get("source_ids")
+            ),
+            None,
+        )
+    if source_item is None:
+        return repaired, []
+
+    source_ids = [str(source_id) for source_id in source_item.get("source_ids") or []]
+    source_posture = str(source_item.get("action_tag", "WATCH"))
+    action_tag = source_posture if source_posture in {"ACT", "OPPORTUNITY"} else "WATCH"
+    headline = {
+        "ACT": "Decide what changes now",
+        "OPPORTUNITY": "Test the business opening",
+        "WATCH": "Watch the business consequence",
+    }[action_tag]
+    actions.append({
+        "action_tag": action_tag,
+        "headline": headline,
+        "instruction": "Review the selected evidence and decide whether it changes one current business priority this week.",
+        "source_ids": source_ids,
+        "evidence_basis": str(source_item.get("headline", "")).strip(),
+        "fallback_generated": True,
+    })
+    return repaired, ["executive_actions[0]"]
+
+
 def _extract_json_object(text: str) -> dict[str, Any]:
     fenced = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, re.DOTALL)
     candidate = fenced.group(1) if fenced else text.strip()
@@ -443,6 +499,13 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
                 raise JudgementPlanError("Executive action headline is missing or exceeds six words")
             if not str(action.get("instruction", "")).strip() or _words(action["instruction"]) > 20:
                 raise JudgementPlanError("Executive action instruction is missing or exceeds 20 words")
+            action_source_ids = action.get("source_ids")
+            if action_source_ids is not None:
+                source_ids = set(action_source_ids)
+                if not source_ids or not source_ids.issubset(available_source_ids):
+                    raise JudgementPlanError(
+                        f"Executive action cites unknown source IDs: {sorted(source_ids)}"
+                    )
     elif any(_words(action) > 24 for action in actions):
         raise JudgementPlanError("Executive action exceeds 24 words")
 
@@ -497,6 +560,8 @@ def generate_judgement_plan(
             candidate = _extract_json_object(text)
             if attempt == 2:
                 candidate, repairs = normalise_word_bound_fields(candidate)
+                candidate, action_repairs = add_final_attempt_action_fallback(candidate)
+                repairs.extend(action_repairs)
                 if repairs:
                     log.warning(
                         "Judgement planning final attempt normalised bounded fields: %s",

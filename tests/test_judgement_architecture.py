@@ -14,6 +14,7 @@ from src.enhanced_renderer import render_enhanced_email
 from src.human_signal import load_jokes, select_joke
 from src.judgement_plan import (
     JudgementPlanError,
+    add_final_attempt_action_fallback,
     generate_judgement_plan,
     normalise_word_bound_fields,
     validate_judgement_plan,
@@ -288,6 +289,36 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertLessEqual(len(repaired_number.split()), 10)
         self.assertRegex(repaired_number, r"\d")
         self.assertIn("$1.2 billion", repaired_number)
+
+    def test_planner_final_attempt_adds_source_bound_action_when_model_returns_none(self) -> None:
+        plan = focus_numbers_plan()
+        plan["executive_actions"] = []
+        response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
+        client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
+        evidence = [{"source_id": source_id} for source_id in sorted(FOCUS_SOURCE_IDS)]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prompt_path = Path(tmpdir) / "prompt.md"
+            prompt_path.write_text("{EVIDENCE_ITEMS}\n{SIGNAL_MEMORY}")
+            with patch("src.judgement_plan.Anthropic", return_value=client), patch(
+                "src.judgement_plan.time.sleep"
+            ), patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+                result = generate_judgement_plan(evidence, {}, prompt_path)
+
+        self.assertEqual(client.messages.create.call_count, 3)
+        self.assertEqual(len(result["executive_actions"]), 1)
+        action = result["executive_actions"][0]
+        self.assertTrue(action["fallback_generated"])
+        self.assertEqual(action["source_ids"], ["S06"])
+        self.assertLessEqual(len(action["headline"].split()), 6)
+        self.assertLessEqual(len(action["instruction"].split()), 20)
+        self.assertIs(validate_judgement_plan(result, FOCUS_SOURCE_IDS), result)
+
+    def test_final_attempt_action_fallback_preserves_existing_actions(self) -> None:
+        plan = focus_numbers_plan()
+        repaired, repairs = add_final_attempt_action_fallback(plan)
+        self.assertEqual(repairs, [])
+        self.assertEqual(repaired["executive_actions"], plan["executive_actions"])
 
     def test_planner_final_attempt_normalises_superficial_word_overruns(self) -> None:
         plan = valid_plan()

@@ -403,3 +403,13 @@
 - [x] Pass the complete and isolated release suites: 69/69 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
 - [ ] Commit and deploy the correction as a documented descendant of `cd73df99af5f7a896e13d997974315e312e00c62`
 - [ ] Rerun the one-recipient canary; restore subscriber mode only after CANARY VERIFIED
+- [x] Record second safe abort receipt `1a064e63b95531f8`: 0/0 delivered; target and actual commit `9862fba` matched with the full release contract
+- [x] Identify the second exact hold: the third planning attempt returned no executive actions, below the required 1–3
+- [x] Create an evidence-grounded final-attempt fallback action only when the planner returns zero actions
+- [x] Preserve supplied action headlines and instructions whenever at least one valid action exists
+- [x] Bind any fallback action to selected Newsroom source evidence rather than generating an unsupported generic instruction
+- [x] Add regression coverage for zero-action final output, existing valid actions, source binding, 60/40 mix and reader-language constraints; focused 21/21 tests passed
+- [x] Pass complete and isolated release suites after the second correction: 71/71 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [x] Pass the complete local release suite after the second correction: 71/71 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [ ] Commit and deploy the second correction as a documented descendant of `9862fbab0898bf5ad6012e91fd93cca6918caec6`
+- [ ] Rerun the one-recipient canary and restore subscriber mode only after the proof email and matched release receipt are verified

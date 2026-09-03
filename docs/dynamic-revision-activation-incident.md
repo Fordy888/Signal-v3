@@ -79,3 +79,9 @@ The canary completed with a safe abort. Gmail receipt `1a064c8a2e33b0a6` reports
 The specific synthesis hold was: `Judgement planning failed after three attempts: Focus number 4 must contain a defining figure in no more than 10 words`.
 
 This proves the deployment and release-identity controls are active and the one-recipient boundary held. It does **not** establish CANARY VERIFIED. The service remains on the proof-only command while the planner’s final-attempt normalisation is corrected and the canary is rerun.
+
+The Focus-number correction was committed as `9862fbab0898bf5ad6012e91fd93cca6918caec6`, passed 69/69 local, isolated and Render build tests, and was deployed in build `bld-dacckobm8hqs73agdjbg`.
+
+The second proof-only canary again held safely. Gmail receipt `1a064e63b95531f8` reports `0/0 delivered`, target and actual commit both `9862fbab0898bf5ad6012e91fd93cca6918caec6`, and the full renderer, release, proof and image contract matched. The new synthesis hold was: `Judgement planning failed after three attempts: Edition requires 1-3 executive actions`.
+
+This second result confirms the first correction worked and exposed a separate final-attempt structural edge case: the model returned zero actions. The release remains DEPLOYED but not CANARY VERIFIED or LIVE.
