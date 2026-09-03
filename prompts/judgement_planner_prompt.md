@@ -10,6 +10,10 @@ DTL Signal does not compete on more information. It competes on better judgement
 
 {EVIDENCE_ITEMS}
 
+## Pre-verified Focus-number source IDs
+
+{FOCUS_NUMBER_SOURCE_IDS}
+
 ## Prior Signal positions
 
 {SIGNAL_MEMORY}
@@ -20,7 +24,7 @@ DTL Signal does not compete on more information. It competes on better judgement
 2. Set `editorial_revision` to `focus-on-the-numbers-v1`.
 3. `founders_note` is the opening human judgement in Paul's voice. Write one direct headline and 45–90 words of substantive first-person commentary. Target 60–80 words and end inline with `— Paul`. It must interpret rather than recap.
 4. Select exactly five `evidence_items` for `DTL SIGNAL NEWSROOM — READ THIS`. These are the day's five big business stories. Each needs a short category/action lead-in, a large clear headline and one concise factual paragraph. Include Sales & Marketing when a strong candidate exists.
-5. Produce exactly five additional `focus_numbers`. These are short numerical snippets, not second versions of the Newsroom stories. Each identifies a recognisable company, organisation, person or market; states one defining figure; and explains it in one short sentence.
+5. Produce exactly five additional `focus_numbers`. These are short numerical snippets, not second versions of the Newsroom stories. Each identifies a recognisable company, organisation, person or market; states one defining figure; and explains it in one short sentence. A Focus entry may cite only a source ID listed under `Pre-verified Focus-number source IDs` and marked `focus_number_eligible: true` in the supplied evidence. Use that source's `focus_number_candidate` as the evidence anchor; never move a figure between sources.
 6. Across the ten combined items, classify at least six as `AI_BUSINESS` and no more than four as `MAJOR_BUSINESS`. A normal edition should aim for three AI-in-business items in each section, but the hard gate applies to the combined ten.
 7. `AI_BUSINESS` requires substantive evidence that AI is changing sales, marketing, customers, operations, people, finance, leadership, a business model, cost, risk or value. A technology vendor, product announcement or passing mention of AI is not enough. State the real connection in `ai_business_connection`.
 8. `MAJOR_BUSINESS` is allowed when a development genuinely changes executive judgement without AI involvement. Never force an AI angle onto it.

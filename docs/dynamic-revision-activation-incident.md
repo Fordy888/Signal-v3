@@ -105,3 +105,11 @@ The fourth proof-only canary ran on deployed commit `71ea338870471b553735e878b0a
 The exact hold was: `Focus number 1 must contain a defining figure in no more than 10 words`. Unlike an overlong field, the generated value did not contain the required numeric evidence. Trimming cannot repair that condition.
 
 Recovery must remain evidence-bound: a missing Focus figure may be recovered only from the same selected source record, and only when that source contains an explicit eligible numeric figure. If no such figure exists, the edition must continue to hold. The service remains proof-only.
+
+### Fifth canary — selection must move upstream
+
+The fifth proof-only canary ran on deployed commit `53a8f7a26adbdb19abe95d2d53717999e8935412`. Render build `bld-dacdomgae00c73f08bvg` passed all 78 tests and completed successfully. The canary ran manually from 02:36:05 to 02:48:25 UTC and sent no subscriber email.
+
+Attempts one and two were rejected for presentation-bound issues and correctly retried. The final attempt normalised all eligible bounded fields but still failed with `Focus number 5 must contain a defining figure in no more than 10 words`. The selected fifth source contained no eligible numeric evidence, so same-source recovery correctly refused to invent a figure. The run receipt was saved as `Edition NOT sent`, and the receipt email was sent to Paul.
+
+The root control must therefore move before planning: Focus on the Numbers may select only from a pre-verified pool of source records containing an explicit eligible figure. Final-attempt recovery remains a secondary safeguard, not the selection mechanism.

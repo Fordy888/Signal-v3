@@ -267,9 +267,9 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
 
 ELIGIBLE_FOCUS_FIGURE_RE = re.compile(
     r"(?:[$€£]\s?\d[\d,]*(?:\.\d+)?\s?(?:thousand|million|billion|trillion)?)"
-    r"|(?:\b\d[\d,]*(?:\.\d+)?\s?(?:%|percent|basis points?|bps|"
-    r"thousand|million|billion|trillion|roles|jobs|customers|workers|employees|"
-    r"firms|companies|points|times|x)\b)",
+    r"|(?:\b\d[\d,]*(?:\.\d+)?\s?(?:%|percent\b|basis points?\b|bps\b|"
+    r"thousand\b|million\b|billion\b|trillion\b|roles\b|jobs\b|customers\b|"
+    r"workers\b|employees\b|firms\b|companies\b|points\b|times\b|x\b))",
     re.IGNORECASE,
 )
 
@@ -348,6 +348,27 @@ def _source_bound_focus_figure(source: dict[str, Any], focus_item: dict[str, Any
     if not candidates:
         return None
     return max(candidates, key=lambda candidate: (candidate[0], candidate[1]))[2]
+
+
+def prepare_focus_number_evidence(
+    evidence_items: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], set[str]]:
+    """Annotate source evidence with deterministic Focus-number eligibility.
+
+    The planner may only cite eligible source IDs for Focus on the Numbers. The
+    compact candidate is copied verbatim from the same source evidence and is a
+    planning aid, not permission to invent or transfer figures between sources.
+    """
+    prepared = copy.deepcopy(evidence_items)
+    eligible_source_ids: set[str] = set()
+    for source in prepared:
+        source_id = str(source.get("source_id", "")).strip()
+        candidate = _source_bound_focus_figure(source, {}) if source_id else None
+        source["focus_number_eligible"] = candidate is not None
+        if candidate is not None:
+            source["focus_number_candidate"] = candidate
+            eligible_source_ids.add(source_id)
+    return prepared, eligible_source_ids
 
 
 def recover_missing_focus_figures(
@@ -469,7 +490,11 @@ def _extract_json_object(text: str) -> dict[str, Any]:
         raise JudgementPlanError(f"Planner returned invalid JSON: {exc}") from exc
 
 
-def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]) -> dict[str, Any]:
+def validate_judgement_plan(
+    plan: dict[str, Any],
+    available_source_ids: set[str],
+    focus_eligible_source_ids: set[str] | None = None,
+) -> dict[str, Any]:
     required = {
         "evidence_items",
         "interpretation",
@@ -582,6 +607,14 @@ def validate_judgement_plan(plan: dict[str, Any], available_source_ids: set[str]
                 raise JudgementPlanError(
                     f"Focus number {index + 1} cites unknown source IDs: {sorted(source_ids)}"
                 )
+            if (
+                focus_eligible_source_ids is not None
+                and not source_ids.issubset(focus_eligible_source_ids)
+            ):
+                raise JudgementPlanError(
+                    f"Focus number {index + 1} cites source IDs without pre-verified "
+                    f"numeric evidence: {sorted(source_ids.difference(focus_eligible_source_ids))}"
+                )
             entity = str(item.get("entity", "")).strip()
             number = str(item.get("number", "")).strip()
             meaning = str(item.get("meaning", "")).strip()
@@ -687,10 +720,23 @@ def generate_judgement_plan(
 ) -> dict[str, Any]:
     """Generate one structured editorial judgement plan from scored evidence."""
     source_ids = {str(item["source_id"]) for item in evidence_items}
-    prompt = prompt_path.read_text().replace(
-        "{EVIDENCE_ITEMS}", json.dumps(evidence_items, indent=2)
+    prompt_template = prompt_path.read_text()
+    planner_evidence, focus_eligible_source_ids = prepare_focus_number_evidence(evidence_items)
+    if (
+        FOCUS_NUMBERS_REVISION in prompt_template
+        and len(focus_eligible_source_ids) < 5
+    ):
+        raise JudgementPlanError(
+            "FOCUS ON THE NUMBERS requires at least five distinct source records "
+            "with pre-verified numeric evidence; received "
+            f"{len(focus_eligible_source_ids)}"
+        )
+    prompt = prompt_template.replace(
+        "{EVIDENCE_ITEMS}", json.dumps(planner_evidence, indent=2)
     ).replace(
         "{SIGNAL_MEMORY}", json.dumps(prior_memory, indent=2)
+    ).replace(
+        "{FOCUS_NUMBER_SOURCE_IDS}", json.dumps(sorted(focus_eligible_source_ids))
     )
 
     client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -715,7 +761,7 @@ def generate_judgement_plan(
             candidate = _extract_json_object(text)
             if attempt == 2:
                 candidate, repairs = normalise_word_bound_fields(candidate)
-                candidate, figure_repairs = recover_missing_focus_figures(candidate, evidence_items)
+                candidate, figure_repairs = recover_missing_focus_figures(candidate, planner_evidence)
                 repairs.extend(figure_repairs)
                 candidate, action_repairs = add_final_attempt_action_fallback(candidate)
                 repairs.extend(action_repairs)
@@ -724,7 +770,11 @@ def generate_judgement_plan(
                         "Judgement planning final attempt normalised bounded fields: %s",
                         ", ".join(repairs),
                     )
-            return validate_judgement_plan(candidate, source_ids)
+            return validate_judgement_plan(
+                candidate,
+                source_ids,
+                focus_eligible_source_ids if _is_focus_numbers_revision(candidate) else None,
+            )
         except Exception as exc:
             last_error = exc
             if attempt < 2:

@@ -432,5 +432,17 @@
 - [x] Keep missing-figure output as a hard hold when the selected source contains no eligible numeric expression
 - [x] Add regressions proving same-source recovery, no cross-source leakage, no invented figure and continued 60/40/source-disjointness enforcement; focused 28/28 tests passed
 - [x] Pass complete and isolated release suites after the evidence-bound correction: 78/78 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
-- [ ] Commit and deploy the correction as a documented descendant of `71ea338870471b553735e878b0a5ba05b91fc02c`
+- [x] Commit and deploy evidence-bound correction `53a8f7a26adbdb19abe95d2d53717999e8935412` in Render build `bld-dacdomgae00c73f08bvg` after 78/78 tests
 - [ ] Rerun the one-recipient canary and restore subscriber mode only after the proof email and matched release receipt are verified
+- [x] Record the fifth safe abort on deployed commit `53a8f7a`: no subscriber delivery; release canary held because Focus item 5 selected a source with no eligible numeric evidence
+- [x] Identify the root issue as upstream source eligibility rather than another presentation-bound normalisation gap
+- [x] Define deterministic numeric eligibility for percentage, currency, count, rate, multiple and signed commercial-change expressions while rejecting bare years
+- [x] Build a pre-verified Focus candidate pool from the actual source evidence supplied to the planner
+- [x] Require at least five distinct eligible numeric sources before invoking the planner; otherwise hold before model generation
+- [x] Tell the planner exactly which source IDs are eligible for Focus on the Numbers
+- [x] Reject any Focus source ID outside the pre-verified pool even if its generated label contains a number
+- [x] Preserve same-source numeric recovery as a secondary fallback for eligible sources only
+- [x] Add regressions for six-or-more eligible sources, fewer-than-five hold, ineligible-source rejection, no invention, ten-source disjointness and 60/40 mix; focused 32/32 tests passed
+- [x] Pass complete and isolated release suites after upstream eligibility enforcement: 82/82 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [x] Pass the complete local suite after upstream numeric eligibility enforcement: 82/82 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [ ] Commit, deploy and rerun the one-recipient canary; restore subscriber mode only after matched proof and receipt verification

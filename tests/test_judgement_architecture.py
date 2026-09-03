@@ -17,6 +17,7 @@ from src.judgement_plan import (
     add_final_attempt_action_fallback,
     generate_judgement_plan,
     normalise_word_bound_fields,
+    prepare_focus_number_evidence,
     recover_missing_focus_figures,
     validate_judgement_plan,
 )
@@ -173,6 +174,23 @@ def focus_numbers_plan() -> dict:
     return plan
 
 
+def focus_numeric_evidence(numeric_ids: set[str] | None = None) -> list[dict]:
+    eligible = numeric_ids if numeric_ids is not None else set(FOCUS_SOURCE_IDS)
+    return [
+        {
+            "source_id": source_id,
+            "title": f"Source {source_id} business result",
+            "evidence": (
+                f"Revenue increased {index}% as customers expanded contracted work."
+                if source_id in eligible
+                else "The company discussed its strategy without publishing a figure."
+            ),
+            "scoring_reason": "Commercially material business evidence.",
+        }
+        for index, source_id in enumerate(sorted(FOCUS_SOURCE_IDS), 11)
+    ]
+
+
 class JudgementArchitectureTests(unittest.TestCase):
     def test_valid_plan_passes_contract(self) -> None:
         plan = valid_plan()
@@ -193,6 +211,79 @@ class JudgementArchitectureTests(unittest.TestCase):
             plan["focus_numbers"][0][field] = value
             with self.assertRaises(JudgementPlanError):
                 validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
+
+    def test_focus_numeric_pool_marks_only_explicit_eligible_figures(self) -> None:
+        evidence = [
+            {"source_id": "S01", "evidence": "Revenue rose 20% in the quarter."},
+            {"source_id": "S02", "evidence": "Profit reached $4.2 billion."},
+            {"source_id": "S03", "evidence": "The company added 8,000 roles."},
+            {"source_id": "S04", "evidence": "The 2026 strategy names three priorities."},
+            {"source_id": "S05", "evidence": "Management described stronger demand."},
+        ]
+
+        prepared, eligible = prepare_focus_number_evidence(evidence)
+
+        self.assertEqual(eligible, {"S01", "S02", "S03"})
+        by_id = {item["source_id"]: item for item in prepared}
+        self.assertTrue(by_id["S01"]["focus_number_eligible"])
+        self.assertIn("20%", by_id["S01"]["focus_number_candidate"])
+        self.assertTrue(by_id["S02"]["focus_number_eligible"])
+        self.assertIn("$4.2 billion", by_id["S02"]["focus_number_candidate"])
+        self.assertFalse(by_id["S04"]["focus_number_eligible"])
+        self.assertNotIn("focus_number_candidate", by_id["S04"])
+
+    def test_focus_validation_rejects_source_outside_preverified_numeric_pool(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][0]["source_ids"] = ["S10"]
+        with self.assertRaisesRegex(JudgementPlanError, "without pre-verified numeric evidence"):
+            validate_judgement_plan(
+                plan,
+                FOCUS_SOURCE_IDS,
+                {"S01", "S02", "S03", "S04", "S05"},
+            )
+
+    def test_focus_planner_holds_before_model_when_fewer_than_five_numeric_sources(self) -> None:
+        evidence = focus_numeric_evidence({"S01", "S02", "S03", "S04"})
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prompt_path = Path(tmpdir) / "prompt.md"
+            prompt_path.write_text(
+                "editorial_revision focus-on-the-numbers-v1\n"
+                "{EVIDENCE_ITEMS}\n{FOCUS_NUMBER_SOURCE_IDS}\n{SIGNAL_MEMORY}"
+            )
+            with patch("src.judgement_plan.Anthropic") as anthropic:
+                with self.assertRaisesRegex(JudgementPlanError, "at least five distinct source records"):
+                    generate_judgement_plan(evidence, {}, prompt_path)
+        anthropic.assert_not_called()
+
+    def test_focus_planner_exposes_and_enforces_preverified_numeric_pool(self) -> None:
+        plan = focus_numbers_plan()
+        response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
+        client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
+        evidence = focus_numeric_evidence({"S01", "S02", "S03", "S04", "S05", "S06"})
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prompt_path = Path(tmpdir) / "prompt.md"
+            prompt_path.write_text(
+                "editorial_revision focus-on-the-numbers-v1\n"
+                "{EVIDENCE_ITEMS}\n{FOCUS_NUMBER_SOURCE_IDS}\n{SIGNAL_MEMORY}"
+            )
+            with patch("src.judgement_plan.Anthropic", return_value=client), patch.dict(
+                "os.environ", {"ANTHROPIC_API_KEY": "test-key"}
+            ):
+                result = generate_judgement_plan(evidence, {}, prompt_path)
+
+        self.assertEqual(client.messages.create.call_count, 1)
+        prompt_text = client.messages.create.call_args.kwargs["messages"][0]["content"]
+        self.assertIn('"focus_number_eligible": true', prompt_text)
+        self.assertIn('"S05"', prompt_text)
+        self.assertIs(
+            validate_judgement_plan(
+                result,
+                FOCUS_SOURCE_IDS,
+                {"S01", "S02", "S03", "S04", "S05", "S06"},
+            ),
+            result,
+        )
 
     def test_missing_focus_figure_recovers_from_same_selected_source_only(self) -> None:
         plan = focus_numbers_plan()
@@ -400,7 +491,7 @@ class JudgementArchitectureTests(unittest.TestCase):
         plan["focus_numbers"][0]["ai_business_connection"] = " ".join(["connection"] * 35)
         response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
         client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
-        evidence = [{"source_id": source_id} for source_id in sorted(FOCUS_SOURCE_IDS)]
+        evidence = focus_numeric_evidence()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             prompt_path = Path(tmpdir) / "prompt.md"
@@ -422,7 +513,7 @@ class JudgementArchitectureTests(unittest.TestCase):
         )
         response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
         client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
-        evidence = [{"source_id": source_id} for source_id in sorted(FOCUS_SOURCE_IDS)]
+        evidence = focus_numeric_evidence()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             prompt_path = Path(tmpdir) / "prompt.md"
@@ -450,10 +541,10 @@ class JudgementArchitectureTests(unittest.TestCase):
                 "evidence": (
                     "SpaceX reached a $400 billion valuation after its latest transaction."
                     if source_id == "S01"
-                    else "Source-backed business evidence."
+                    else f"Revenue increased {index}% as customers expanded contracted work."
                 ),
             }
-            for source_id in sorted(FOCUS_SOURCE_IDS)
+            for index, source_id in enumerate(sorted(FOCUS_SOURCE_IDS), 11)
         ]
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -474,7 +565,7 @@ class JudgementArchitectureTests(unittest.TestCase):
         plan["executive_actions"] = []
         response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
         client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
-        evidence = [{"source_id": source_id} for source_id in sorted(FOCUS_SOURCE_IDS)]
+        evidence = focus_numeric_evidence()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             prompt_path = Path(tmpdir) / "prompt.md"

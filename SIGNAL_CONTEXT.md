@@ -181,6 +181,8 @@ The daily revision identifier remains `focus-on-the-numbers-v1`, and its rendere
 
 The planner’s third and final attempt may deterministically shorten presentation-bound copy while preserving sources, classifications, figures and meaning. If a Focus item omits its defining figure, recovery is allowed only from an explicit numeric expression in that item’s single selected source record. The source ID and content classification cannot change. Ambiguous sources or source records without an eligible figure remain critical holds; Signal must never invent or borrow a number from another item.
 
+Before planning begins, Signal builds a verified Focus-number source pool. Only evidence records containing an explicit eligible business figure may be selected for `FOCUS ON THE NUMBERS`; bare years and unquantified claims do not qualify. Fewer than five distinct eligible sources is a pre-planning hold. The model receives the eligible IDs, and validation rejects any Focus citation outside that pool.
+
 REMEMBER THE WORLD candidates approved from 1 September 2026 onward must record a natural dominant colour family. Brand harmony is a curation preference only: photographs must never be recoloured or artificially tinted, and artistic power, authenticity, rights, provenance, date validity and non-repetition remain the hard gates.
 
 ---

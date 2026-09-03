@@ -25,3 +25,11 @@ A missing Focus defining figure is handled separately. The final attempt may rec
 The safety layer must not invent missing evidence, numeric figures, classifications, source links, internal position movement, minimum-length Founder’s Note content or required sections. Unknown sources, Newsroom/Focus overlap, fewer than six AI-in-business items, missing AI-business connections, non-numeric Focus figures without eligible same-source evidence and other semantic failures continue to abort the edition.
 
 The purpose of normalisation is to prevent valid substance from failing on superficial length—not to convert an incomplete plan into a publishable one.
+
+## Upstream numeric eligibility
+
+Focus-number safety begins before the model is called. Each supplied evidence record is scanned deterministically for an explicit business figure such as currency, percentage, rate, multiple, jobs, roles, workers, employees, customers, firms, companies or points. A bare year or an unquantified claim does not qualify.
+
+Eligible records are annotated with `focus_number_eligible: true` and a compact `focus_number_candidate` copied from that same source. The planner receives the complete eligible source-ID list and may cite only those IDs in `focus_numbers`. If fewer than five distinct eligible records exist, Signal holds before model generation. Validation independently rejects any Focus source outside the verified pool, even if generated copy happens to contain a digit.
+
+Same-source final-attempt recovery remains a secondary safeguard. It cannot make an ineligible source eligible and cannot transfer a figure between sources.
