@@ -20,7 +20,11 @@ The daily edition will retain the four-colour `THINK. DECIDE. LOOK UP. SMILE.` s
 
 `THE ONE THING` and reader-facing `WHAT CHANGED` are removed completely. Position movement remains an internal Signal Memory input and must never be rendered as a reader section.
 
-The ten Newsroom and Focus items must use ten distinct source records. At least six must classify as `AI_BUSINESS`; no more than four may classify as `MAJOR_BUSINESS`. AI-in-business requires a substantive connection to a real business function, decision, customer outcome, operating model, cost, risk or value. Major non-AI stories remain valid when they materially improve executive judgement, and Signal must not force an AI angle onto them.
+The ten Newsroom and Focus items must use ten distinct source records. Each section must contain exactly three `AI_BUSINESS` and two `MAJOR_BUSINESS` items, producing the approved 60/40 balance across the edition. AI-in-business requires a substantive connection to a real business function, decision, customer outcome, operating model, cost, risk or value. Major non-AI stories remain valid when they materially improve executive judgement, and Signal must not force an AI angle onto them.
+
+Newsroom `category` remains internal planning metadata. Machine keys such as `venture_capital`, `opportunity_radar` and `ai_market_signals` must never be shown to readers. A quiet action lead-in may be followed by a human editorial label, but machine-style underscore keys are omitted.
+
+Every reader-facing headline must finish as a complete phrase. Final-attempt shortening may remove trailing words, but it must also remove dangling articles, prepositions, conjunctions, possessives or qualifiers such as `a`, `the`, `in`, `not`, `just`, `your` and `with`.
 
 ## Focus on the Numbers contract
 

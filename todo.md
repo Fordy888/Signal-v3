@@ -445,4 +445,14 @@
 - [x] Add regressions for six-or-more eligible sources, fewer-than-five hold, ineligible-source rejection, no invention, ten-source disjointness and 60/40 mix; focused 32/32 tests passed
 - [x] Pass complete and isolated release suites after upstream eligibility enforcement: 82/82 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
 - [x] Pass the complete local suite after upstream numeric eligibility enforcement: 82/82 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
-- [ ] Commit, deploy and rerun the one-recipient canary; restore subscriber mode only after matched proof and receipt verification
+- [x] Commit upstream eligibility control `6f7ee932bd76d20c5d9a6db9d32e261d7de3649a` and deploy it in Render build `bld-dace6ign74is73cs1dn0` after 82/82 tests
+- [ ] Rerun the one-recipient canary; restore subscriber mode only after matched proof and receipt verification
+- [x] Deliver sixth proof-only canary `1a065469e122a552` and verify receipt `1a06546ad6ed3e04`: 1/1 delivered; target release matched on commit `6f7ee93`
+- [x] Inspect the actual Gmail proof rather than relying on technical receipt status alone
+- [x] Remove all reader-visible internal category keys while retaining quiet action lead-ins and any genuinely human editorial label
+- [x] Make every bounded reader-facing headline end as a complete phrase rather than raw word truncation
+- [x] Enforce the approved exact six `AI_BUSINESS` / four `MAJOR_BUSINESS` mix, split 3/2 in each section
+- [x] Add subscriber-visible canary assertions for forbidden category keys, clipped endings and exact 6/4 balance; focused 42/42 tests passed
+- [x] Pass complete and isolated release suites after the editorial correction: 83/83 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [x] Pass the complete local editorial-correction suite: 83/83 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [ ] Commit, deploy and rerun the proof-only canary; restore subscriber mode only after both technical and editorial verification

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from html import escape
+import re
 from typing import Any
 
 from .human_signal import render_human_signal
@@ -58,6 +59,17 @@ def _signal_glance() -> str:
         '<table width="100%" cellpadding="0" cellspacing="4" role="presentation" style="width:100%;table-layout:fixed;">'
         f'<tr>{cells}</tr>'
         '</table></td></tr>'
+    )
+
+
+def _reader_category_html(category: Any) -> str:
+    """Render human editorial labels, but never expose machine-style category keys."""
+    text = str(category).strip()
+    if not text or re.fullmatch(r"[a-z0-9]+(?:_[a-z0-9]+)+", text):
+        return ""
+    return (
+        ' <span style="font:800 10px monospace;color:#17A398;letter-spacing:1px;'
+        f'text-transform:uppercase;">{escape(text)}</span>'
     )
 
 
@@ -124,10 +136,17 @@ def render_enhanced_email(
         )
         colour = ACTION_COLOURS[item["action_tag"]]
         action_label = ACTION_LABELS[item["action_tag"]]
+        if focus_numbers_revision:
+            category_html = _reader_category_html(item.get("category"))
+        else:
+            category_html = (
+                ' <span style="font:800 10px monospace;color:#17A398;letter-spacing:1px;'
+                f'text-transform:uppercase;">{escape(str(item["category"]))}</span>'
+            )
         html.extend(
             [
                 '<tr><td style="padding:16px 40px 10px 40px;">',
-                f'<p style="margin:0 0 7px 0;"><span style="display:inline-block;background:{colour};color:#1A1A1A;font:800 9px monospace;letter-spacing:1.3px;padding:3px 8px;border-radius:2px;">{escape(action_label)}</span> <span style="font:800 10px monospace;color:#17A398;letter-spacing:1px;text-transform:uppercase;">{escape(item["category"])}</span></p>',
+                f'<p style="margin:0 0 7px 0;"><span style="display:inline-block;background:{colour};color:#1A1A1A;font:800 9px monospace;letter-spacing:1.3px;padding:3px 8px;border-radius:2px;">{escape(action_label)}</span>{category_html}</p>',
                 f'<p style="margin:0 0 11px 0;font-size:18px;font-weight:800;line-height:1.35;color:#1a1a1a;">{escape(item["headline"])}</p>',
                 _p(f'{escape(item["evidence"])} <span style="white-space:nowrap;">({source_links})</span>'),
                 '</td></tr>',

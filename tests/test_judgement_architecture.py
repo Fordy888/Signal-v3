@@ -349,13 +349,22 @@ class JudgementArchitectureTests(unittest.TestCase):
         with self.assertRaisesRegex(JudgementPlanError, "must use distinct sources"):
             validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
 
-    def test_focus_revision_requires_minimum_sixty_percent_ai_business_mix(self) -> None:
+    def test_focus_revision_requires_exact_sixty_forty_mix_in_each_section(self) -> None:
         plan = focus_numbers_plan()
         self.assertIs(validate_judgement_plan(plan, FOCUS_SOURCE_IDS), plan)
-        plan["focus_numbers"][2]["mix_classification"] = "MAJOR_BUSINESS"
-        plan["focus_numbers"][2].pop("ai_business_connection")
-        with self.assertRaisesRegex(JudgementPlanError, "at least 6 substantive AI-in-business"):
-            validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
+        for direction in ("too_few_ai", "too_many_ai"):
+            with self.subTest(direction=direction):
+                candidate = focus_numbers_plan()
+                if direction == "too_few_ai":
+                    candidate["focus_numbers"][2]["mix_classification"] = "MAJOR_BUSINESS"
+                    candidate["focus_numbers"][2].pop("ai_business_connection")
+                else:
+                    candidate["evidence_items"][3]["mix_classification"] = "AI_BUSINESS"
+                    candidate["evidence_items"][3]["ai_business_connection"] = (
+                        "AI changes a real operating decision, commercial outcome or workforce process."
+                    )
+                with self.assertRaisesRegex(JudgementPlanError, "exactly 3 AI_BUSINESS"):
+                    validate_judgement_plan(candidate, FOCUS_SOURCE_IDS)
 
     def test_unknown_source_is_rejected(self) -> None:
         plan = valid_plan()
@@ -469,6 +478,24 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertTrue(expected_repairs.issubset(set(repairs)))
         self.assertEqual(len(normalised["executive_actions"]), 3)
         self.assertRegex(normalised["focus_numbers"][0]["number"], r"\d")
+        self.assertIs(validate_judgement_plan(normalised, FOCUS_SOURCE_IDS), normalised)
+
+    def test_headline_normaliser_removes_dangling_endings_and_validator_blocks_them(self) -> None:
+        plan = focus_numbers_plan()
+        plan["evidence_items"][0]["headline"] = "AI renewal agent covers every account not just"
+        plan["counter_signal"]["headline"] = "AI governance gap is now a commercial liability not a"
+        plan["executive_read"]["watch_headline"] = "Track AI correction time in your"
+
+        with self.assertRaisesRegex(JudgementPlanError, "complete phrase|incomplete"):
+            validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
+
+        normalised, repairs = normalise_word_bound_fields(plan)
+        self.assertEqual(normalised["evidence_items"][0]["headline"], "AI renewal agent covers every account")
+        self.assertEqual(normalised["counter_signal"]["headline"], "AI governance gap is now a commercial liability")
+        self.assertEqual(normalised["executive_read"]["watch_headline"], "Track AI correction time")
+        self.assertIn("evidence_items[0].headline", repairs)
+        self.assertIn("counter_signal.headline", repairs)
+        self.assertIn("executive_read.watch_headline", repairs)
         self.assertIs(validate_judgement_plan(normalised, FOCUS_SOURCE_IDS), normalised)
 
     def test_final_attempt_normalisation_keeps_substantive_failures_hard(self) -> None:
@@ -640,6 +667,16 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertEqual(updated["events"][0]["classification"], "STRENGTHENS")
 
     def test_renderer_follows_intelligence_sequence_and_boundaries(self) -> None:
+        rendered_plan = focus_numbers_plan()
+        internal_categories = [
+            "venture_capital",
+            "opportunity_radar",
+            "ai_market_signals",
+            "enterprise_adoption",
+            "workforce_change",
+        ]
+        for item, category in zip(rendered_plan["evidence_items"], internal_categories):
+            item["category"] = category
         sources = json.loads((ROOT / "data" / "fixtures" / "edition0038_evidence.json").read_text())
         existing_ids = {source["source_id"] for source in sources}
         for index in range(1, 11):
@@ -652,7 +689,7 @@ class JudgementArchitectureTests(unittest.TestCase):
                 })
         joke = load_jokes(ROOT / "data" / "dad_jokes.json")[0]
         html = render_enhanced_email(
-            focus_numbers_plan(),
+            rendered_plan,
             sources,
             joke,
             edition_number=38,
@@ -694,6 +731,8 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertNotIn("WHAT CHANGED", html)
         self.assertEqual(html.count("FOCUS ON THE NUMBERS"), 1)
         self.assertEqual(html.count("Source:"), 5)
+        for category in internal_categories:
+            self.assertNotIn(category, html)
         selected_ids = {
             source_id
             for item in (

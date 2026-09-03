@@ -32,11 +32,21 @@ DYNAMIC_HEADLINE_REVISION = "dynamic-headlines-v1"
 FOCUS_NUMBERS_REVISION = "focus-on-the-numbers-v1"
 CONTENT_MIX_TYPES = {"AI_BUSINESS", "MAJOR_BUSINESS"}
 MIN_AI_BUSINESS_ITEMS = 6
+REQUIRED_AI_BUSINESS_ITEMS = 6
+REQUIRED_AI_BUSINESS_PER_SECTION = 3
+REQUIRED_MAJOR_BUSINESS_PER_SECTION = 2
 SOURCE_ID_RE = re.compile(r"\bS\d{2,}\b", re.IGNORECASE)
 UNEXPLAINED_READER_TERMS = {
     "CRM", "UI", "API", "LLM", "RAG", "MCP", "GPU", "ERP", "SaaS", "SoR",
     "EBIT", "ARR", "ROI", "SKU",
     "agentic", "system of record",
+}
+
+
+INCOMPLETE_HEADLINE_ENDINGS = {
+    "a", "an", "and", "are", "as", "at", "be", "because", "being", "but", "by",
+    "for", "from", "if", "in", "into", "is", "just", "not", "of", "on", "or", "that",
+    "the", "their", "this", "to", "was", "were", "when", "while", "with", "your",
 }
 
 
@@ -67,6 +77,25 @@ def _trim_words_preserving_digit(value: Any, limit: int) -> str:
         start = digit_index
         end = min(len(words), start + limit)
     return " ".join(words[start:end]).strip()
+
+
+def _headline_is_complete(value: Any) -> bool:
+    text = str(value).strip()
+    if not text or text.endswith((",", ";", ":", "-", "—")):
+        return False
+    last_word = re.sub(r"[^A-Za-z']", "", text.split()[-1]).lower()
+    return bool(last_word) and last_word not in INCOMPLETE_HEADLINE_ENDINGS
+
+
+def _trim_complete_headline(value: Any, limit: int) -> str:
+    """Shorten a headline without leaving a dangling article, preposition or clause."""
+    words = str(value).split()[:limit]
+    while len(words) > 1:
+        candidate = " ".join(words).strip().rstrip(" ,;:-—")
+        if _headline_is_complete(candidate):
+            return candidate
+        words.pop()
+    return " ".join(words).strip().rstrip(" ,;:-—")
 
 
 def _is_dynamic_revision(plan: dict[str, Any]) -> bool:
@@ -165,6 +194,15 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
             container[key] = _trim_words(value, limit)
             repairs.append(path)
 
+    def cap_headline(container: dict[str, Any], key: str, limit: int, path: str) -> None:
+        value = container.get(key)
+        if not isinstance(value, str):
+            return
+        repaired = _trim_complete_headline(value, limit)
+        if repaired != value.strip():
+            container[key] = repaired
+            repairs.append(path)
+
     one_thing = normalised.get("one_thing")
     if isinstance(one_thing, dict):
         cap(one_thing, "statement", 24, "one_thing.statement")
@@ -174,7 +212,7 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
     if isinstance(items, list):
         for index, item in enumerate(items):
             if isinstance(item, dict):
-                cap(item, "headline", 8, f"evidence_items[{index}].headline")
+                cap_headline(item, "headline", 8, f"evidence_items[{index}].headline")
                 cap(item, "evidence", 28, f"evidence_items[{index}].evidence")
                 if item.get("mix_classification") == "AI_BUSINESS":
                     cap(
@@ -207,13 +245,11 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
         repairs.append("interpretation")
 
     if _is_dynamic_revision(normalised):
-        if isinstance(normalised.get("interpretation_headline"), str) and _words(normalised["interpretation_headline"]) > 10:
-            normalised["interpretation_headline"] = _trim_words(normalised["interpretation_headline"], 10)
-            repairs.append("interpretation_headline")
+        cap_headline(normalised, "interpretation_headline", 10, "interpretation_headline")
 
     founders_note = normalised.get("founders_note")
     if isinstance(founders_note, dict):
-        cap(founders_note, "headline", 12, "founders_note.headline")
+        cap_headline(founders_note, "headline", 12, "founders_note.headline")
         body = founders_note.get("body")
         body_limit = 90 if _is_focus_numbers_revision(normalised) else 180
         if isinstance(body, str) and body.endswith("— Paul") and _words(body) > body_limit:
@@ -224,17 +260,17 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
     counter = normalised.get("counter_signal")
     if isinstance(counter, dict):
         if _is_dynamic_revision(normalised):
-            cap(counter, "headline", 10, "counter_signal.headline")
+            cap_headline(counter, "headline", 10, "counter_signal.headline")
         cap(counter, "statement", 60, "counter_signal.statement")
         cap(counter, "would_change_view_if", 45, "counter_signal.would_change_view_if")
 
     changed = normalised.get("what_changed")
     if _is_dynamic_revision(normalised) and not _is_focus_numbers_revision(normalised) and isinstance(changed, dict):
-        cap(changed, "headline", 10, "what_changed.headline")
+        cap_headline(changed, "headline", 10, "what_changed.headline")
 
     visual = normalised.get("visual_signal")
     if _is_dynamic_revision(normalised) and isinstance(visual, dict) and visual.get("eligible"):
-        cap(visual, "title", 12, "visual_signal.title")
+        cap_headline(visual, "title", 12, "visual_signal.title")
 
     actions = normalised.get("executive_actions")
     if isinstance(actions, list):
@@ -244,7 +280,7 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
             repairs.append("executive_actions")
         for index, action in enumerate(actions):
             if _is_dynamic_revision(normalised) and isinstance(action, dict):
-                cap(action, "headline", 6, f"executive_actions[{index}].headline")
+                cap_headline(action, "headline", 6, f"executive_actions[{index}].headline")
                 cap(action, "instruction", 20, f"executive_actions[{index}].instruction")
             elif isinstance(action, str) and _words(action) > 24:
                 actions[index] = _trim_words(action, 24)
@@ -253,7 +289,7 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
     executive_read = normalised.get("executive_read")
     if isinstance(executive_read, dict):
         if _is_dynamic_revision(normalised):
-            cap(executive_read, "watch_headline", 10, "executive_read.watch_headline")
+            cap_headline(executive_read, "watch_headline", 10, "executive_read.watch_headline")
         cap(executive_read, "dtl_view", 75, "executive_read.dtl_view")
         watch_items = executive_read.get("watch_items")
         if isinstance(watch_items, list):
@@ -537,7 +573,7 @@ def validate_judgement_plan(
     elif not isinstance(items, list) or not 5 <= len(items) <= 8:
         raise JudgementPlanError("Enhanced edition must contain 5-8 evidence items")
     newsroom_source_ids: set[str] = set()
-    ai_business_items = 0
+    newsroom_ai_business_items = 0
     for item in items:
         if item.get("action_tag") not in ACTION_TAGS:
             raise JudgementPlanError("Evidence item has an invalid action tag")
@@ -549,6 +585,8 @@ def validate_judgement_plan(
                 raise JudgementPlanError(f"Evidence item omitted {field}")
         if _words(item["headline"]) > 8:
             raise JudgementPlanError("Evidence headline exceeds eight words")
+        if focus_numbers_revision and not _headline_is_complete(item["headline"]):
+            raise JudgementPlanError("Newsroom headline must end as a complete phrase")
         if _words(item["evidence"]) > 28:
             raise JudgementPlanError("Evidence item exceeds 28 words")
         newsroom_source_ids.update(source_ids)
@@ -562,20 +600,28 @@ def validate_judgement_plan(
                     raise JudgementPlanError(
                         "AI-in-business Newsroom story requires a substantive connection in no more than 28 words"
                     )
-                ai_business_items += 1
+                newsroom_ai_business_items += 1
 
     if not str(plan.get("interpretation", "")).strip() or _words(plan["interpretation"]) > 55:
         raise JudgementPlanError("Edition-level interpretation is missing or exceeds 55 words")
     if dynamic_revision:
         interpretation_headline = str(plan.get("interpretation_headline", "")).strip()
-        if not interpretation_headline or _words(interpretation_headline) > 10:
-            raise JudgementPlanError("WHY IT MATTERS headline is missing or exceeds 10 words")
+        if (
+            not interpretation_headline
+            or _words(interpretation_headline) > 10
+            or not _headline_is_complete(interpretation_headline)
+        ):
+            raise JudgementPlanError("WHY IT MATTERS headline is missing, incomplete or exceeds 10 words")
 
     founders_note = plan["founders_note"]
     headline = str(founders_note.get("headline", "")).strip()
     body = str(founders_note.get("body", "")).strip()
-    if not headline or _words(headline) > 12:
-        raise JudgementPlanError("FOUNDER'S NOTE headline is missing or exceeds 12 words")
+    if (
+        not headline
+        or _words(headline) > 12
+        or (dynamic_revision and not _headline_is_complete(headline))
+    ):
+        raise JudgementPlanError("FOUNDER'S NOTE headline is missing, incomplete or exceeds 12 words")
     note_min, note_max = (45, 90) if focus_numbers_revision else (60, 180)
     if not note_min <= _words(body) <= note_max:
         raise JudgementPlanError(
@@ -599,6 +645,7 @@ def validate_judgement_plan(
         if not isinstance(focus_numbers, list) or len(focus_numbers) != 5:
             raise JudgementPlanError("FOCUS ON THE NUMBERS requires exactly five entries")
         focus_source_ids: set[str] = set()
+        focus_ai_business_items = 0
         for index, item in enumerate(focus_numbers):
             if not isinstance(item, dict):
                 raise JudgementPlanError(f"Focus number {index + 1} is not structured")
@@ -639,7 +686,7 @@ def validate_judgement_plan(
                     raise JudgementPlanError(
                         f"AI-in-business Focus number {index + 1} requires a substantive connection in no more than 28 words"
                     )
-                ai_business_items += 1
+                focus_ai_business_items += 1
             focus_source_ids.update(source_ids)
         overlap = newsroom_source_ids.intersection(focus_source_ids)
         if overlap:
@@ -647,10 +694,17 @@ def validate_judgement_plan(
                 "Newsroom stories and FOCUS ON THE NUMBERS must use distinct sources; "
                 f"overlap: {sorted(overlap)}"
             )
-        if ai_business_items < MIN_AI_BUSINESS_ITEMS:
+        ai_business_items = newsroom_ai_business_items + focus_ai_business_items
+        if (
+            newsroom_ai_business_items != REQUIRED_AI_BUSINESS_PER_SECTION
+            or focus_ai_business_items != REQUIRED_AI_BUSINESS_PER_SECTION
+            or ai_business_items != REQUIRED_AI_BUSINESS_ITEMS
+        ):
             raise JudgementPlanError(
-                "The combined Newsroom and FOCUS ON THE NUMBERS mix requires at least "
-                f"{MIN_AI_BUSINESS_ITEMS} substantive AI-in-business items; received {ai_business_items}"
+                "The approved content mix requires exactly 3 AI_BUSINESS and 2 MAJOR_BUSINESS "
+                "items in each section (6/4 overall); received "
+                f"Newsroom {newsroom_ai_business_items}/{5 - newsroom_ai_business_items}, "
+                f"Focus {focus_ai_business_items}/{5 - focus_ai_business_items}"
             )
     else:
         visual = plan["visual_signal"]
@@ -671,8 +725,8 @@ def validate_judgement_plan(
         raise JudgementPlanError("Counter-Signal exceeds the compression limit")
     if dynamic_revision:
         counter_headline = str(counter.get("headline", "")).strip()
-        if not counter_headline or _words(counter_headline) > 10:
-            raise JudgementPlanError("THE OTHER SIDE headline is missing or exceeds 10 words")
+        if not counter_headline or _words(counter_headline) > 10 or not _headline_is_complete(counter_headline):
+            raise JudgementPlanError("THE OTHER SIDE headline is missing, incomplete or exceeds 10 words")
 
     actions = plan["executive_actions"]
     if not isinstance(actions, list) or not 1 <= len(actions) <= 3:
@@ -683,8 +737,12 @@ def validate_judgement_plan(
                 raise JudgementPlanError("Dynamic executive actions must be structured")
             if action.get("action_tag") not in ACTION_TAGS:
                 raise JudgementPlanError("Executive action has an invalid action tag")
-            if not str(action.get("headline", "")).strip() or _words(action["headline"]) > 6:
-                raise JudgementPlanError("Executive action headline is missing or exceeds six words")
+            if (
+                not str(action.get("headline", "")).strip()
+                or _words(action["headline"]) > 6
+                or not _headline_is_complete(action["headline"])
+            ):
+                raise JudgementPlanError("Executive action headline is missing, incomplete or exceeds six words")
             if not str(action.get("instruction", "")).strip() or _words(action["instruction"]) > 20:
                 raise JudgementPlanError("Executive action instruction is missing or exceeds 20 words")
             action_source_ids = action.get("source_ids")
@@ -705,8 +763,8 @@ def validate_judgement_plan(
 
     if dynamic_revision:
         watch_headline = str(executive_read.get("watch_headline", "")).strip()
-        if not watch_headline or _words(watch_headline) > 10:
-            raise JudgementPlanError("WATCH FOR THIS headline is missing or exceeds 10 words")
+        if not watch_headline or _words(watch_headline) > 10 or not _headline_is_complete(watch_headline):
+            raise JudgementPlanError("WATCH FOR THIS headline is missing, incomplete or exceeds 10 words")
         validate_reader_language(plan)
 
     return plan

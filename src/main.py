@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import logging
 import os
+import re
 import sys
 import time
 from datetime import datetime
@@ -579,10 +580,30 @@ def main() -> int:
                 "WATCH FOR THIS",
             )
             removed_labels = ("THE EVIDENCE", "THE ONE THING", "THE SHIFT", "WHAT CHANGED")
+            newsroom_mix = [
+                item.get("mix_classification")
+                for item in enhanced_plan.get("evidence_items", [])
+                if isinstance(item, dict)
+            ]
+            focus_mix = [
+                item.get("mix_classification")
+                for item in enhanced_plan.get("focus_numbers", [])
+                if isinstance(item, dict)
+            ]
+            exact_mix_markers = (
+                newsroom_mix.count("AI_BUSINESS") == 3
+                and newsroom_mix.count("MAJOR_BUSINESS") == 2
+                and focus_mix.count("AI_BUSINESS") == 3
+                and focus_mix.count("MAJOR_BUSINESS") == 2
+            )
+            leaked_internal_label = re.search(
+                r">[^<]*\b[a-z][a-z0-9]*_[a-z0-9_]+\b[^<]*<",
+                html,
+            )
             has_key_section = all(label in html for label in required_labels) and all(
                 label not in html for label in removed_labels
-            )
-            gate_label = "founder-led Focus on the Numbers intelligence sequence"
+            ) and exact_mix_markers and leaked_internal_label is None
+            gate_label = "founder-led exact 6/4 reader-visible intelligence sequence"
         elif enhanced_plan and enhanced_plan.get("editorial_revision") == "dynamic-headlines-v1":
             has_key_section = all(
                 label in html

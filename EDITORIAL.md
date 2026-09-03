@@ -110,11 +110,13 @@ Signal may prefer a qualifying photograph whose natural colour harmonises with c
 
 ## 11. Keep the Mix AI-Informed and Business-Led
 
-The ten core daily items must contain at least **60% substantive AI-in-business intelligence** and no more than **40% major business news**.
+The ten core daily items must contain exactly **60% substantive AI-in-business intelligence** and **40% major business news**, split three-and-two in each section.
 
 AI earns its place when it changes a real business function, decision, customer outcome, operating model, cost, risk or source of value. A vendor label, technical announcement or passing mention does not qualify.
 
 Major non-AI developments still belong when they materially improve executive judgement. Signal must never force an AI angle onto a story whose real business consequence stands on its own.
+
+Internal taxonomy must remain invisible. Machine labels with underscores belong to the planning layer, not the reader experience. Reader-facing headlines must end as complete phrases; a headline that finishes on a dangling article, preposition, conjunction, possessive or qualifier is not publishable.
 
 ---
 

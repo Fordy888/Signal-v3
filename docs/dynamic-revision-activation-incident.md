@@ -113,3 +113,21 @@ The fifth proof-only canary ran on deployed commit `53a8f7a26adbdb19abe95d2d5371
 Attempts one and two were rejected for presentation-bound issues and correctly retried. The final attempt normalised all eligible bounded fields but still failed with `Focus number 5 must contain a defining figure in no more than 10 words`. The selected fifth source contained no eligible numeric evidence, so same-source recovery correctly refused to invent a figure. The run receipt was saved as `Edition NOT sent`, and the receipt email was sent to Paul.
 
 The root control must therefore move before planning: Focus on the Numbers may select only from a pre-verified pool of source records containing an explicit eligible figure. Final-attempt recovery remains a secondary safeguard, not the selection mechanism.
+
+The upstream eligibility control was committed to GitHub master as `6f7ee932bd76d20c5d9a6db9d32e261d7de3649a`. Local and isolated worktrees each passed 82/82 tests and reproduced approved proof SHA-256 `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`.
+
+Render build `bld-dace6ign74is73cs1dn0` checked out that exact commit, passed all 82 tests and completed successfully. The service remained proof-only pending the next canary.
+
+### Sixth canary — technical match, editorial hold
+
+The sixth proof-only canary ran on deployed commit `6f7ee932bd76d20c5d9a6db9d32e261d7de3649a` and delivered one proof to `paul.ford@gmail.com`. Gmail proof ID is `1a065469e122a552`. Gmail receipt ID is `1a06546ad6ed3e04`, subject `[CANARY] DTL Signal 0046 — Target release matched`.
+
+The receipt records 1/1 delivered, 100/111 sources succeeded, 180 items scored, eight of eight categories covered and a 727-second duration. Target and actual commit, renderer `enhanced-v4-focus-numbers`, release `focus-numbers-60-40-v1`, approved proof SHA-256 and Quang Phu Cau image identity all matched. Actual generated HTML SHA-256 was `52a782e3d1dc604e75164c7537ae4c2030ca27aaf96ef8214953d75d1b4a53f4`.
+
+Technical release identity therefore passed. Reader-visible review identified three blockers before subscriber mode can be restored:
+
+1. Newsroom lead-ins exposed internal category keys such as `venture_capital`, `opportunity_radar` and `ai_market_signals`.
+2. Several bounded headlines ended as clipped fragments, including `AI renewal agent covers every account, not just`, `AI governance gap is now a commercial liability, not a` and `Track AI correction time in your`.
+3. The canary mix was nine AI-business items and one major-business item. This exceeded the minimum AI threshold but did not match the approved six-AI/four-major-business balance.
+
+The canary is **technically matched but editorially held**. CANARY VERIFIED and LIVE are not yet true. The service remains proof-only.
