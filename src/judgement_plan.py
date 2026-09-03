@@ -335,6 +335,28 @@ FOCUS_FIGURE_CONTEXT_WORDS = {
     "workers",
 }
 
+AI_SUBJECT_RE = re.compile(
+    r"\b(?:AI|artificial intelligence|generative AI|machine learning|ChatGPT|"
+    r"OpenAI|Anthropic|Claude|Gemini|Copilot|large language model|LLM)\b",
+    re.IGNORECASE,
+)
+BUSINESS_IMPACT_RE = re.compile(
+    r"\b(?:business|enterprise|company|companies|customer|customers|sales|marketing|"
+    r"revenue|profit|earnings|margin|cost|costs|price|pricing|investment|capital|"
+    r"valuation|market|workplace|workforce|worker|workers|employee|employees|jobs?|"
+    r"roles?|hiring|productivity|operations?|workflow|logistics|supply chain|service|"
+    r"services|risk|regulation|governance|strategy|commercial|contract|contracts|"
+    r"adoption|demand|growth|loss|losses|returns?|value)\b",
+    re.IGNORECASE,
+)
+MAJOR_BUSINESS_RE = re.compile(
+    r"\b(?:acquisition|merger|regulation|tariff|tariffs|oil|rates?|inflation|GDP|"
+    r"economy|economic|business|company|companies|commercial|strategy|factory|factories|supply chain|revenue|profit|earnings|margin|"
+    r"loss|losses|growth|investment|capital|valuation|market|share price|pricing|sales|"
+    r"customers|jobs?|workers?|employees?|wages|costs?|demand)\b",
+    re.IGNORECASE,
+)
+
 
 def _source_bound_focus_figure(source: dict[str, Any], focus_item: dict[str, Any]) -> str | None:
     """Extract one compact figure from a selected source without inventing copy."""
@@ -405,6 +427,33 @@ def prepare_focus_number_evidence(
             source["focus_number_candidate"] = candidate
             eligible_source_ids.add(source_id)
     return prepared, eligible_source_ids
+
+
+def prepare_content_mix_evidence(
+    evidence_items: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, str]]:
+    """Classify source substance before planning; generated labels are not authoritative."""
+    prepared = copy.deepcopy(evidence_items)
+    verified_mix_by_source: dict[str, str] = {}
+    for source in prepared:
+        source_id = str(source.get("source_id", "")).strip()
+        if not source_id:
+            continue
+        text = " ".join(
+            str(source.get(field, "")).strip()
+            for field in ("title", "evidence", "scoring_reason")
+        )
+        if AI_SUBJECT_RE.search(text) and BUSINESS_IMPACT_RE.search(text):
+            classification = "AI_BUSINESS"
+        elif not AI_SUBJECT_RE.search(text) and MAJOR_BUSINESS_RE.search(text):
+            classification = "MAJOR_BUSINESS"
+        else:
+            source["verified_mix_eligible"] = False
+            continue
+        source["verified_mix_eligible"] = True
+        source["verified_mix_classification"] = classification
+        verified_mix_by_source[source_id] = classification
+    return prepared, verified_mix_by_source
 
 
 def recover_missing_focus_figures(
@@ -530,6 +579,7 @@ def validate_judgement_plan(
     plan: dict[str, Any],
     available_source_ids: set[str],
     focus_eligible_source_ids: set[str] | None = None,
+    verified_mix_by_source: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     required = {
         "evidence_items",
@@ -594,6 +644,22 @@ def validate_judgement_plan(
             mix_classification = str(item.get("mix_classification", "")).strip()
             if mix_classification not in CONTENT_MIX_TYPES:
                 raise JudgementPlanError("Newsroom story has an invalid content-mix classification")
+            if verified_mix_by_source is not None:
+                if len(source_ids) != 1:
+                    raise JudgementPlanError(
+                        "Newsroom mix verification requires exactly one independently classified source"
+                    )
+                source_id = next(iter(source_ids))
+                verified_classification = verified_mix_by_source.get(source_id)
+                if verified_classification is None:
+                    raise JudgementPlanError(
+                        f"Newsroom source {source_id} is not eligible for the verified content mix"
+                    )
+                if mix_classification != verified_classification:
+                    raise JudgementPlanError(
+                        f"Newsroom source {source_id} is verified as {verified_classification}, "
+                        f"not {mix_classification}"
+                    )
             if mix_classification == "AI_BUSINESS":
                 connection = str(item.get("ai_business_connection", "")).strip()
                 if not connection or _words(connection) > 28:
@@ -680,6 +746,22 @@ def validate_judgement_plan(
                 raise JudgementPlanError(
                     f"Focus number {index + 1} has an invalid content-mix classification"
                 )
+            if verified_mix_by_source is not None:
+                if len(source_ids) != 1:
+                    raise JudgementPlanError(
+                        f"Focus number {index + 1} mix verification requires exactly one independently classified source"
+                    )
+                source_id = next(iter(source_ids))
+                verified_classification = verified_mix_by_source.get(source_id)
+                if verified_classification is None:
+                    raise JudgementPlanError(
+                        f"Focus number {index + 1} source {source_id} is not eligible for the verified content mix"
+                    )
+                if mix_classification != verified_classification:
+                    raise JudgementPlanError(
+                        f"Focus number {index + 1} source {source_id} is verified as "
+                        f"{verified_classification}, not {mix_classification}"
+                    )
             if mix_classification == "AI_BUSINESS":
                 connection = str(item.get("ai_business_connection", "")).strip()
                 if not connection or _words(connection) > 28:
@@ -780,6 +862,9 @@ def generate_judgement_plan(
     source_ids = {str(item["source_id"]) for item in evidence_items}
     prompt_template = prompt_path.read_text()
     planner_evidence, focus_eligible_source_ids = prepare_focus_number_evidence(evidence_items)
+    verified_mix_by_source: dict[str, str] | None = None
+    verified_ai_source_ids: list[str] = []
+    verified_major_source_ids: list[str] = []
     if (
         FOCUS_NUMBERS_REVISION in prompt_template
         and len(focus_eligible_source_ids) < 5
@@ -789,12 +874,34 @@ def generate_judgement_plan(
             "with pre-verified numeric evidence; received "
             f"{len(focus_eligible_source_ids)}"
         )
+    if FOCUS_NUMBERS_REVISION in prompt_template:
+        planner_evidence, verified_mix_by_source = prepare_content_mix_evidence(planner_evidence)
+        verified_ai_source_ids = sorted(
+            source_id
+            for source_id, classification in verified_mix_by_source.items()
+            if classification == "AI_BUSINESS"
+        )
+        verified_major_source_ids = sorted(
+            source_id
+            for source_id, classification in verified_mix_by_source.items()
+            if classification == "MAJOR_BUSINESS"
+        )
+        if len(verified_ai_source_ids) < 6 or len(verified_major_source_ids) < 4:
+            raise JudgementPlanError(
+                "The approved 60/40 edition requires at least six independently verified "
+                "AI-business sources and four independently verified major-business sources; "
+                f"received {len(verified_ai_source_ids)} and {len(verified_major_source_ids)}"
+            )
     prompt = prompt_template.replace(
         "{EVIDENCE_ITEMS}", json.dumps(planner_evidence, indent=2)
     ).replace(
         "{SIGNAL_MEMORY}", json.dumps(prior_memory, indent=2)
     ).replace(
         "{FOCUS_NUMBER_SOURCE_IDS}", json.dumps(sorted(focus_eligible_source_ids))
+    ).replace(
+        "{AI_BUSINESS_SOURCE_IDS}", json.dumps(verified_ai_source_ids)
+    ).replace(
+        "{MAJOR_BUSINESS_SOURCE_IDS}", json.dumps(verified_major_source_ids)
     )
 
     client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -832,6 +939,7 @@ def generate_judgement_plan(
                 candidate,
                 source_ids,
                 focus_eligible_source_ids if _is_focus_numbers_revision(candidate) else None,
+                verified_mix_by_source if _is_focus_numbers_revision(candidate) else None,
             )
         except Exception as exc:
             last_error = exc

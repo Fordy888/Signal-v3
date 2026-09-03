@@ -33,3 +33,14 @@ Focus-number safety begins before the model is called. Each supplied evidence re
 Eligible records are annotated with `focus_number_eligible: true` and a compact `focus_number_candidate` copied from that same source. The planner receives the complete eligible source-ID list and may cite only those IDs in `focus_numbers`. If fewer than five distinct eligible records exist, Signal holds before model generation. Validation independently rejects any Focus source outside the verified pool, even if generated copy happens to contain a digit.
 
 Same-source final-attempt recovery remains a secondary safeguard. It cannot make an ineligible source eligible and cannot transfer a figure between sources.
+
+## Independent content-mix classification
+
+The planner’s own `mix_classification` is descriptive, not authoritative. Before the model is called, Signal classifies each evidence record from its supplied title, evidence and scoring reason.
+
+| Verified class | Evidence requirement |
+|---|---|
+| `AI_BUSINESS` | An explicit AI subject plus a concrete commercial, customer, workforce, operating, financial, risk or value connection. |
+| `MAJOR_BUSINESS` | Commercially material non-AI evidence with no AI-led subject. |
+
+The model receives the verified source IDs for each pool. Validation checks every selected Newsroom and Focus source against the independently established class and rejects relabelling. The pre-planning gate requires at least six AI-business and four major-business sources so the approved 3/2 split in both sections is achieved from evidence rather than generated metadata.

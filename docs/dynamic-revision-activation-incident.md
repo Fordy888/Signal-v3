@@ -131,3 +131,13 @@ Technical release identity therefore passed. Reader-visible review identified th
 3. The canary mix was nine AI-business items and one major-business item. This exceeded the minimum AI threshold but did not match the approved six-AI/four-major-business balance.
 
 The canary is **technically matched but editorially held**. CANARY VERIFIED and LIVE are not yet true. The service remains proof-only.
+
+The reader-visible correction was committed to GitHub master as `4d5dba838a951700fc1135ee526636f798db294d`. Local and isolated worktrees each passed 83/83 tests and reproduced approved proof SHA-256 `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`.
+
+Render build `bld-daceneijnfac73c9sgcg` checked out that exact commit, passed all 83 tests and completed successfully. The service remained proof-only pending a fresh technical and reader-visible canary.
+
+The next proof-only canary delivered Gmail proof `1a0656846f561dbe` and receipt `1a0656850d471bd8`. The receipt records 1/1 delivery, 102/111 successful sources, 190 scored items, target and actual commit `4d5dba838a951700fc1135ee526636f798db294d`, matched renderer, release, approved proof checksum and Quang Phu Cau image identity. Actual generated HTML SHA-256 was `707c75dcf523ed8c8a143248db86effb11e7fcc80e50253c9555e3b36345c766`.
+
+The internal category keys were no longer visible and all previously clipped headlines ended cleanly. However, the reader-visible edition still contained approximately nine AI stories and one broader business story while the planner’s self-reported classifications satisfied the 6/4 gate. This proves model-assigned labels cannot be the source of truth for the content-mix commitment.
+
+The release remains **technical canary matched / editorial canary held / not live**. Source substance must be classified before planning, and planner selections must be checked against those independently established source pools.

@@ -14,6 +14,14 @@ DTL Signal does not compete on more information. It competes on better judgement
 
 {FOCUS_NUMBER_SOURCE_IDS}
 
+## Independently verified AI-in-business source IDs
+
+{AI_BUSINESS_SOURCE_IDS}
+
+## Independently verified major-business source IDs
+
+{MAJOR_BUSINESS_SOURCE_IDS}
+
 ## Prior Signal positions
 
 {SIGNAL_MEMORY}
@@ -25,7 +33,7 @@ DTL Signal does not compete on more information. It competes on better judgement
 3. `founders_note` is the opening human judgement in Paul's voice. Write one direct headline and 45–90 words of substantive first-person commentary. Target 60–80 words and end inline with `— Paul`. It must interpret rather than recap.
 4. Select exactly five `evidence_items` for `DTL SIGNAL NEWSROOM — READ THIS`. These are the day's five big business stories. Each needs a quiet action lead-in, a large clear headline and one concise factual paragraph. `category` is internal metadata and will never be shown to readers. Include Sales & Marketing when a strong candidate exists.
 5. Produce exactly five additional `focus_numbers`. These are short numerical snippets, not second versions of the Newsroom stories. Each identifies a recognisable company, organisation, person or market; states one defining figure; and explains it in one short sentence. A Focus entry may cite only a source ID listed under `Pre-verified Focus-number source IDs` and marked `focus_number_eligible: true` in the supplied evidence. Use that source's `focus_number_candidate` as the evidence anchor; never move a figure between sources.
-6. The mix is exact: Newsroom must contain three `AI_BUSINESS` and two `MAJOR_BUSINESS` items; Focus must contain three `AI_BUSINESS` and two `MAJOR_BUSINESS` items. The complete edition is therefore exactly 60% AI-in-business and 40% major business news.
+6. The mix is exact: Newsroom must contain three source IDs from `Independently verified AI-in-business source IDs` and two from `Independently verified major-business source IDs`; Focus must do the same. Set each `mix_classification` to the independently verified class supplied on that source. You may not relabel a source. The complete edition is therefore visibly 60% AI-in-business and 40% major business news.
 7. `AI_BUSINESS` requires substantive evidence that AI is changing sales, marketing, customers, operations, people, finance, leadership, a business model, cost, risk or value. A technology vendor, product announcement or passing mention of AI is not enough. State the real connection in `ai_business_connection`.
 8. `MAJOR_BUSINESS` is allowed when a development genuinely changes executive judgement without AI involvement. Never force an AI angle onto it.
 9. Choose meaningful results, growth, profit, loss, investment, jobs, pricing, remuneration, customer, productivity, risk and market-share figures. Include good and bad developments naturally; do not force symmetry.

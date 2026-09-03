@@ -17,6 +17,7 @@ from src.judgement_plan import (
     add_final_attempt_action_fallback,
     generate_judgement_plan,
     normalise_word_bound_fields,
+    prepare_content_mix_evidence,
     prepare_focus_number_evidence,
     recover_missing_focus_figures,
     validate_judgement_plan,
@@ -176,19 +177,28 @@ def focus_numbers_plan() -> dict:
 
 def focus_numeric_evidence(numeric_ids: set[str] | None = None) -> list[dict]:
     eligible = numeric_ids if numeric_ids is not None else set(FOCUS_SOURCE_IDS)
-    return [
-        {
+    items: list[dict] = []
+    for index, source_id in enumerate(sorted(FOCUS_SOURCE_IDS), 11):
+        is_ai = source_id in {"S01", "S02", "S03", "S06", "S07", "S08"}
+        if source_id in eligible:
+            evidence = (
+                f"AI revenue increased {index}% as enterprise customers expanded contracted work."
+                if is_ai
+                else f"Revenue increased {index}% as customers expanded contracted work."
+            )
+        else:
+            evidence = (
+                "AI changed the enterprise workflow without a published figure."
+                if is_ai
+                else "The company discussed its strategy without publishing a figure."
+            )
+        items.append({
             "source_id": source_id,
             "title": f"Source {source_id} business result",
-            "evidence": (
-                f"Revenue increased {index}% as customers expanded contracted work."
-                if source_id in eligible
-                else "The company discussed its strategy without publishing a figure."
-            ),
+            "evidence": evidence,
             "scoring_reason": "Commercially material business evidence.",
-        }
-        for index, source_id in enumerate(sorted(FOCUS_SOURCE_IDS), 11)
-    ]
+        })
+    return items
 
 
 class JudgementArchitectureTests(unittest.TestCase):
@@ -365,6 +375,49 @@ class JudgementArchitectureTests(unittest.TestCase):
                     )
                 with self.assertRaisesRegex(JudgementPlanError, "exactly 3 AI_BUSINESS"):
                     validate_judgement_plan(candidate, FOCUS_SOURCE_IDS)
+
+    def test_source_substance_classification_builds_independent_six_four_pools(self) -> None:
+        prepared, verified = prepare_content_mix_evidence(focus_numeric_evidence())
+
+        self.assertEqual(
+            {source_id for source_id, value in verified.items() if value == "AI_BUSINESS"},
+            {"S01", "S02", "S03", "S06", "S07", "S08"},
+        )
+        self.assertEqual(
+            {source_id for source_id, value in verified.items() if value == "MAJOR_BUSINESS"},
+            {"S04", "S05", "S09", "S10"},
+        )
+        by_id = {item["source_id"]: item for item in prepared}
+        self.assertEqual(by_id["S01"]["verified_mix_classification"], "AI_BUSINESS")
+        self.assertEqual(by_id["S04"]["verified_mix_classification"], "MAJOR_BUSINESS")
+
+    def test_planner_labels_cannot_reclassify_independently_verified_source(self) -> None:
+        plan = focus_numbers_plan()
+        plan["evidence_items"][3]["mix_classification"] = "AI_BUSINESS"
+        plan["evidence_items"][3]["ai_business_connection"] = (
+            "AI changes a real operating decision, commercial outcome or workforce process."
+        )
+        _, verified = prepare_content_mix_evidence(focus_numeric_evidence())
+
+        with self.assertRaisesRegex(JudgementPlanError, "verified as MAJOR_BUSINESS"):
+            validate_judgement_plan(plan, FOCUS_SOURCE_IDS, FOCUS_SOURCE_IDS, verified)
+
+    def test_focus_planner_holds_before_model_when_independent_mix_pool_is_too_ai_heavy(self) -> None:
+        evidence = focus_numeric_evidence()
+        for item in evidence:
+            if item["source_id"] in {"S04", "S05", "S09"}:
+                item["evidence"] = "AI revenue increased 20% as enterprise customers expanded."
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prompt_path = Path(tmpdir) / "prompt.md"
+            prompt_path.write_text(
+                "editorial_revision focus-on-the-numbers-v1\n"
+                "{EVIDENCE_ITEMS}\n{FOCUS_NUMBER_SOURCE_IDS}\n"
+                "{AI_BUSINESS_SOURCE_IDS}\n{MAJOR_BUSINESS_SOURCE_IDS}\n{SIGNAL_MEMORY}"
+            )
+            with patch("src.judgement_plan.Anthropic") as anthropic:
+                with self.assertRaisesRegex(JudgementPlanError, "six independently verified AI-business"):
+                    generate_judgement_plan(evidence, {}, prompt_path)
+        anthropic.assert_not_called()
 
     def test_unknown_source_is_rejected(self) -> None:
         plan = valid_plan()

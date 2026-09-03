@@ -183,6 +183,8 @@ The planner’s third and final attempt may deterministically shorten presentati
 
 Before planning begins, Signal builds a verified Focus-number source pool. Only evidence records containing an explicit eligible business figure may be selected for `FOCUS ON THE NUMBERS`; bare years and unquantified claims do not qualify. Fewer than five distinct eligible sources is a pre-planning hold. The model receives the eligible IDs, and validation rejects any Focus citation outside that pool.
 
+Signal also classifies content mix before planning. A source qualifies as `AI_BUSINESS` only when its supplied title, evidence or scoring reason contains both an explicit AI subject and a concrete business-impact term. A source qualifies as `MAJOR_BUSINESS` only when it contains commercially material non-AI evidence and no AI-led subject. The planner receives two disjoint source-ID pools, must select three AI-business and two major-business sources in both Newsroom and Focus, and cannot relabel a source to satisfy the 6/4 gate. If fewer than six AI-business or four major-business candidates qualify, the edition holds before model generation.
+
 REMEMBER THE WORLD candidates approved from 1 September 2026 onward must record a natural dominant colour family. Brand harmony is a curation preference only: photographs must never be recoloured or artificially tinted, and artistic power, authenticity, rights, provenance, date validity and non-repetition remain the hard gates.
 
 ---

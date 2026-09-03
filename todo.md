@@ -455,4 +455,19 @@
 - [x] Add subscriber-visible canary assertions for forbidden category keys, clipped endings and exact 6/4 balance; focused 42/42 tests passed
 - [x] Pass complete and isolated release suites after the editorial correction: 83/83 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
 - [x] Pass the complete local editorial-correction suite: 83/83 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
-- [ ] Commit, deploy and rerun the proof-only canary; restore subscriber mode only after both technical and editorial verification
+- [x] Commit reader-visible correction `4d5dba838a951700fc1135ee526636f798db294d` and deploy it in Render build `bld-daceneijnfac73c9sgcg` after 83/83 tests
+- [ ] Rerun the proof-only canary; restore subscriber mode only after both technical and editorial verification
+- [x] Deliver corrected proof `1a0656846f561dbe` and receipt `1a0656850d471bd8`: 1/1 delivered; commit `4d5dba8` and full release contract matched
+- [x] Verify internal category keys are absent and bounded headlines end as complete phrases in the actual Gmail proof
+- [x] Hold editorial verification because the actual proof contained approximately nine AI stories and one broader-business story despite self-reported 6/4 labels
+- [x] Classify every candidate source independently from its supplied title, evidence and scoring reason before planner selection
+- [x] Require `AI_BUSINESS` evidence to contain an explicit AI subject and a real business-function, decision, operating, customer, workforce, revenue, cost, risk or value connection
+- [x] Require `MAJOR_BUSINESS` evidence to be commercially significant and free of an AI-led subject in the supplied evidence
+- [x] Build disjoint, pre-verified AI-business and major-business source pools before the planner is invoked
+- [x] Require at least six eligible AI-business and four eligible major-business sources before planning; otherwise hold
+- [x] Constrain Newsroom and Focus separately to three AI-business and two major-business source IDs
+- [x] Reject planner classifications that disagree with the independently verified source class
+- [x] Add regressions proving AI-heavy 9/1 evidence cannot enter planning or pass through relabelling, while an evidence-backed 6/4 selection passes; focused 45/45 tests passed
+- [x] Pass complete and isolated release suites after classification-integrity enforcement: 86/86 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [x] Pass the complete local classification-integrity suite: 86/86 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [ ] Commit, deploy and rerun the proof-only canary; restore subscriber mode only after both technical and reader-visible 6/4 verification
