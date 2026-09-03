@@ -413,3 +413,14 @@
 - [x] Pass the complete local release suite after the second correction: 71/71 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
 - [ ] Commit and deploy the second correction as a documented descendant of `9862fbab0898bf5ad6012e91fd93cca6918caec6`
 - [ ] Rerun the one-recipient canary and restore subscriber mode only after the proof email and matched release receipt are verified
+- [x] Record third safe abort receipt `1a064faa89eba821`: 0/0 delivered; target and actual commit `eb5a1bc` matched with the complete release contract
+- [x] Identify the third exact hold: an `AI_BUSINESS` Newsroom item exceeded the 28-word substantive-connection limit after three attempts
+- [x] Inventory every planner field with a hard word or list bound and classify whether it can be safely normalised on the final attempt
+- [x] Define non-negotiable normalisation invariants: preserve source IDs, digits, classifications, action intent, business meaning and the 60/40 count
+- [x] Consolidate final-attempt normalisation so superficial word-bound misses cannot surface serially one field at a time
+- [x] Keep semantic, evidence, count, source-disjointness and plain-language failures as hard holds
+- [x] Add table-driven regressions covering every safely normalised field plus negative tests proving substantive failures still abort
+- [x] Pass complete and isolated release suites after the consolidated correction: 74/74 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [x] Pass the complete local suite after comprehensive normalisation: 74/74 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [ ] Commit and deploy the consolidated correction as a documented descendant of `eb5a1bcf36f6232c2582db509a0dc95855924486`
+- [ ] Rerun the one-recipient canary and restore subscriber mode only after the proof email and matched release receipt are verified

@@ -267,6 +267,95 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertIn("focus_numbers[3].number", repairs)
         self.assertIs(validate_judgement_plan(normalised, FOCUS_SOURCE_IDS), normalised)
 
+    def test_focus_revision_normalises_every_safe_presentation_bound(self) -> None:
+        plan = focus_numbers_plan()
+        plan["evidence_items"][0]["headline"] = " ".join(["headline"] * 10)
+        plan["evidence_items"][0]["evidence"] = " ".join(["evidence"] * 32)
+        plan["evidence_items"][0]["ai_business_connection"] = " ".join(["impact"] * 33)
+        plan["focus_numbers"][0]["entity"] = " ".join(["company"] * 8)
+        plan["focus_numbers"][0]["number"] = (
+            "Annual recurring revenue from AI and data products increased sharply to $1.2 billion"
+        )
+        plan["focus_numbers"][0]["meaning"] = " ".join(["meaning"] * 30)
+        plan["focus_numbers"][0]["ai_business_connection"] = " ".join(["connection"] * 34)
+        plan["interpretation"] = " ".join(["interpretation"] * 60)
+        plan["interpretation_headline"] = " ".join(["why"] * 12)
+        plan["founders_note"]["headline"] = " ".join(["founder"] * 14)
+        plan["founders_note"]["body"] = " ".join(["Founder"] * 100) + " — Paul"
+        plan["counter_signal"]["headline"] = " ".join(["counter"] * 12)
+        plan["counter_signal"]["statement"] = " ".join(["counter"] * 70)
+        plan["counter_signal"]["would_change_view_if"] = " ".join(["evidence"] * 50)
+        plan["executive_actions"] = [dict(plan["executive_actions"][0]) for _ in range(4)]
+        plan["executive_actions"][0]["headline"] = " ".join(["action"] * 8)
+        plan["executive_actions"][0]["instruction"] = " ".join(["instruction"] * 25)
+        plan["executive_read"]["dtl_view"] = " ".join(["view"] * 80)
+        plan["executive_read"]["watch_headline"] = " ".join(["watch"] * 12)
+        plan["executive_read"]["watch_items"] = [" ".join(["proof"] * 36)]
+
+        normalised, repairs = normalise_word_bound_fields(plan)
+
+        expected_repairs = {
+            "evidence_items[0].headline",
+            "evidence_items[0].evidence",
+            "evidence_items[0].ai_business_connection",
+            "focus_numbers[0].entity",
+            "focus_numbers[0].number",
+            "focus_numbers[0].meaning",
+            "focus_numbers[0].ai_business_connection",
+            "interpretation",
+            "interpretation_headline",
+            "founders_note.headline",
+            "founders_note.body",
+            "counter_signal.headline",
+            "counter_signal.statement",
+            "counter_signal.would_change_view_if",
+            "executive_actions",
+            "executive_actions[0].headline",
+            "executive_actions[0].instruction",
+            "executive_read.dtl_view",
+            "executive_read.watch_headline",
+            "executive_read.watch_items[0]",
+        }
+        self.assertTrue(expected_repairs.issubset(set(repairs)))
+        self.assertEqual(len(normalised["executive_actions"]), 3)
+        self.assertRegex(normalised["focus_numbers"][0]["number"], r"\d")
+        self.assertIs(validate_judgement_plan(normalised, FOCUS_SOURCE_IDS), normalised)
+
+    def test_final_attempt_normalisation_keeps_substantive_failures_hard(self) -> None:
+        for path in ("newsroom_connection", "focus_connection", "numeric_figure"):
+            with self.subTest(path=path):
+                plan = focus_numbers_plan()
+                if path == "newsroom_connection":
+                    plan["evidence_items"][0]["ai_business_connection"] = ""
+                elif path == "focus_connection":
+                    plan["focus_numbers"][0]["ai_business_connection"] = ""
+                else:
+                    plan["focus_numbers"][0]["number"] = "meaningful growth"
+                normalised, _ = normalise_word_bound_fields(plan)
+                with self.assertRaises(JudgementPlanError):
+                    validate_judgement_plan(normalised, FOCUS_SOURCE_IDS)
+
+    def test_planner_final_attempt_repairs_live_overlong_ai_business_connections(self) -> None:
+        plan = focus_numbers_plan()
+        plan["evidence_items"][0]["ai_business_connection"] = " ".join(["impact"] * 34)
+        plan["focus_numbers"][0]["ai_business_connection"] = " ".join(["connection"] * 35)
+        response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
+        client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
+        evidence = [{"source_id": source_id} for source_id in sorted(FOCUS_SOURCE_IDS)]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prompt_path = Path(tmpdir) / "prompt.md"
+            prompt_path.write_text("{EVIDENCE_ITEMS}\n{SIGNAL_MEMORY}")
+            with patch("src.judgement_plan.Anthropic", return_value=client), patch(
+                "src.judgement_plan.time.sleep"
+            ), patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+                result = generate_judgement_plan(evidence, {}, prompt_path)
+
+        self.assertEqual(client.messages.create.call_count, 3)
+        self.assertLessEqual(len(result["evidence_items"][0]["ai_business_connection"].split()), 28)
+        self.assertLessEqual(len(result["focus_numbers"][0]["ai_business_connection"].split()), 28)
+        self.assertIs(validate_judgement_plan(result, FOCUS_SOURCE_IDS), result)
+
     def test_planner_final_attempt_repairs_live_overlong_focus_number(self) -> None:
         plan = focus_numbers_plan()
         plan["focus_numbers"][3]["number"] = (

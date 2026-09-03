@@ -55,6 +55,7 @@ DTL Signal does not compete on more information. It competes on better judgement
 - Executive Read DTL view: maximum 75 words; `watch_headline`: maximum 10 words; every watch item: maximum 32 words.
 
 These are hard validation limits. Compress the thinking; do not omit the distinctions.
+Lead every bounded field with its substantive point. The final safety pass may trim excess words, so never hide the defining figure, business consequence or decision after a long preamble.
 
 ## Output
 

@@ -176,6 +176,13 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
             if isinstance(item, dict):
                 cap(item, "headline", 8, f"evidence_items[{index}].headline")
                 cap(item, "evidence", 28, f"evidence_items[{index}].evidence")
+                if item.get("mix_classification") == "AI_BUSINESS":
+                    cap(
+                        item,
+                        "ai_business_connection",
+                        28,
+                        f"evidence_items[{index}].ai_business_connection",
+                    )
 
     focus_numbers = normalised.get("focus_numbers")
     if isinstance(focus_numbers, list):
@@ -187,6 +194,13 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
                     item["number"] = _trim_words_preserving_digit(number, 10)
                     repairs.append(f"focus_numbers[{index}].number")
                 cap(item, "meaning", 26, f"focus_numbers[{index}].meaning")
+                if item.get("mix_classification") == "AI_BUSINESS":
+                    cap(
+                        item,
+                        "ai_business_connection",
+                        28,
+                        f"focus_numbers[{index}].ai_business_connection",
+                    )
 
     if isinstance(normalised.get("interpretation"), str) and _words(normalised["interpretation"]) > 55:
         normalised["interpretation"] = _trim_words(normalised["interpretation"], 55)
@@ -218,8 +232,16 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
     if _is_dynamic_revision(normalised) and not _is_focus_numbers_revision(normalised) and isinstance(changed, dict):
         cap(changed, "headline", 10, "what_changed.headline")
 
+    visual = normalised.get("visual_signal")
+    if _is_dynamic_revision(normalised) and isinstance(visual, dict) and visual.get("eligible"):
+        cap(visual, "title", 12, "visual_signal.title")
+
     actions = normalised.get("executive_actions")
     if isinstance(actions, list):
+        if len(actions) > 3:
+            normalised["executive_actions"] = actions[:3]
+            actions = normalised["executive_actions"]
+            repairs.append("executive_actions")
         for index, action in enumerate(actions):
             if _is_dynamic_revision(normalised) and isinstance(action, dict):
                 cap(action, "headline", 6, f"executive_actions[{index}].headline")

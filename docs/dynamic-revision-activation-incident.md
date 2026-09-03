@@ -85,3 +85,11 @@ The Focus-number correction was committed as `9862fbab0898bf5ad6012e91fd93cca691
 The second proof-only canary again held safely. Gmail receipt `1a064e63b95531f8` reports `0/0 delivered`, target and actual commit both `9862fbab0898bf5ad6012e91fd93cca6918caec6`, and the full renderer, release, proof and image contract matched. The new synthesis hold was: `Judgement planning failed after three attempts: Edition requires 1-3 executive actions`.
 
 This second result confirms the first correction worked and exposed a separate final-attempt structural edge case: the model returned zero actions. The release remains DEPLOYED but not CANARY VERIFIED or LIVE.
+
+### Third canary — comprehensive normalisation trigger
+
+The third proof-only canary ran on deployed commit `eb5a1bcf36f6232c2582db509a0dc95855924486`. Target and actual commit, renderer, release ID, approved proof checksum and Quang Phu Cau image identity all matched. Gmail receipt `1a064faa89eba821` records `0/0 delivered` and an abort after 738 seconds.
+
+The exact hold was: `AI-in-business Newsroom story requires a substantive connection in no more than 28 words`.
+
+Because this was the third distinct presentation-bound miss after three model attempts, recovery moved from one-field fixes to a comprehensive final-attempt normalisation policy. Semantic, evidence, source, 60/40, digit and reader-language failures remain hard holds.
