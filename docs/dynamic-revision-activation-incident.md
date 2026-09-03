@@ -141,3 +141,13 @@ The next proof-only canary delivered Gmail proof `1a0656846f561dbe` and receipt 
 The internal category keys were no longer visible and all previously clipped headlines ended cleanly. However, the reader-visible edition still contained approximately nine AI stories and one broader business story while the planner’s self-reported classifications satisfied the 6/4 gate. This proves model-assigned labels cannot be the source of truth for the content-mix commitment.
 
 The release remains **technical canary matched / editorial canary held / not live**. Source substance must be classified before planning, and planner selections must be checked against those independently established source pools.
+
+The classification-integrity control was committed to GitHub master as `ee4de7d629af0a6f1226fb568856fe1519d48bf5`. Local and isolated worktrees each passed 86/86 tests and reproduced approved proof SHA-256 `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`.
+
+Render build `bld-dacf6hoae00c73f4284g` checked out that exact commit, passed all 86 tests and completed successfully. The service remained proof-only pending independent technical and reader-visible 6/4 canary verification.
+
+The subsequent proof-only canary delivered Gmail proof `1a065849544df77a` and receipt `1a06584a0305a80c`. Target and actual commit `ee4de7d629af0a6f1226fb568856fe1519d48bf5`, renderer, release, approved proof checksum and image identity matched at 1/1 delivery.
+
+Independent review of the actual Gmail body confirmed that Newsroom contained three AI-business and two major-business stories. Focus on the Numbers did not: two independently major-business source records were rewritten with AI-led reader copy. The proof also contained the incomplete watch headline `Enterprise AI scaling success rate moving above`.
+
+The release remains **technical canary matched / editorial canary held / not live**. The next gate validates the actual reader fields against the independently verified source class and rejects incomplete directional or comparative headline endings. Subscriber mode remains disabled.

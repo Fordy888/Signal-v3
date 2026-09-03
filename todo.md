@@ -470,4 +470,17 @@
 - [x] Add regressions proving AI-heavy 9/1 evidence cannot enter planning or pass through relabelling, while an evidence-backed 6/4 selection passes; focused 45/45 tests passed
 - [x] Pass complete and isolated release suites after classification-integrity enforcement: 86/86 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
 - [x] Pass the complete local classification-integrity suite: 86/86 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
-- [ ] Commit, deploy and rerun the proof-only canary; restore subscriber mode only after both technical and reader-visible 6/4 verification
+- [x] Commit classification-integrity control `ee4de7d629af0a6f1226fb568856fe1519d48bf5` and deploy it in Render build `bld-dacf6hoae00c73f4284g` after 86/86 tests
+- [ ] Rerun the proof-only canary; restore subscriber mode only after both technical and reader-visible 6/4 verification
+- [x] Deliver independently classified proof `1a065849544df77a` and receipt `1a06584a0305a80c`: 1/1 delivered; commit `ee4de7d` and release contract matched
+- [x] Verify the actual Newsroom reader copy is correctly three AI-business and two major-business stories
+- [x] Hold editorial verification because two independently major-business Focus sources were rewritten with AI-led reader copy
+- [x] Identify incomplete reader-facing watch headline ending on the dangling word `above`
+- [x] Validate each item’s rendered headline, evidence, entity, number and meaning against its independently verified source class
+- [x] Require major-business reader copy to remain non-AI-led and reject any AI subject introduced during planning
+- [x] Require AI-business reader copy to retain an explicit AI subject and concrete business consequence
+- [x] Extend complete-headline validation to directional and comparative dangling endings such as `above`, `below`, `between`, `toward`, `from` and `against`
+- [x] Add regressions proving a major-business source cannot be dressed as an AI item, an AI item cannot lose its AI subject, and the exact watch-headline fragment is rejected; focused 48/48 tests passed
+- [x] Pass complete and isolated release suites after reader-visible semantic enforcement: 89/89 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [x] Pass the complete local reader-semantic suite: 89/89 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [ ] Commit, deploy and rerun the proof-only canary; restore subscriber mode only after technical and actual reader-visible verification

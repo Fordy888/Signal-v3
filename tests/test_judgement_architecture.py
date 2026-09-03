@@ -133,7 +133,16 @@ def focus_numbers_plan() -> dict:
         item["source_ids"] = [f"S{index:02d}"]
         item["mix_classification"] = "AI_BUSINESS" if index <= 8 else "MAJOR_BUSINESS"
         if item["mix_classification"] == "AI_BUSINESS":
+            item["headline"] = f"AI {item['headline']}"
+            item["evidence"] = "AI is changing a source-backed enterprise decision and commercial outcome."
             item["ai_business_connection"] = "AI changes a real operating decision, commercial outcome or workforce process."
+        else:
+            item["headline"] = "Capital costs are changing strategy" if index == 9 else "Hiring pressure is reaching wages"
+            item["evidence"] = (
+                "Higher financing costs are changing company investment decisions."
+                if index == 9
+                else "Employer demand is changing wages and workforce planning."
+            )
     plan["founders_note"]["body"] = (
         "The most useful business stories usually have a number hiding inside them. Revenue, price, wages, customers and investment tell us whether change is real or merely interesting. This edition puts those figures in the open. Do not chase every headline. Find the number that changes a decision, then ask what it means for your business today. — Paul"
     )
@@ -172,6 +181,7 @@ def focus_numbers_plan() -> dict:
     for index, item in enumerate(plan["focus_numbers"], 1):
         item["mix_classification"] = "AI_BUSINESS" if index <= 3 else "MAJOR_BUSINESS"
         if item["mix_classification"] == "AI_BUSINESS":
+            item["meaning"] = f"AI {item['meaning']}"
             item["ai_business_connection"] = "AI changes a real operating decision, commercial outcome or workforce process."
     return plan
 
@@ -369,8 +379,15 @@ class JudgementArchitectureTests(unittest.TestCase):
                 if direction == "too_few_ai":
                     candidate["focus_numbers"][2]["mix_classification"] = "MAJOR_BUSINESS"
                     candidate["focus_numbers"][2].pop("ai_business_connection")
+                    candidate["focus_numbers"][2]["meaning"] = (
+                        "Faster growth shifts attention from demand generation to fulfilment capacity and margin discipline."
+                    )
                 else:
                     candidate["evidence_items"][3]["mix_classification"] = "AI_BUSINESS"
+                    candidate["evidence_items"][3]["headline"] = "AI changes capital allocation"
+                    candidate["evidence_items"][3]["evidence"] = (
+                        "AI is changing a real company investment decision and commercial outcome."
+                    )
                     candidate["evidence_items"][3]["ai_business_connection"] = (
                         "AI changes a real operating decision, commercial outcome or workforce process."
                     )
@@ -548,23 +565,28 @@ class JudgementArchitectureTests(unittest.TestCase):
 
     def test_focus_number_normaliser_preserves_defining_figure_after_verbose_lead_in(self) -> None:
         plan = focus_numbers_plan()
-        plan["focus_numbers"][3]["number"] = (
+        plan["focus_numbers"][0]["number"] = (
             "Annual recurring revenue from AI and data products increased sharply to $1.2 billion"
         )
 
         normalised, repairs = normalise_word_bound_fields(plan)
-        number = normalised["focus_numbers"][3]["number"]
+        number = normalised["focus_numbers"][0]["number"]
 
         self.assertLessEqual(len(number.split()), 10)
         self.assertRegex(number, r"\d")
         self.assertIn("$1.2 billion", number)
-        self.assertIn("focus_numbers[3].number", repairs)
+        self.assertIn("focus_numbers[0].number", repairs)
         self.assertIs(validate_judgement_plan(normalised, FOCUS_SOURCE_IDS), normalised)
 
     def test_focus_revision_normalises_every_safe_presentation_bound(self) -> None:
         plan = focus_numbers_plan()
-        plan["evidence_items"][0]["headline"] = " ".join(["headline"] * 10)
-        plan["evidence_items"][0]["evidence"] = " ".join(["evidence"] * 32)
+        plan["evidence_items"][0]["headline"] = (
+            "AI changes business operations before " + " ".join(["growth"] * 6)
+        )
+        plan["evidence_items"][0]["evidence"] = (
+            "AI changes enterprise operations and commercial outcomes "
+            + " ".join(["evidence"] * 26)
+        )
         plan["evidence_items"][0]["ai_business_connection"] = " ".join(["impact"] * 33)
         plan["focus_numbers"][0]["entity"] = " ".join(["company"] * 8)
         plan["focus_numbers"][0]["number"] = (
@@ -633,6 +655,40 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertIn("executive_read.watch_headline", repairs)
         self.assertIs(validate_judgement_plan(normalised, FOCUS_SOURCE_IDS), normalised)
 
+    def test_watch_headline_rejects_and_repairs_live_moving_above_fragment(self) -> None:
+        plan = focus_numbers_plan()
+        plan["executive_read"]["watch_headline"] = "Enterprise AI scaling success rate moving above"
+
+        with self.assertRaisesRegex(JudgementPlanError, "incomplete"):
+            validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
+
+        normalised, repairs = normalise_word_bound_fields(plan)
+        self.assertEqual(
+            normalised["executive_read"]["watch_headline"],
+            "Enterprise AI scaling success rate",
+        )
+        self.assertIn("executive_read.watch_headline", repairs)
+        self.assertIs(validate_judgement_plan(normalised, FOCUS_SOURCE_IDS), normalised)
+
+    def test_major_business_reader_copy_cannot_gain_ai_angle(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][3]["meaning"] = (
+            "AI tools turn the investment into a faster enterprise workflow."
+        )
+        _, verified = prepare_content_mix_evidence(focus_numeric_evidence())
+
+        with self.assertRaisesRegex(JudgementPlanError, "must not introduce an AI-led angle"):
+            validate_judgement_plan(plan, FOCUS_SOURCE_IDS, FOCUS_SOURCE_IDS, verified)
+
+    def test_ai_business_reader_copy_must_keep_ai_subject_and_business_consequence(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][0]["meaning"] = "The result is notable."
+        plan["focus_numbers"][0]["entity"] = "SpaceX"
+        _, verified = prepare_content_mix_evidence(focus_numeric_evidence())
+
+        with self.assertRaisesRegex(JudgementPlanError, "explicit AI subject"):
+            validate_judgement_plan(plan, FOCUS_SOURCE_IDS, FOCUS_SOURCE_IDS, verified)
+
     def test_final_attempt_normalisation_keeps_substantive_failures_hard(self) -> None:
         for path in ("newsroom_connection", "focus_connection", "numeric_figure"):
             with self.subTest(path=path):
@@ -670,7 +726,7 @@ class JudgementArchitectureTests(unittest.TestCase):
 
     def test_planner_final_attempt_repairs_live_overlong_focus_number(self) -> None:
         plan = focus_numbers_plan()
-        plan["focus_numbers"][3]["number"] = (
+        plan["focus_numbers"][0]["number"] = (
             "Annual recurring revenue from AI and data products increased sharply to $1.2 billion"
         )
         response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
@@ -685,7 +741,7 @@ class JudgementArchitectureTests(unittest.TestCase):
             ), patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
                 result = generate_judgement_plan(evidence, {}, prompt_path)
 
-        repaired_number = result["focus_numbers"][3]["number"]
+        repaired_number = result["focus_numbers"][0]["number"]
         self.assertEqual(client.messages.create.call_count, 3)
         self.assertLessEqual(len(repaired_number.split()), 10)
         self.assertRegex(repaired_number, r"\d")

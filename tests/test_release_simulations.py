@@ -39,7 +39,12 @@ def _focus_numbers_plan() -> dict:
         item["source_ids"] = [f"S{index:02d}"]
         item["mix_classification"] = "AI_BUSINESS" if index <= 8 else "MAJOR_BUSINESS"
         if item["mix_classification"] == "AI_BUSINESS":
+            item["headline"] = f"AI changes business story {index}"
+            item["evidence"] = "AI is changing a real business process and commercial result."
             item["ai_business_connection"] = "AI changes a real business process, decision or commercial result."
+        else:
+            item["headline"] = f"Major business story {index}"
+            item["evidence"] = "A major company decision changes investment and customer demand."
     plan["interpretation_headline"] = "The numbers are changing operating priorities"
     plan["executive_actions"] = [
         {
@@ -65,6 +70,7 @@ def _focus_numbers_plan() -> dict:
     for index, item in enumerate(plan["focus_numbers"], 1):
         item["mix_classification"] = "AI_BUSINESS" if index <= 3 else "MAJOR_BUSINESS"
         if item["mix_classification"] == "AI_BUSINESS":
+            item["meaning"] = "AI changes a real business process and commercial result."
             item["ai_business_connection"] = "AI changes a real business process, decision or commercial result."
     return plan
 

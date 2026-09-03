@@ -45,8 +45,10 @@ UNEXPLAINED_READER_TERMS = {
 
 INCOMPLETE_HEADLINE_ENDINGS = {
     "a", "an", "and", "are", "as", "at", "be", "because", "being", "but", "by",
-    "for", "from", "if", "in", "into", "is", "just", "not", "of", "on", "or", "that",
-    "the", "their", "this", "to", "was", "were", "when", "while", "with", "your",
+    "above", "across", "against", "before", "below", "between", "beyond", "for", "from",
+    "if", "in", "into", "is", "just", "moving", "not", "of", "on", "or", "over", "that",
+    "the", "their", "this", "through", "to", "toward", "towards", "under", "until", "upon",
+    "was", "were", "when", "while", "with", "within", "without", "your",
 }
 
 
@@ -536,6 +538,32 @@ def allocate_focus_numbers_content_mix(
     }
 
 
+def _validate_reader_visible_mix_copy(
+    item: dict[str, Any],
+    classification: str,
+    *,
+    section: str,
+) -> None:
+    """Make the verified 6/4 mix true in the copy subscribers actually read."""
+    fields = (
+        ("entity", "number", "meaning")
+        if section == "Focus"
+        else ("headline", "evidence")
+    )
+    reader_text = " ".join(str(item.get(field, "")).strip() for field in fields)
+    has_ai_subject = bool(AI_SUBJECT_RE.search(reader_text))
+    has_business_impact = bool(BUSINESS_IMPACT_RE.search(reader_text))
+    if classification == "AI_BUSINESS" and not (has_ai_subject and has_business_impact):
+        raise JudgementPlanError(
+            f"{section} AI_BUSINESS reader copy must state an explicit AI subject "
+            "and concrete business consequence"
+        )
+    if classification == "MAJOR_BUSINESS" and has_ai_subject:
+        raise JudgementPlanError(
+            f"{section} MAJOR_BUSINESS reader copy must not introduce an AI-led angle"
+        )
+
+
 def recover_missing_focus_figures(
     plan: dict[str, Any],
     evidence_items: list[dict[str, Any]],
@@ -748,6 +776,11 @@ def validate_judgement_plan(
                         "AI-in-business Newsroom story requires a substantive connection in no more than 28 words"
                     )
                 newsroom_ai_business_items += 1
+            _validate_reader_visible_mix_copy(
+                item,
+                mix_classification,
+                section="Newsroom",
+            )
 
     if not str(plan.get("interpretation", "")).strip() or _words(plan["interpretation"]) > 55:
         raise JudgementPlanError("Edition-level interpretation is missing or exceeds 55 words")
@@ -850,6 +883,11 @@ def validate_judgement_plan(
                         f"AI-in-business Focus number {index + 1} requires a substantive connection in no more than 28 words"
                     )
                 focus_ai_business_items += 1
+            _validate_reader_visible_mix_copy(
+                item,
+                mix_classification,
+                section="Focus",
+            )
             focus_source_ids.update(source_ids)
         overlap = newsroom_source_ids.intersection(focus_source_ids)
         if overlap:
