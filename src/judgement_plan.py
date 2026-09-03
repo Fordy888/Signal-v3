@@ -265,6 +265,139 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
     return normalised, repairs
 
 
+ELIGIBLE_FOCUS_FIGURE_RE = re.compile(
+    r"(?:[$€£]\s?\d[\d,]*(?:\.\d+)?\s?(?:thousand|million|billion|trillion)?)"
+    r"|(?:\b\d[\d,]*(?:\.\d+)?\s?(?:%|percent|basis points?|bps|"
+    r"thousand|million|billion|trillion|roles|jobs|customers|workers|employees|"
+    r"firms|companies|points|times|x)\b)",
+    re.IGNORECASE,
+)
+
+FOCUS_FIGURE_CONTEXT_WORDS = {
+    "adoption",
+    "annual",
+    "arr",
+    "budget",
+    "cost",
+    "customers",
+    "earnings",
+    "employment",
+    "growth",
+    "investment",
+    "jobs",
+    "layoffs",
+    "loss",
+    "margin",
+    "price",
+    "profit",
+    "recurring",
+    "remuneration",
+    "revenue",
+    "sales",
+    "savings",
+    "valuation",
+    "workers",
+}
+
+
+def _source_bound_focus_figure(source: dict[str, Any], focus_item: dict[str, Any]) -> str | None:
+    """Extract one compact figure from a selected source without inventing copy."""
+    focus_terms = {
+        term.lower()
+        for term in re.findall(
+            r"[A-Za-z]{3,}",
+            " ".join(
+                str(focus_item.get(field, ""))
+                for field in ("entity", "meaning", "ai_business_connection")
+            ),
+        )
+    }
+    candidates: list[tuple[int, int, str]] = []
+    for field_priority, field in enumerate(("evidence", "title", "scoring_reason")):
+        text = str(source.get(field, "")).strip()
+        if not text:
+            continue
+        for match in ELIGIBLE_FOCUS_FIGURE_RE.finditer(text):
+            sentence_start = max(text.rfind(".", 0, match.start()), text.rfind(";", 0, match.start())) + 1
+            sentence_end_candidates = [
+                boundary for boundary in (text.find(".", match.end()), text.find(";", match.end()))
+                if boundary >= 0
+            ]
+            sentence_end = min(sentence_end_candidates) if sentence_end_candidates else len(text)
+            sentence = text[sentence_start:sentence_end].strip()
+            local_start = match.start() - sentence_start
+            word_spans = list(re.finditer(r"\S+", sentence))
+            start_index = next(
+                (index for index, word in enumerate(word_spans) if word.start() <= local_start < word.end()),
+                0,
+            )
+            compact = " ".join(
+                word.group(0) for word in word_spans[start_index : start_index + 8]
+            ).strip(" ,;:")
+            compact = _trim_words_preserving_digit(compact, 10)
+            if not compact or not re.search(r"\d", compact):
+                continue
+
+            sentence_terms = {term.lower() for term in re.findall(r"[A-Za-z]{3,}", sentence)}
+            context_score = len(focus_terms.intersection(sentence_terms))
+            business_score = len(FOCUS_FIGURE_CONTEXT_WORDS.intersection(sentence_terms))
+            unit_score = 3 if re.search(r"[$€£]|%|percent|million|billion|trillion", match.group(0), re.I) else 1
+            score = (context_score * 4) + (business_score * 2) + unit_score - field_priority
+            candidates.append((score, -match.start(), compact))
+
+    if not candidates:
+        return None
+    return max(candidates, key=lambda candidate: (candidate[0], candidate[1]))[2]
+
+
+def recover_missing_focus_figures(
+    plan: dict[str, Any],
+    evidence_items: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[str]]:
+    """Recover a missing Focus figure only from its one cited source record.
+
+    No source ID or classification is changed. If the cited source has no explicit
+    eligible figure, validation remains responsible for holding the edition.
+    """
+    repaired = copy.deepcopy(plan)
+    if not _is_focus_numbers_revision(repaired):
+        return repaired, []
+
+    evidence_by_id: dict[str, dict[str, Any]] = {}
+    duplicate_ids: set[str] = set()
+    for source in evidence_items:
+        source_id = str(source.get("source_id", "")).strip()
+        if not source_id:
+            continue
+        if source_id in evidence_by_id:
+            duplicate_ids.add(source_id)
+        evidence_by_id[source_id] = source
+
+    repairs: list[str] = []
+    focus_numbers = repaired.get("focus_numbers")
+    if not isinstance(focus_numbers, list):
+        return repaired, repairs
+    for index, item in enumerate(focus_numbers):
+        if not isinstance(item, dict):
+            continue
+        number = str(item.get("number", "")).strip()
+        if re.search(r"\d", number):
+            continue
+        source_ids = [str(source_id) for source_id in item.get("source_ids") or []]
+        if len(source_ids) != 1 or source_ids[0] in duplicate_ids:
+            continue
+        source = evidence_by_id.get(source_ids[0])
+        if source is None:
+            continue
+        recovered = _source_bound_focus_figure(source, item)
+        if recovered is None:
+            continue
+        item["number"] = recovered
+        item["number_recovered_from_source"] = source_ids[0]
+        repairs.append(f"focus_numbers[{index}].number")
+    return repaired, repairs
+
+
 def add_final_attempt_action_fallback(plan: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     """Add one source-bound action only when a dynamic final attempt returns none.
 
@@ -582,6 +715,8 @@ def generate_judgement_plan(
             candidate = _extract_json_object(text)
             if attempt == 2:
                 candidate, repairs = normalise_word_bound_fields(candidate)
+                candidate, figure_repairs = recover_missing_focus_figures(candidate, evidence_items)
+                repairs.extend(figure_repairs)
                 candidate, action_repairs = add_final_attempt_action_fallback(candidate)
                 repairs.extend(action_repairs)
                 if repairs:

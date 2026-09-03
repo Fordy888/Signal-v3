@@ -93,3 +93,15 @@ The third proof-only canary ran on deployed commit `eb5a1bcf36f6232c2582db509a0d
 The exact hold was: `AI-in-business Newsroom story requires a substantive connection in no more than 28 words`.
 
 Because this was the third distinct presentation-bound miss after three model attempts, recovery moved from one-field fixes to a comprehensive final-attempt normalisation policy. Semantic, evidence, source, 60/40, digit and reader-language failures remain hard holds.
+
+The comprehensive correction was committed to GitHub master as `71ea338870471b553735e878b0a5ba05b91fc02c`. Local and isolated worktrees each passed 74/74 tests and reproduced approved proof SHA-256 `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`.
+
+Render build `bld-dacdc3qfngtc73d1v7d0` checked out that exact commit, passed all 74 tests and completed successfully. The service remained on the proof-only command pending another canary.
+
+### Fourth canary — missing defining figure
+
+The fourth proof-only canary ran on deployed commit `71ea338870471b553735e878b0a5ba05b91fc02c`. Gmail receipt `1a065131da16eadd` records `0/0 delivered` after 738 seconds. Target and actual commit, renderer, release ID, approved proof checksum and Quang Phu Cau image identity all matched.
+
+The exact hold was: `Focus number 1 must contain a defining figure in no more than 10 words`. Unlike an overlong field, the generated value did not contain the required numeric evidence. Trimming cannot repair that condition.
+
+Recovery must remain evidence-bound: a missing Focus figure may be recovered only from the same selected source record, and only when that source contains an explicit eligible numeric figure. If no such figure exists, the edition must continue to hold. The service remains proof-only.

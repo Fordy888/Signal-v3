@@ -17,6 +17,7 @@ from src.judgement_plan import (
     add_final_attempt_action_fallback,
     generate_judgement_plan,
     normalise_word_bound_fields,
+    recover_missing_focus_figures,
     validate_judgement_plan,
 )
 from src.signal_memory import apply_memory_update
@@ -192,6 +193,64 @@ class JudgementArchitectureTests(unittest.TestCase):
             plan["focus_numbers"][0][field] = value
             with self.assertRaises(JudgementPlanError):
                 validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
+
+    def test_missing_focus_figure_recovers_from_same_selected_source_only(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][0]["number"] = "meaningful growth"
+        evidence = [
+            {
+                "source_id": "S01",
+                "title": "SpaceX valuation rises",
+                "evidence": "SpaceX reached a $400 billion valuation after its latest transaction.",
+            },
+            {
+                "source_id": "S02",
+                "title": "Unrelated company result",
+                "evidence": "An unrelated company reported $999 billion in revenue.",
+            },
+        ]
+
+        repaired, repairs = recover_missing_focus_figures(plan, evidence)
+
+        recovered = repaired["focus_numbers"][0]["number"]
+        self.assertIn("$400 billion", recovered)
+        self.assertNotIn("$999 billion", recovered)
+        self.assertIn(recovered, evidence[0]["evidence"])
+        self.assertEqual(repaired["focus_numbers"][0]["source_ids"], ["S01"])
+        self.assertEqual(repaired["focus_numbers"][0]["number_recovered_from_source"], "S01")
+        self.assertIn("focus_numbers[0].number", repairs)
+
+    def test_missing_focus_figure_remains_hard_hold_without_same_source_number(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][0]["number"] = "meaningful growth"
+        evidence = [{
+            "source_id": "S01",
+            "title": "SpaceX valuation discussion",
+            "evidence": "The company discussed valuation without publishing an explicit figure.",
+        }]
+
+        repaired, repairs = recover_missing_focus_figures(plan, evidence)
+
+        self.assertEqual(repairs, [])
+        self.assertEqual(repaired["focus_numbers"][0]["number"], "meaningful growth")
+        with self.assertRaisesRegex(JudgementPlanError, "must contain a defining figure"):
+            validate_judgement_plan(repaired, FOCUS_SOURCE_IDS)
+
+    def test_missing_focus_figure_does_not_recover_from_multiple_or_duplicate_sources(self) -> None:
+        for evidence, source_ids in (
+            ([{"source_id": "S01", "evidence": "Revenue reached $4 billion."}], ["S01", "S02"]),
+            ([
+                {"source_id": "S01", "evidence": "Revenue reached $4 billion."},
+                {"source_id": "S01", "evidence": "Revenue reached $5 billion."},
+            ], ["S01"]),
+        ):
+            with self.subTest(source_ids=source_ids, evidence_count=len(evidence)):
+                plan = focus_numbers_plan()
+                plan["focus_numbers"][0]["number"] = "meaningful growth"
+                plan["focus_numbers"][0]["source_ids"] = source_ids
+                repaired, repairs = recover_missing_focus_figures(plan, evidence)
+                self.assertEqual(repairs, [])
+                self.assertEqual(repaired["focus_numbers"][0]["number"], "meaningful growth")
 
     def test_focus_revision_rejects_newsroom_and_number_source_overlap(self) -> None:
         plan = focus_numbers_plan()
@@ -378,6 +437,37 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertLessEqual(len(repaired_number.split()), 10)
         self.assertRegex(repaired_number, r"\d")
         self.assertIn("$1.2 billion", repaired_number)
+
+    def test_planner_final_attempt_recovers_live_missing_focus_figure_from_selected_source(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][0]["number"] = "meaningful growth"
+        response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
+        client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
+        evidence = [
+            {
+                "source_id": source_id,
+                "title": "SpaceX valuation rises" if source_id == "S01" else f"Source {source_id}",
+                "evidence": (
+                    "SpaceX reached a $400 billion valuation after its latest transaction."
+                    if source_id == "S01"
+                    else "Source-backed business evidence."
+                ),
+            }
+            for source_id in sorted(FOCUS_SOURCE_IDS)
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prompt_path = Path(tmpdir) / "prompt.md"
+            prompt_path.write_text("{EVIDENCE_ITEMS}\n{SIGNAL_MEMORY}")
+            with patch("src.judgement_plan.Anthropic", return_value=client), patch(
+                "src.judgement_plan.time.sleep"
+            ), patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+                result = generate_judgement_plan(evidence, {}, prompt_path)
+
+        self.assertEqual(client.messages.create.call_count, 3)
+        self.assertIn("$400 billion", result["focus_numbers"][0]["number"])
+        self.assertEqual(result["focus_numbers"][0]["number_recovered_from_source"], "S01")
+        self.assertIs(validate_judgement_plan(result, FOCUS_SOURCE_IDS), result)
 
     def test_planner_final_attempt_adds_source_bound_action_when_model_returns_none(self) -> None:
         plan = focus_numbers_plan()

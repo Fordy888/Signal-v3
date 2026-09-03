@@ -422,5 +422,15 @@
 - [x] Add table-driven regressions covering every safely normalised field plus negative tests proving substantive failures still abort
 - [x] Pass complete and isolated release suites after the consolidated correction: 74/74 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
 - [x] Pass the complete local suite after comprehensive normalisation: 74/74 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
-- [ ] Commit and deploy the consolidated correction as a documented descendant of `eb5a1bcf36f6232c2582db509a0dc95855924486`
+- [x] Commit consolidated correction `71ea338870471b553735e878b0a5ba05b91fc02c` and deploy it in Render build `bld-dacdc3qfngtc73d1v7d0` after 74/74 tests
+- [ ] Rerun the one-recipient canary and restore subscriber mode only after the proof email and matched release receipt are verified
+- [x] Record fourth safe abort receipt `1a065131da16eadd`: 0/0 delivered; target and actual commit `71ea338` matched with the complete release contract
+- [x] Identify the fourth exact hold: Focus item 1 omitted a numeric defining figure after all three planning attempts
+- [x] Map each selected Focus source ID to its original evidence record during final-attempt repair
+- [x] Recover a missing Focus figure only from an explicit numeric expression in that same source’s evidence, title or scoring reason
+- [x] Preserve the figure’s local unit or commercial noun while keeping the Focus label within ten words
+- [x] Keep missing-figure output as a hard hold when the selected source contains no eligible numeric expression
+- [x] Add regressions proving same-source recovery, no cross-source leakage, no invented figure and continued 60/40/source-disjointness enforcement; focused 28/28 tests passed
+- [x] Pass complete and isolated release suites after the evidence-bound correction: 78/78 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [ ] Commit and deploy the correction as a documented descendant of `71ea338870471b553735e878b0a5ba05b91fc02c`
 - [ ] Rerun the one-recipient canary and restore subscriber mode only after the proof email and matched release receipt are verified

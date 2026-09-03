@@ -179,6 +179,8 @@ The ten core items must use ten distinct source records and contain no repeated 
 
 The daily revision identifier remains `focus-on-the-numbers-v1`, and its renderer identity is `enhanced-v4-focus-numbers`. Weekly Wrap remains on its separately approved route.
 
+The planner’s third and final attempt may deterministically shorten presentation-bound copy while preserving sources, classifications, figures and meaning. If a Focus item omits its defining figure, recovery is allowed only from an explicit numeric expression in that item’s single selected source record. The source ID and content classification cannot change. Ambiguous sources or source records without an eligible figure remain critical holds; Signal must never invent or borrow a number from another item.
+
 REMEMBER THE WORLD candidates approved from 1 September 2026 onward must record a natural dominant colour family. Brand harmony is a curation preference only: photographs must never be recoloured or artificially tinted, and artistic power, authenticity, rights, provenance, date validity and non-repetition remain the hard gates.
 
 ---
