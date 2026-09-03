@@ -59,3 +59,23 @@ The matching Gmail operational receipt has message ID `1a063c07171fe39d` and sub
 The receipt’s `MATCH` proves only that the old runtime matched its stale environment. It does not prove the approved release went live. The commitment result is therefore: **DELIVERY SUCCEEDED / TARGET RELEASE FAILED**.
 
 No duplicate Edition 0046 will be sent. Recovery targets the next available scheduled edition only after the approved commit is deployed and a one-recipient canary proves the target release.
+
+## Recovery deployment evidence — 3 September 2026
+
+Render environment controls were aligned with target release `focus-numbers-60-40-v1`, expected commit `cd73df99af5f7a896e13d997974315e312e00c62`, renderer `enhanced-v4-focus-numbers`, approved proof SHA-256 `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`, manifest `data/release_manifest.json` and image identity `REMEMBER-0046-QUANG-PHU-CAU-INCENSE`.
+
+Manual Render build `bld-dacc4t3m8hqs73aengt0` checked out the exact target commit, ran all **67 tests successfully**, and completed successfully. Render’s build history then identified `cd73df9` as the **last successfully deployed commit**.
+
+This establishes **DEPLOYED**. It does not yet establish CANARY VERIFIED, LIVE or SUBSCRIBER VERIFIED.
+
+## Live canary in progress — 3 September 2026
+
+The production cron command was temporarily changed from subscriber mode to `python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-09-03T06:00:00+10:00 --save-html /tmp/deployed-canary-0046.html` before the manual run was triggered.
+
+Render checked out commit `cd73df99af5f7a896e13d997974315e312e00c62`. The live log confirms `mode=proof`, `PROOF MODE: sending to paul.ford@gmail.com only` and `FAIL-SAFE: Recipient integrity verified — 1 unique valid emails`. The canary is still processing the live source and scoring pipeline. CANARY VERIFIED is not yet true.
+
+The canary completed with a safe abort. Gmail receipt `1a064c8a2e33b0a6` reports `[ABORTED] DTL Signal 0046 — Not sent`, `0/0 delivered`, target and actual commit both `cd73df99af5f7a896e13d997974315e312e00c62`, matching renderer, release ID, proof checksum and Quang Phu Cau image identity, but no generated HTML.
+
+The specific synthesis hold was: `Judgement planning failed after three attempts: Focus number 4 must contain a defining figure in no more than 10 words`.
+
+This proves the deployment and release-identity controls are active and the one-recipient boundary held. It does **not** establish CANARY VERIFIED. The service remains on the proof-only command while the planner’s final-attempt normalisation is corrected and the canary is rerun.

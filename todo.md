@@ -390,8 +390,16 @@
 - [x] Record that Edition 0046 was subscriber-visible on the old Render release: DELIVERY SUCCEEDED / TARGET RELEASE FAILED
 - [x] Do not resend Edition 0046 or trigger any subscriber broadcast during recovery
 - [x] Reconfirm the approved GitHub release remains reproducible after correcting the date-bound image regression: 67/67 tests and exact proof SHA `7ff05b54…7b606e3`
-- [ ] Deploy only after Render access is restored and the guarded build target is explicit
+- [x] Deploy only after Render access is restored and all ten guarded release controls match the approved target
 - [ ] Run a one-recipient live canary before any future scheduled subscriber edition
 - [x] Commit and push the approved 60/40 revision to production master at `5b83752deafb7dca394c27bc2533e829d04144c7`
-- [ ] Verify the Render build ID and actual deployed Git commit before claiming DEPLOYED
+- [x] Verify Render build `bld-dacc4t3m8hqs73aengt0` passed 67/67 tests and the last successfully deployed commit is `cd73df99af5f7a896e13d997974315e312e00c62`
 - [ ] Send and verify a one-recipient post-deployment canary to `paul.ford@gmail.com`
+- [x] Trigger the deployed canary in proof-only mode and verify `paul.ford@gmail.com` is the sole valid recipient
+- [x] Record safe abort receipt `1a064c8a2e33b0a6`: 0/0 delivered; target commit, renderer, release, proof and image identity matched
+- [x] Identify the exact hold: Focus number 4 exceeded the ten-word defining-figure limit after all three planning attempts
+- [x] Normalise an overlong final-attempt Focus defining figure without removing its required digit or weakening source evidence
+- [x] Add regression coverage for the exact live failure and retain the 60/40, source-disjointness and plain-language gates; focused 19/19 tests passed
+- [x] Pass the complete and isolated release suites: 69/69 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [ ] Commit and deploy the correction as a documented descendant of `cd73df99af5f7a896e13d997974315e312e00c62`
+- [ ] Rerun the one-recipient canary; restore subscriber mode only after CANARY VERIFIED

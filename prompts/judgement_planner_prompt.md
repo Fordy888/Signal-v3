@@ -45,7 +45,7 @@ DTL Signal does not compete on more information. It competes on better judgement
 - `founders_note.headline`: maximum 12 words.
 - `founders_note.body`: 45–90 words, ending exactly with `— Paul`.
 - Every `focus_numbers.entity`: maximum 6 words.
-- Every `focus_numbers.number`: maximum 10 words and must contain at least one digit.
+- Every `focus_numbers.number`: maximum 10 words and must contain at least one digit. Begin with the defining numeral, currency figure or percentage; do not add throat-clearing words before it.
 - Every `focus_numbers.meaning`: maximum 26 words.
 - Top-level `interpretation`: maximum 55 words.
 - `interpretation_headline`: maximum 10 words.
@@ -82,7 +82,7 @@ Return one JSON object only, with exactly this structure:
     {
       "source_ids": ["S01"],
       "entity": "company, organisation, person or market",
-      "number": "the exact defining figure",
+      "number": "the exact defining figure first, in no more than 10 words",
       "meaning": "what changed and why the number matters commercially",
       "mix_classification": "AI_BUSINESS|MAJOR_BUSINESS",
       "ai_business_connection": "required for AI_BUSINESS; omit for MAJOR_BUSINESS"

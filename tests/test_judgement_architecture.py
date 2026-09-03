@@ -251,6 +251,44 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertLessEqual(len(normalised["founders_note"]["body"].split()), 90)
         self.assertIn("founders_note.body", repairs)
 
+    def test_focus_number_normaliser_preserves_defining_figure_after_verbose_lead_in(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][3]["number"] = (
+            "Annual recurring revenue from AI and data products increased sharply to $1.2 billion"
+        )
+
+        normalised, repairs = normalise_word_bound_fields(plan)
+        number = normalised["focus_numbers"][3]["number"]
+
+        self.assertLessEqual(len(number.split()), 10)
+        self.assertRegex(number, r"\d")
+        self.assertIn("$1.2 billion", number)
+        self.assertIn("focus_numbers[3].number", repairs)
+        self.assertIs(validate_judgement_plan(normalised, FOCUS_SOURCE_IDS), normalised)
+
+    def test_planner_final_attempt_repairs_live_overlong_focus_number(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][3]["number"] = (
+            "Annual recurring revenue from AI and data products increased sharply to $1.2 billion"
+        )
+        response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
+        client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
+        evidence = [{"source_id": source_id} for source_id in sorted(FOCUS_SOURCE_IDS)]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prompt_path = Path(tmpdir) / "prompt.md"
+            prompt_path.write_text("{EVIDENCE_ITEMS}\n{SIGNAL_MEMORY}")
+            with patch("src.judgement_plan.Anthropic", return_value=client), patch(
+                "src.judgement_plan.time.sleep"
+            ), patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+                result = generate_judgement_plan(evidence, {}, prompt_path)
+
+        repaired_number = result["focus_numbers"][3]["number"]
+        self.assertEqual(client.messages.create.call_count, 3)
+        self.assertLessEqual(len(repaired_number.split()), 10)
+        self.assertRegex(repaired_number, r"\d")
+        self.assertIn("$1.2 billion", repaired_number)
+
     def test_planner_final_attempt_normalises_superficial_word_overruns(self) -> None:
         plan = valid_plan()
         plan["interpretation"] = " ".join(["interpretation"] * 60)

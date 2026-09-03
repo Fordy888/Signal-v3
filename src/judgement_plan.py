@@ -52,6 +52,23 @@ def _trim_words(value: Any, limit: int) -> str:
     return " ".join(str(value).split()[:limit]).strip()
 
 
+def _trim_words_preserving_digit(value: Any, limit: int) -> str:
+    """Trim display copy while retaining its defining numeric token and nearby unit."""
+    words = str(value).split()
+    if len(words) <= limit:
+        return " ".join(words).strip()
+    digit_indexes = [index for index, word in enumerate(words) if re.search(r"\d", word)]
+    if not digit_indexes:
+        return " ".join(words[:limit]).strip()
+    digit_index = digit_indexes[0]
+    end = min(len(words), max(limit, digit_index + 3))
+    start = max(0, end - limit)
+    if digit_index < start:
+        start = digit_index
+        end = min(len(words), start + limit)
+    return " ".join(words[start:end]).strip()
+
+
 def _is_dynamic_revision(plan: dict[str, Any]) -> bool:
     return plan.get("editorial_revision") in {
         DYNAMIC_HEADLINE_REVISION,
@@ -165,7 +182,10 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
         for index, item in enumerate(focus_numbers):
             if isinstance(item, dict):
                 cap(item, "entity", 6, f"focus_numbers[{index}].entity")
-                cap(item, "number", 10, f"focus_numbers[{index}].number")
+                number = item.get("number")
+                if isinstance(number, str) and _words(number) > 10:
+                    item["number"] = _trim_words_preserving_digit(number, 10)
+                    repairs.append(f"focus_numbers[{index}].number")
                 cap(item, "meaning", 26, f"focus_numbers[{index}].meaning")
 
     if isinstance(normalised.get("interpretation"), str) and _words(normalised["interpretation"]) > 55:
