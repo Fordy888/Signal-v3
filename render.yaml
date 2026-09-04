@@ -1,11 +1,11 @@
 services:
-  # ─── PRODUCTION: Daily edition to all subscribers ───
+  # ─── PRODUCTION HOLD: proof-only until a deployed canary is approved ───
   - type: cron
     name: dtl-signal
     runtime: python
-    schedule: "0 20 * * *"
+    schedule: "0 0 1 1 *"
     buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
-    startCommand: python -m src.main --send --enhanced --alive-moment
+    startCommand: python -m src.main --proof --release-canary --enhanced --alive-moment --save-html data/deployed-canary.html
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false

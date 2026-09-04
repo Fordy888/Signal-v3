@@ -52,7 +52,7 @@ def load_release_manifest() -> dict[str, Any]:
         raise ValueError(f"release manifest could not be loaded from {path}: {exc}") from exc
     required = {
         "release_id", "status", "approved_proof_path", "approved_proof_sha256", "expected_renderer",
-        "required_markers", "forbidden_markers",
+        "required_markers", "forbidden_markers", "editorial_contract",
     }
     missing = required.difference(manifest)
     if missing:
@@ -67,6 +67,19 @@ def load_release_manifest() -> dict[str, Any]:
     if actual_proof_sha != str(manifest["approved_proof_sha256"]):
         raise ValueError(
             "approved proof checksum does not match the source-controlled release manifest"
+        )
+    editorial_contract = manifest["editorial_contract"]
+    expected_editorial_contract = {
+        "newsroom_items": 5,
+        "focus_number_items": 5,
+        "ai_business_items_per_section": 3,
+        "major_business_items_per_section": 2,
+        "source_overlap_allowed": False,
+    }
+    if editorial_contract != expected_editorial_contract:
+        raise ValueError(
+            "release manifest editorial contract must require five distinct items per section "
+            "and an exact 3 AI_BUSINESS / 2 MAJOR_BUSINESS mix in each section"
         )
     return manifest
 

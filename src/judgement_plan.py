@@ -456,6 +456,86 @@ def prepare_content_mix_evidence(
     return prepared, verified_mix_by_source
 
 
+def allocate_focus_numbers_content_mix(
+    evidence_items: list[dict[str, Any]],
+    focus_eligible_source_ids: set[str],
+    verified_mix_by_source: dict[str, str],
+) -> dict[str, list[str]]:
+    """Allocate the exact 3/2 section mix before the planner writes copy.
+
+    The planner must not decide which section receives a verified source. Focus
+    receives its required numeric evidence first; Newsroom receives the next
+    ranked, distinct sources from each verified class. Evidence arrives in
+    scored rank order, so this is deterministic and retains editorial priority.
+    """
+    ordered_source_ids = [
+        str(item.get("source_id", "")).strip()
+        for item in evidence_items
+        if str(item.get("source_id", "")).strip()
+    ]
+
+    def select(
+        classification: str,
+        count: int,
+        *,
+        focus_only: bool = False,
+        excluded: set[str] | None = None,
+    ) -> list[str]:
+        excluded = excluded or set()
+        return [
+            source_id
+            for source_id in ordered_source_ids
+            if source_id not in excluded
+            and verified_mix_by_source.get(source_id) == classification
+            and (not focus_only or source_id in focus_eligible_source_ids)
+        ][:count]
+
+    focus_ai = select("AI_BUSINESS", REQUIRED_AI_BUSINESS_PER_SECTION, focus_only=True)
+    focus_major = select("MAJOR_BUSINESS", REQUIRED_MAJOR_BUSINESS_PER_SECTION, focus_only=True)
+    if len(focus_ai) != REQUIRED_AI_BUSINESS_PER_SECTION:
+        raise JudgementPlanError(
+            "FOCUS ON THE NUMBERS allocation requires at least 3 independently verified "
+            "AI_BUSINESS source records with pre-verified numeric evidence; received "
+            f"{len(focus_ai)}"
+        )
+    if len(focus_major) != REQUIRED_MAJOR_BUSINESS_PER_SECTION:
+        raise JudgementPlanError(
+            "FOCUS ON THE NUMBERS allocation requires at least 2 independently verified "
+            "MAJOR_BUSINESS source records with pre-verified numeric evidence; received "
+            f"{len(focus_major)}"
+        )
+
+    focus_source_ids = focus_ai + focus_major
+    focus_set = set(focus_source_ids)
+    newsroom_ai = select(
+        "AI_BUSINESS",
+        REQUIRED_AI_BUSINESS_PER_SECTION,
+        excluded=focus_set,
+    )
+    newsroom_major = select(
+        "MAJOR_BUSINESS",
+        REQUIRED_MAJOR_BUSINESS_PER_SECTION,
+        excluded=focus_set,
+    )
+    if len(newsroom_ai) != REQUIRED_AI_BUSINESS_PER_SECTION:
+        raise JudgementPlanError(
+            "DTL SIGNAL NEWSROOM allocation requires 3 remaining independently verified "
+            "AI_BUSINESS source records after Focus allocation; received "
+            f"{len(newsroom_ai)}"
+        )
+    if len(newsroom_major) != REQUIRED_MAJOR_BUSINESS_PER_SECTION:
+        raise JudgementPlanError(
+            "DTL SIGNAL NEWSROOM allocation requires 2 remaining independently verified "
+            "MAJOR_BUSINESS source records after Focus allocation; received "
+            f"{len(newsroom_major)}"
+        )
+
+    return {
+        "newsroom": newsroom_ai + newsroom_major,
+        "focus_numbers": focus_source_ids,
+    }
+
+
 def recover_missing_focus_figures(
     plan: dict[str, Any],
     evidence_items: list[dict[str, Any]],
@@ -580,6 +660,7 @@ def validate_judgement_plan(
     available_source_ids: set[str],
     focus_eligible_source_ids: set[str] | None = None,
     verified_mix_by_source: dict[str, str] | None = None,
+    allocated_source_ids: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     required = {
         "evidence_items",
@@ -776,6 +857,13 @@ def validate_judgement_plan(
                 "Newsroom stories and FOCUS ON THE NUMBERS must use distinct sources; "
                 f"overlap: {sorted(overlap)}"
             )
+        if allocated_source_ids is not None:
+            expected_newsroom = set(allocated_source_ids.get("newsroom") or [])
+            expected_focus = set(allocated_source_ids.get("focus_numbers") or [])
+            if newsroom_source_ids != expected_newsroom or focus_source_ids != expected_focus:
+                raise JudgementPlanError(
+                    "Planner source selection does not match the preallocated exact 3/2 section mix"
+                )
         ai_business_items = newsroom_ai_business_items + focus_ai_business_items
         if (
             newsroom_ai_business_items != REQUIRED_AI_BUSINESS_PER_SECTION
@@ -865,6 +953,7 @@ def generate_judgement_plan(
     verified_mix_by_source: dict[str, str] | None = None
     verified_ai_source_ids: list[str] = []
     verified_major_source_ids: list[str] = []
+    allocated_source_ids: dict[str, list[str]] | None = None
     if (
         FOCUS_NUMBERS_REVISION in prompt_template
         and len(focus_eligible_source_ids) < 5
@@ -892,16 +981,25 @@ def generate_judgement_plan(
                 "AI-business sources and four independently verified major-business sources; "
                 f"received {len(verified_ai_source_ids)} and {len(verified_major_source_ids)}"
             )
+        allocated_source_ids = allocate_focus_numbers_content_mix(
+            planner_evidence,
+            focus_eligible_source_ids,
+            verified_mix_by_source,
+        )
     prompt = prompt_template.replace(
         "{EVIDENCE_ITEMS}", json.dumps(planner_evidence, indent=2)
     ).replace(
         "{SIGNAL_MEMORY}", json.dumps(prior_memory, indent=2)
     ).replace(
-        "{FOCUS_NUMBER_SOURCE_IDS}", json.dumps(sorted(focus_eligible_source_ids))
+        "{FOCUS_NUMBER_ELIGIBLE_SOURCE_IDS}", json.dumps(sorted(focus_eligible_source_ids))
     ).replace(
         "{AI_BUSINESS_SOURCE_IDS}", json.dumps(verified_ai_source_ids)
     ).replace(
         "{MAJOR_BUSINESS_SOURCE_IDS}", json.dumps(verified_major_source_ids)
+    ).replace(
+        "{NEWSROOM_SOURCE_IDS}", json.dumps(allocated_source_ids["newsroom"] if allocated_source_ids else [])
+    ).replace(
+        "{FOCUS_NUMBER_SOURCE_IDS}", json.dumps(allocated_source_ids["focus_numbers"] if allocated_source_ids else [])
     )
 
     client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -940,6 +1038,7 @@ def generate_judgement_plan(
                 source_ids,
                 focus_eligible_source_ids if _is_focus_numbers_revision(candidate) else None,
                 verified_mix_by_source if _is_focus_numbers_revision(candidate) else None,
+                allocated_source_ids if _is_focus_numbers_revision(candidate) else None,
             )
         except Exception as exc:
             last_error = exc

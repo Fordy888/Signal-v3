@@ -22,7 +22,7 @@ A missing Focus defining figure is handled separately. The final attempt may rec
 
 ## Failures that remain hard holds
 
-The safety layer must not invent missing evidence, numeric figures, classifications, source links, internal position movement, minimum-length Founder’s Note content or required sections. Unknown sources, Newsroom/Focus overlap, fewer than six AI-in-business items, missing AI-business connections, non-numeric Focus figures without eligible same-source evidence and other semantic failures continue to abort the edition.
+The safety layer must not invent missing evidence, numeric figures, classifications, source links, internal position movement, minimum-length Founder’s Note content or required sections. Unknown sources, any deviation from the preallocated exact 3/2 section mix, Newsroom/Focus overlap, missing AI-business connections, non-numeric Focus figures without eligible same-source evidence and other semantic failures continue to abort the edition.
 
 The purpose of normalisation is to prevent valid substance from failing on superficial length—not to convert an incomplete plan into a publishable one.
 
@@ -43,4 +43,4 @@ The planner’s own `mix_classification` is descriptive, not authoritative. Befo
 | `AI_BUSINESS` | An explicit AI subject plus a concrete commercial, customer, workforce, operating, financial, risk or value connection. |
 | `MAJOR_BUSINESS` | Commercially material non-AI evidence with no AI-led subject. |
 
-The model receives the verified source IDs for each pool. Validation checks every selected Newsroom and Focus source against the independently established class and rejects relabelling. The pre-planning gate requires at least six AI-business and four major-business sources so the approved 3/2 split in both sections is achieved from evidence rather than generated metadata.
+The pipeline allocates source IDs to sections before the model is called. Focus receives three independently verified `AI_BUSINESS` sources and two independently verified `MAJOR_BUSINESS` sources that also contain pre-verified numeric evidence. Newsroom receives three remaining AI-business and two remaining major-business sources. The model may write only from its preallocated section IDs; validation rejects substitution, cross-section movement or relabelling. The pre-planning gate therefore requires at least six AI-business and four major-business sources, including three AI-business and two major-business numeric candidates for Focus.
