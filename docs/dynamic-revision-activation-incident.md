@@ -151,3 +151,7 @@ The subsequent proof-only canary delivered Gmail proof `1a065849544df77a` and re
 Independent review of the actual Gmail body confirmed that Newsroom contained three AI-business and two major-business stories. Focus on the Numbers did not: two independently major-business source records were rewritten with AI-led reader copy. The proof also contained the incomplete watch headline `Enterprise AI scaling success rate moving above`.
 
 The release remains **technical canary matched / editorial canary held / not live**. The next gate validates the actual reader fields against the independently verified source class and rejects incomplete directional or comparative headline endings. Subscriber mode remains disabled.
+
+During GitHub recovery, remote master was found to contain two newer deterministic section-allocation commits (`ccd1334` and `8ff20e0`). They were preserved. Reader-visible semantic enforcement was integrated on top as combined commit `b772eb7`, retaining both preallocated three-plus-two source selection and validation of the actual copy readers see. The combined detached worktree passed 95/95 tests and reproduced approved proof SHA-256 `7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3`.
+
+The release remains **technical canary matched / editorial canary held / not live**. The next gate validates the actual reader fields against the independently verified source class and rejects incomplete directional or comparative headline endings. Subscriber mode remains disabled.

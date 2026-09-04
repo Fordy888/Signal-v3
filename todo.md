@@ -484,3 +484,12 @@
 - [x] Pass complete and isolated release suites after reader-visible semantic enforcement: 89/89 tests in both; reproduce approved proof SHA `7ff05b54…7b606e3`
 - [x] Pass the complete local reader-semantic suite: 89/89 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
 - [ ] Commit, deploy and rerun the proof-only canary; restore subscriber mode only after technical and actual reader-visible verification
+- [x] Restore GitHub authentication without changing the verified reader-semantic work
+- [x] Preserve GitHub commits `ccd1334` and `8ff20e0` that make section allocation deterministic
+- [x] Integrate reader-semantic commit `7316aa7` onto GitHub master without force-pushing or losing either control set
+- [x] Resolve planner prompt and judgement-plan overlap by retaining deterministic 3/2 section allocation plus reader-visible source-class validation
+- [x] Pass the combined detached release gate: 95/95 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [ ] Push combined commit `b772eb7` and verify GitHub master matches its full SHA
+- [ ] Deploy the exact combined GitHub commit through Render’s guarded build while subscriber mode remains disabled
+- [ ] Run a one-recipient proof canary to `paul.ford@gmail.com` and independently verify technical identity and the actual reader-visible 6/4 mix
+- [ ] Restore the scheduled subscriber command only after CANARY VERIFIED evidence is complete
