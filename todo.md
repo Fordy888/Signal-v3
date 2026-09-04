@@ -524,16 +524,23 @@
 - [x] Add production-path regressions for fresh-image success, consecutive-image rejection, wrong-date rejection, missing-image hold and renderer ordering before Dad Joke
 - [x] Prove the corrected daily image path in a no-send simulation and actual one-recipient Gmail copy before deployment approval
 - [x] Verify the exact approved commit `132be3af8cf0dcd0096d72b7e50f800b6da01a61` is the Render deployed SHA while the command remains proof-only
-- [ ] Achieve CANARY VERIFIED from a one-recipient Render run with matching receipt, Gmail body and REMEMBER THE WORLD image contract
+- [x] Achieve CANARY VERIFIED from a one-recipient Render run with matching receipt, Gmail body and REMEMBER THE WORLD image contract
 - [ ] Revalidate tomorrow's Weekly Wrap end-to-end: Saturday edition clock, locked format, five stories, links, source health, subject/body alignment and no subscriber delivery during testing
 - [ ] Confirm the restored `0 20 * * *` UTC schedule will execute the verified Weekly Wrap path at 06:00 AEST tomorrow
 - [ ] After CANARY VERIFIED, complete one controlled subscriber release of Edition 0047 today using the live subscriber API; never resend Editions 0045 or 0046
 - [ ] Independently verify Edition 0047 subscriber delivery count, release identity, provider status and at least one actual subscriber Gmail copy
 - [x] Repair the production evidence path so `ai-adoption-v1` can produce at least four pre-verified AI-adoption numeric sources for Focus after real fetch/scoring attrition, without admitting weak or general-business filler
 - [x] Add a regression using realistic source-score evidence attrition that reproduces the Render canary's `received 2` Focus pool failure
-- [ ] Re-run the complete isolated gate, deploy a new exact commit, and repeat the one-recipient Render canary; do not reuse the failed run as evidence
+- [x] Re-run the complete isolated gate, deploy a new exact commit, and repeat the one-recipient Render canary; do not reuse the failed run as evidence
 - [x] Freeze approved Edition 0047 as a locked production manifest containing its exact plan, evidence, Dad Joke, governed image and HTML checksum
-- [ ] Run the next Render proof with `--locked-edition 47` so the canary reproduces the exact approved Gmail artefact instead of generating different live copy
+- [x] Run the next Render proof with `--locked-edition 47` so the canary reproduces the exact approved Gmail artefact instead of generating different live copy
 - [x] Pass all 121 tests in both the integration checkout and a fresh detached worktree after the canary repair
-- [ ] Bind the Render expected-image identity to `REMEMBER-0047-NORDERNEY-MARIENHOEHE` and make a fresh canary receipt report approved image = configured image
-- [ ] Reject `CANARY VERIFIED` when the receipt reports the expected configured image as omitted, even if Gmail visibly contains the image
+- [x] Bind the Render expected-image identity to `REMEMBER-0047-NORDERNEY-MARIENHOEHE` and make a fresh canary receipt report approved image = configured image
+- [x] Reject `CANARY VERIFIED` when the receipt reports the expected configured image as omitted, even if Gmail visibly contains the image
+- [ ] Treat the whole-base Edition 0047 send as authorised but blocked until both the fully matching canary and the no-send Weekly Wrap readiness gate pass
+- [ ] Do not switch Render to the subscriber command or trigger Edition 0047 until tomorrow's Weekly Wrap path is explicitly evidenced as ready
+- [x] Capture the exact failure from the deployed 5 September Weekly Wrap dry-run; no subscriber email was sent
+- [x] Repair the Weekly Wrap blocker without weakening its five-story, source-link, no-gauge or Saturday-date gates
+- [ ] Add a regression reproducing the deployed Weekly Wrap failure, rerun the complete isolated suite, deploy, and repeat the no-send Saturday validation
+- [x] Make Weekly Wrap synthesis metadata use the governed Brisbane runtime rather than the real process clock so header, subject and footer remain aligned in proof, dry-run and scheduled execution
+- [x] Pass all 123 tests in both the integration checkout and a fresh detached worktree after the Weekly Wrap clock repair

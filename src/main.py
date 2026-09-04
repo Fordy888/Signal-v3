@@ -515,6 +515,7 @@ def main() -> int:
                 synthesis_prompt_path=synthesis_prompt_path,
                 edition_number=edition_number,
                 edition_type=edition_type,
+                generated_at=now_brisbane,
             )
         log.info("Stage 3 complete: %d chars of HTML produced", len(html))
         html_sha256 = hashlib.sha256(html.encode("utf-8")).hexdigest()

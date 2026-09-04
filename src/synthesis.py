@@ -142,6 +142,7 @@ def synthesise(
     model: str | None = None,
     edition_number: int = 1,
     edition_type: str = "daily",
+    generated_at: datetime | None = None,
 ) -> str:
     """Produce the HTML brief. Returns the HTML string."""
     client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -152,8 +153,14 @@ def synthesise(
 
     items_payload = [s.to_synthesis_payload() for s in scored_items]
 
-    # Inject context and items into the template — Brisbane time
-    now = datetime.now(BRISBANE)
+    # Inject context and items using the pipeline's governed Brisbane runtime.
+    # Proof/dry-run simulations must never fall back to the real process clock.
+    if generated_at is None:
+        now = datetime.now(BRISBANE)
+    else:
+        if generated_at.tzinfo is None:
+            raise ValueError("generated_at must include timezone information")
+        now = generated_at.astimezone(BRISBANE)
     today = now.strftime("%A %d %B %Y")
     timestamp = now.strftime("%Y-%m-%d %H:%M AEST")
     day_name = now.strftime("%A")

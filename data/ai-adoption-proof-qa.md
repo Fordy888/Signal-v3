@@ -1,6 +1,6 @@
 # DTL Signal All-AI Adoption-First Candidate — QA Record
 
-**State:** APPROVED and DEPLOYED proof-only; first production canary failed safely; repair not yet deployed or verified.
+**State:** CANARY VERIFIED on deployed commit `4a3794b`; subscriber mode remains disabled pending Weekly Wrap validation.
 
 ## Deterministic build evidence
 
@@ -120,3 +120,17 @@ Gmail independently shows the Signal message `1a06b1a7101d011a` and canary recei
 The canary receipt reports target commit, actual commit, renderer, release ID and HTML checksum as matching, but its `Target Release` table shows approved image `REMEMBER-0047-NORDERNEY-MARIENHOEHE` and configured image `omitted`. Because the receipt itself does not prove the expected image identity was configured, **CANARY VERIFIED remains false** despite successful delivery and visible image rendering. Subscriber delivery remains blocked until the configured image identity is bound and a fresh receipt reports the same approved identity.
 
 The receipt root cause was a reporting-path defect: release validation resolved `data/alive_moments/{date}.json`, while receipt construction attempted to read the template string as a literal file path. The receipt now uses the same governed date resolver with Edition 0047 and the Brisbane issue date. The new regression plus every Signal test module pass in both the integration checkout and a fresh detached worktree: **122/122 tests** in each environment. The fix is not yet committed or deployed, so the prior receipt remains non-compliant evidence.
+
+Receipt-fix commit `4a3794bf651367bba53b24bac09938353d096aaf` was pushed to GitHub master and manually built on Render as `bld-dad6j6bncjis7387cctg`. Render reports **Build succeeded**, with all **122 tests** passing in the hosted build. The active service command and fresh canary receipt have not yet been rebound to this SHA, so CANARY VERIFIED remains false.
+
+Render settings now display `4a3794bf651367bba53b24bac09938353d096aaf` as the last successfully deployed commit. The proof-only command was changed to expect that SHA while retaining the approved release ID, checksum, date-resolved image path, renderer, service ID, `--proof --release-canary --locked-edition 47`, and no `--send`. A fresh read-only settings load is still required before triggering the final canary.
+
+A fresh read-only settings load confirmed the saved command expects commit `4a3794bf651367bba53b24bac09938353d096aaf`, release `ai-adoption-v1-proof-0047`, approved checksum `c43ec4b92fa8bc815ff09538b38e5ee5e32a3882586f90195d6166247c408a06`, date-resolved image path and locked Edition 47, with `--proof --release-canary` and no `--send`. The final one-recipient canary was then triggered. Terminal run, receipt and Gmail evidence remain outstanding.
+
+Render registered the final canary at `2026-09-04 06:51:12 UTC` on deployed commit `4a3794b`; it remained active at the first 34-second check. No terminal result or delivery claim exists yet.
+
+The final canary completed successfully after 11 minutes. Render logs show 434 items scored, 199 above threshold, locked Edition 0047 loaded, 20,107 HTML characters produced, and exact checksum `c43ec4b92fa8bc815ff09538b38e5ee5e32a3882586f90195d6166247c408a06`. The release identity gate reported `TARGET MATCH` for release `ai-adoption-v1-proof-0047`, renderer, branch, commit `4a3794bf6513`, service and approved proof. Resend accepted the one-recipient Signal message as ID `f1ee0d52-acfd-4ea3-812f-b7401e07fbdd`, addressed only to `paul.ford@gmail.com`; DTL PL recorded one delivery. Corrected receipt and actual Gmail evidence remain to be extracted before CANARY VERIFIED.
+
+Resend independently reports the final Signal email `f1ee0d52-acfd-4ea3-812f-b7401e07fbdd` as `delivered`, from `DTL Signal <signal@signal.dtlc.ai>` to `paul.ford@gmail.com`, with provider message ID `<010601a06b3982cc-3b9179df-58b7-44c6-9b10-be55b747016e-000000@ap-northeast-1.amazonses.com>`. Gmail independently lists the latest Signal message as `1a06b398719f963b` at 07:02 UTC and the latest target-match receipt as `1a06b399038ae3bc` at 07:02 UTC. Full Gmail body and configured-image receipt fields still require verification.
+
+The complete latest Gmail bodies confirm the final Signal contains the approved Founder’s Note, five Newsroom stories, five Focus figures, interpretation/actions/counter/watch, `REMEMBER THE WORLD`, the Norderney image, Dietmar Rabich/Wikimedia/CC BY-SA 4.0 attribution, the Dad Joke after the image, and the Edition 0047 footer. The latest receipt reports target commit = actual commit `4a3794bf651367bba53b24bac09938353d096aaf`, approved proof = configured proof = actual HTML checksum `c43ec4b92fa8bc815ff09538b38e5ee5e32a3882586f90195d6166247c408a06`, and approved image = configured image `REMEMBER-0047-NORDERNEY-MARIENHOEHE`. This establishes **CANARY VERIFIED**. It does not establish Weekly Wrap readiness, subscriber delivery, LIVE or SUBSCRIBER VERIFIED.
