@@ -30,11 +30,15 @@ ACTION_TAGS = {"ACT", "WATCH", "OPPORTUNITY", "NOTE"}
 VISUAL_TYPES = {"DIRECTION_OF_TRAVEL", "TENSION_MAP", "COMPARISON", "EXPOSURE_MAP", "NONE"}
 DYNAMIC_HEADLINE_REVISION = "dynamic-headlines-v1"
 FOCUS_NUMBERS_REVISION = "focus-on-the-numbers-v1"
+AI_ADOPTION_REVISION = "ai-adoption-v1"
 CONTENT_MIX_TYPES = {"AI_BUSINESS", "MAJOR_BUSINESS"}
+AI_ADOPTION_MIX_TYPES = {"AI_ADOPTION", "AI_INDUSTRY_IMPACT"}
 MIN_AI_BUSINESS_ITEMS = 6
 REQUIRED_AI_BUSINESS_ITEMS = 6
 REQUIRED_AI_BUSINESS_PER_SECTION = 3
 REQUIRED_MAJOR_BUSINESS_PER_SECTION = 2
+MIN_AI_ADOPTION_ITEMS = 8
+MAX_AI_INDUSTRY_IMPACT_ITEMS = 2
 SOURCE_ID_RE = re.compile(r"\bS\d{2,}\b", re.IGNORECASE)
 UNEXPLAINED_READER_TERMS = {
     "CRM", "UI", "API", "LLM", "RAG", "MCP", "GPU", "ERP", "SaaS", "SoR",
@@ -104,11 +108,16 @@ def _is_dynamic_revision(plan: dict[str, Any]) -> bool:
     return plan.get("editorial_revision") in {
         DYNAMIC_HEADLINE_REVISION,
         FOCUS_NUMBERS_REVISION,
+        AI_ADOPTION_REVISION,
     }
 
 
 def _is_focus_numbers_revision(plan: dict[str, Any]) -> bool:
-    return plan.get("editorial_revision") == FOCUS_NUMBERS_REVISION
+    return plan.get("editorial_revision") in {FOCUS_NUMBERS_REVISION, AI_ADOPTION_REVISION}
+
+
+def _is_ai_adoption_revision(plan: dict[str, Any]) -> bool:
+    return plan.get("editorial_revision") == AI_ADOPTION_REVISION
 
 
 def _reader_fields(plan: dict[str, Any]) -> list[tuple[str, str]]:
@@ -216,7 +225,9 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
             if isinstance(item, dict):
                 cap_headline(item, "headline", 8, f"evidence_items[{index}].headline")
                 cap(item, "evidence", 28, f"evidence_items[{index}].evidence")
-                if item.get("mix_classification") == "AI_BUSINESS":
+                if item.get("mix_classification") in {
+                    "AI_BUSINESS", "AI_ADOPTION", "AI_INDUSTRY_IMPACT"
+                }:
                     cap(
                         item,
                         "ai_business_connection",
@@ -234,7 +245,9 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
                     item["number"] = _trim_words_preserving_digit(number, 10)
                     repairs.append(f"focus_numbers[{index}].number")
                 cap(item, "meaning", 26, f"focus_numbers[{index}].meaning")
-                if item.get("mix_classification") == "AI_BUSINESS":
+                if item.get("mix_classification") in {
+                    "AI_BUSINESS", "AI_ADOPTION", "AI_INDUSTRY_IMPACT"
+                }:
                     cap(
                         item,
                         "ai_business_connection",
@@ -351,6 +364,84 @@ BUSINESS_IMPACT_RE = re.compile(
     r"adoption|demand|growth|loss|losses|returns?|value)\b",
     re.IGNORECASE,
 )
+AI_ADOPTION_RE = re.compile(
+    r"\b(?:adopt(?:s|ed|ing|ion)?|deploy(?:s|ed|ing|ment)?|implement(?:s|ed|ing|ation)?|"
+    r"integrat(?:e|es|ed|ing|ion)|us(?:e|es|ed|ing)|appl(?:y|ies|ied|ying)|"
+    r"automat(?:e|es|ed|ing|ion)|redesign(?:s|ed|ing)?|retrain(?:s|ed|ing)?)\b",
+    re.IGNORECASE,
+)
+AI_ADOPTION_ACTOR_RE = re.compile(
+    r"\b(?:business(?:es)?|compan(?:y|ies)|enterprise(?:s)?|firms?|organisation(?:s)?|"
+    r"organization(?:s)?|bank(?:s)?|retailer(?:s)?|manufacturer(?:s)?|hospital(?:s)?|"
+    r"employer(?:s)?|employee(?:s)?|worker(?:s)?|team(?:s)?|customer(?:s)?|staff|"
+    r"workplace|workforce|government|agency|agencies)\b",
+    re.IGNORECASE,
+)
+AI_NAMED_ADOPTION_ACTOR_RE = re.compile(
+    r"\b[A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+){0,3}\s+"
+    r"(?:has\s+|have\s+|is\s+|are\s+)?"
+    + AI_ADOPTION_RE.pattern,
+)
+AI_ADOPTION_WORK_RE = re.compile(
+    r"\b(?:workflow|process|task|work|customer service|sales|marketing|operations?|"
+    r"productivity|roles?|training|cost|costs|revenue|conversion|fraud|claims|"
+    r"underwriting|logistics|supply chain|manufacturing|decision|decisions|"
+    r"service|services|delivery|hiring|finance|forecasting|planning)\b",
+    re.IGNORECASE,
+)
+AI_HYPOTHETICAL_RE = re.compile(
+    r"\b(?:could|might|may|should|potentially|plans? to|intends? to|considering)\b",
+    re.IGNORECASE,
+)
+AI_INDUSTRY_DEVELOPMENT_RE = re.compile(
+    r"\b(?:launch(?:es|ed)?|release(?:s|d)?|price|prices|pricing|cost|costs|funding|"
+    r"investment|acquisition|regulation|regulator|rules?|law|ban|security|access|"
+    r"availability|infrastructure|capacity|capability|contract|partnership)\b",
+    re.IGNORECASE,
+)
+PRACTICAL_CONSEQUENCE_RE = re.compile(
+    r"\b(?:chang(?:e|es|ed|ing)|reduc(?:e|es|ed|ing)|cut(?:s|ting)?|rais(?:e|es|ed|ing)|"
+    r"lower(?:s|ed|ing)?|limit(?:s|ed|ing)?|requir(?:e|es|ed|ing)|allow(?:s|ed|ing)?|"
+    r"enabl(?:e|es|ed|ing)|affect(?:s|ed|ing)?|expos(?:e|es|ed|ing)|increase(?:s|d|ing)?|"
+    r"decrease(?:s|d|ing)?|improv(?:e|es|ed|ing)|worsen(?:s|ed|ing)?)\b",
+    re.IGNORECASE,
+)
+
+
+def _has_ai_adoption_evidence(text: str) -> bool:
+    """Require explicit AI application by a real business actor to work or outcomes."""
+    has_actor = bool(
+        AI_ADOPTION_ACTOR_RE.search(text) or AI_NAMED_ADOPTION_ACTOR_RE.search(text)
+    )
+    if AI_HYPOTHETICAL_RE.search(text) or not (
+        AI_SUBJECT_RE.search(text)
+        and BUSINESS_IMPACT_RE.search(text)
+        and AI_ADOPTION_RE.search(text)
+        and has_actor
+        and AI_ADOPTION_WORK_RE.search(text)
+    ):
+        return False
+    patterns = (
+        rf"{AI_ADOPTION_ACTOR_RE.pattern}.{{0,120}}{AI_ADOPTION_RE.pattern}.{{0,80}}{AI_SUBJECT_RE.pattern}",
+        rf"{AI_ADOPTION_ACTOR_RE.pattern}.{{0,120}}{AI_SUBJECT_RE.pattern}.{{0,80}}{AI_ADOPTION_RE.pattern}",
+        rf"{AI_SUBJECT_RE.pattern}.{{0,80}}{AI_ADOPTION_RE.pattern}.{{0,120}}{AI_ADOPTION_WORK_RE.pattern}",
+        rf"{AI_ADOPTION_RE.pattern}.{{0,80}}{AI_SUBJECT_RE.pattern}.{{0,120}}{AI_ADOPTION_WORK_RE.pattern}",
+        rf"{AI_NAMED_ADOPTION_ACTOR_RE.pattern}.{{0,120}}{AI_SUBJECT_RE.pattern}",
+    )
+    return any(re.search(pattern, text, re.IGNORECASE) for pattern in patterns)
+
+
+def _has_ai_industry_impact_evidence(text: str) -> bool:
+    """Require an AI-industry development and a stated practical consequence."""
+    return bool(
+        not AI_HYPOTHETICAL_RE.search(text)
+        and AI_SUBJECT_RE.search(text)
+        and BUSINESS_IMPACT_RE.search(text)
+        and AI_INDUSTRY_DEVELOPMENT_RE.search(text)
+        and PRACTICAL_CONSEQUENCE_RE.search(text)
+    )
+
+
 MAJOR_BUSINESS_RE = re.compile(
     r"\b(?:acquisition|merger|regulation|tariff|tariffs|oil|rates?|inflation|GDP|"
     r"economy|economic|business|company|companies|commercial|strategy|factory|factories|supply chain|revenue|profit|earnings|margin|"
@@ -458,6 +549,121 @@ def prepare_content_mix_evidence(
     return prepared, verified_mix_by_source
 
 
+def prepare_ai_adoption_evidence(
+    evidence_items: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, str]]:
+    """Classify eligible sources as applied AI adoption or practical industry impact.
+
+    General business evidence is excluded. Adoption requires explicit AI, a concrete
+    business consequence and evidence that an organisation is applying AI to work.
+    Remaining AI evidence qualifies only as industry impact, never as general news.
+    """
+    prepared = copy.deepcopy(evidence_items)
+    verified_mix_by_source: dict[str, str] = {}
+    for source in prepared:
+        source_id = str(source.get("source_id", "")).strip()
+        if not source_id:
+            continue
+        text = " ".join(
+            str(source.get(field, "")).strip()
+            for field in ("title", "evidence", "scoring_reason")
+        )
+        if not (AI_SUBJECT_RE.search(text) and BUSINESS_IMPACT_RE.search(text)):
+            source["verified_mix_eligible"] = False
+            continue
+        if _has_ai_adoption_evidence(text):
+            classification = "AI_ADOPTION"
+        elif _has_ai_industry_impact_evidence(text):
+            classification = "AI_INDUSTRY_IMPACT"
+        else:
+            source["verified_mix_eligible"] = False
+            continue
+        source["verified_mix_eligible"] = True
+        source["verified_mix_classification"] = classification
+        verified_mix_by_source[source_id] = classification
+    return prepared, verified_mix_by_source
+
+
+def allocate_ai_adoption_content(
+    evidence_items: list[dict[str, Any]],
+    focus_eligible_source_ids: set[str],
+    verified_mix_by_source: dict[str, str],
+) -> dict[str, list[str]]:
+    """Allocate ten all-AI sources with adoption dominant and industry capped at two."""
+    ordered_source_ids = [
+        str(item.get("source_id", "")).strip()
+        for item in evidence_items
+        if str(item.get("source_id", "")).strip()
+    ]
+
+    def select(
+        classification: str,
+        count: int,
+        *,
+        focus_only: bool = False,
+        excluded: set[str] | None = None,
+    ) -> list[str]:
+        excluded = excluded or set()
+        return [
+            source_id
+            for source_id in ordered_source_ids
+            if source_id not in excluded
+            and verified_mix_by_source.get(source_id) == classification
+            and (not focus_only or source_id in focus_eligible_source_ids)
+        ][:count]
+
+    focus_adoption = select("AI_ADOPTION", 4, focus_only=True)
+    if len(focus_adoption) < 4:
+        raise JudgementPlanError(
+            "FOCUS ON THE NUMBERS requires at least 4 verified AI_ADOPTION sources "
+            f"with numeric evidence; received {len(focus_adoption)}"
+        )
+    focus_industry = select(
+        "AI_INDUSTRY_IMPACT", 1, focus_only=True, excluded=set(focus_adoption)
+    )
+    if focus_industry:
+        focus_source_ids = focus_adoption + focus_industry
+    else:
+        focus_source_ids = select("AI_ADOPTION", 5, focus_only=True)
+        if len(focus_source_ids) < 5:
+            raise JudgementPlanError(
+                "FOCUS ON THE NUMBERS requires five all-AI numeric sources when no "
+                "AI_INDUSTRY_IMPACT numeric source qualifies"
+            )
+
+    focus_set = set(focus_source_ids)
+    newsroom_adoption = select("AI_ADOPTION", 4, excluded=focus_set)
+    if len(newsroom_adoption) < 4:
+        raise JudgementPlanError(
+            "DTL SIGNAL NEWSROOM requires at least 4 remaining AI_ADOPTION sources; "
+            f"received {len(newsroom_adoption)}"
+        )
+    newsroom_industry = select(
+        "AI_INDUSTRY_IMPACT", 1, excluded=focus_set | set(newsroom_adoption)
+    )
+    if newsroom_industry:
+        newsroom_source_ids = newsroom_adoption + newsroom_industry
+    else:
+        newsroom_source_ids = select("AI_ADOPTION", 5, excluded=focus_set)
+        if len(newsroom_source_ids) < 5:
+            raise JudgementPlanError(
+                "DTL SIGNAL NEWSROOM requires five all-AI sources when no remaining "
+                "AI_INDUSTRY_IMPACT source qualifies"
+            )
+
+    selected = newsroom_source_ids + focus_source_ids
+    selected_adoption = sum(
+        verified_mix_by_source.get(source_id) == "AI_ADOPTION" for source_id in selected
+    )
+    selected_industry = len(selected) - selected_adoption
+    if selected_adoption < MIN_AI_ADOPTION_ITEMS or selected_industry > MAX_AI_INDUSTRY_IMPACT_ITEMS:
+        raise JudgementPlanError(
+            "All-AI allocation requires at least 8 AI_ADOPTION items and at most 2 "
+            "AI_INDUSTRY_IMPACT items"
+        )
+    return {"newsroom": newsroom_source_ids, "focus_numbers": focus_source_ids}
+
+
 def allocate_focus_numbers_content_mix(
     evidence_items: list[dict[str, Any]],
     focus_eligible_source_ids: set[str],
@@ -553,10 +759,17 @@ def _validate_reader_visible_mix_copy(
     reader_text = " ".join(str(item.get(field, "")).strip() for field in fields)
     has_ai_subject = bool(AI_SUBJECT_RE.search(reader_text))
     has_business_impact = bool(BUSINESS_IMPACT_RE.search(reader_text))
-    if classification == "AI_BUSINESS" and not (has_ai_subject and has_business_impact):
+    if classification in {"AI_BUSINESS", "AI_ADOPTION", "AI_INDUSTRY_IMPACT"} and not (
+        has_ai_subject and has_business_impact
+    ):
         raise JudgementPlanError(
-            f"{section} AI_BUSINESS reader copy must state an explicit AI subject "
+            f"{section} {classification} reader copy must state an explicit AI subject "
             "and concrete business consequence"
+        )
+    if classification == "AI_ADOPTION" and not _has_ai_adoption_evidence(reader_text):
+        raise JudgementPlanError(
+            f"{section} AI_ADOPTION reader copy must state the real-world use, process "
+            "or operating change"
         )
     if classification == "MAJOR_BUSINESS" and has_ai_subject:
         raise JudgementPlanError(
@@ -644,12 +857,16 @@ def complete_ai_focus_reader_copy(
         return repaired, repairs
 
     for index, item in enumerate(focus_numbers):
-        if not isinstance(item, dict) or item.get("mix_classification") != "AI_BUSINESS":
+        if not isinstance(item, dict) or item.get("mix_classification") not in {
+            "AI_BUSINESS", "AI_ADOPTION", "AI_INDUSTRY_IMPACT"
+        }:
             continue
         reader_text = " ".join(
             str(item.get(field, "")).strip() for field in ("entity", "number", "meaning")
         )
-        if AI_SUBJECT_RE.search(reader_text) and BUSINESS_IMPACT_RE.search(reader_text):
+        classification = str(item.get("mix_classification"))
+        adoption_ok = classification != "AI_ADOPTION" or _has_ai_adoption_evidence(reader_text)
+        if AI_SUBJECT_RE.search(reader_text) and BUSINESS_IMPACT_RE.search(reader_text) and adoption_ok:
             continue
 
         source_ids = [str(source_id) for source_id in item.get("source_ids") or []]
@@ -674,9 +891,23 @@ def complete_ai_focus_reader_copy(
                 sentence = " ".join(sentence.split()).strip(" ,;:-—")
                 if not sentence or SOURCE_ID_RE.search(sentence):
                     continue
-                if AI_SUBJECT_RE.search(sentence) and BUSINESS_IMPACT_RE.search(sentence):
+                sentence_adoption_ok = (
+                    classification != "AI_ADOPTION" or _has_ai_adoption_evidence(sentence)
+                )
+                if (
+                    AI_SUBJECT_RE.search(sentence)
+                    and BUSINESS_IMPACT_RE.search(sentence)
+                    and sentence_adoption_ok
+                ):
                     bounded = _trim_words(sentence, 26).strip(" ,;:-—")
-                    if AI_SUBJECT_RE.search(bounded) and BUSINESS_IMPACT_RE.search(bounded):
+                    bounded_adoption_ok = (
+                        classification != "AI_ADOPTION" or _has_ai_adoption_evidence(bounded)
+                    )
+                    if (
+                        AI_SUBJECT_RE.search(bounded)
+                        and BUSINESS_IMPACT_RE.search(bounded)
+                        and bounded_adoption_ok
+                    ):
                         candidate = bounded.rstrip(".!?") + "."
                         break
             if candidate is not None:
@@ -791,6 +1022,7 @@ def validate_judgement_plan(
         None,
         DYNAMIC_HEADLINE_REVISION,
         FOCUS_NUMBERS_REVISION,
+        AI_ADOPTION_REVISION,
     }:
         raise JudgementPlanError("Planner returned an unsupported editorial revision")
 
@@ -811,6 +1043,7 @@ def validate_judgement_plan(
         raise JudgementPlanError("Enhanced edition must contain 5-8 evidence items")
     newsroom_source_ids: set[str] = set()
     newsroom_ai_business_items = 0
+    newsroom_ai_adoption_items = 0
     for item in items:
         if item.get("action_tag") not in ACTION_TAGS:
             raise JudgementPlanError("Evidence item has an invalid action tag")
@@ -829,7 +1062,10 @@ def validate_judgement_plan(
         newsroom_source_ids.update(source_ids)
         if focus_numbers_revision:
             mix_classification = str(item.get("mix_classification", "")).strip()
-            if mix_classification not in CONTENT_MIX_TYPES:
+            allowed_mix_types = (
+                AI_ADOPTION_MIX_TYPES if _is_ai_adoption_revision(plan) else CONTENT_MIX_TYPES
+            )
+            if mix_classification not in allowed_mix_types:
                 raise JudgementPlanError("Newsroom story has an invalid content-mix classification")
             if verified_mix_by_source is not None:
                 if len(source_ids) != 1:
@@ -847,13 +1083,15 @@ def validate_judgement_plan(
                         f"Newsroom source {source_id} is verified as {verified_classification}, "
                         f"not {mix_classification}"
                     )
-            if mix_classification == "AI_BUSINESS":
+            if mix_classification in {"AI_BUSINESS", "AI_ADOPTION", "AI_INDUSTRY_IMPACT"}:
                 connection = str(item.get("ai_business_connection", "")).strip()
                 if not connection or _words(connection) > 28:
                     raise JudgementPlanError(
-                        "AI-in-business Newsroom story requires a substantive connection in no more than 28 words"
+                        "AI Newsroom story requires a substantive connection in no more than 28 words"
                     )
                 newsroom_ai_business_items += 1
+                if mix_classification == "AI_ADOPTION":
+                    newsroom_ai_adoption_items += 1
             _validate_reader_visible_mix_copy(
                 item,
                 mix_classification,
@@ -904,6 +1142,7 @@ def validate_judgement_plan(
             raise JudgementPlanError("FOCUS ON THE NUMBERS requires exactly five entries")
         focus_source_ids: set[str] = set()
         focus_ai_business_items = 0
+        focus_ai_adoption_items = 0
         for index, item in enumerate(focus_numbers):
             if not isinstance(item, dict):
                 raise JudgementPlanError(f"Focus number {index + 1} is not structured")
@@ -934,7 +1173,10 @@ def validate_judgement_plan(
                     f"Focus number {index + 1} meaning is missing or exceeds 26 words"
                 )
             mix_classification = str(item.get("mix_classification", "")).strip()
-            if mix_classification not in CONTENT_MIX_TYPES:
+            allowed_mix_types = (
+                AI_ADOPTION_MIX_TYPES if _is_ai_adoption_revision(plan) else CONTENT_MIX_TYPES
+            )
+            if mix_classification not in allowed_mix_types:
                 raise JudgementPlanError(
                     f"Focus number {index + 1} has an invalid content-mix classification"
                 )
@@ -954,13 +1196,15 @@ def validate_judgement_plan(
                         f"Focus number {index + 1} source {source_id} is verified as "
                         f"{verified_classification}, not {mix_classification}"
                     )
-            if mix_classification == "AI_BUSINESS":
+            if mix_classification in {"AI_BUSINESS", "AI_ADOPTION", "AI_INDUSTRY_IMPACT"}:
                 connection = str(item.get("ai_business_connection", "")).strip()
                 if not connection or _words(connection) > 28:
                     raise JudgementPlanError(
-                        f"AI-in-business Focus number {index + 1} requires a substantive connection in no more than 28 words"
+                        f"AI Focus number {index + 1} requires a substantive connection in no more than 28 words"
                     )
                 focus_ai_business_items += 1
+                if mix_classification == "AI_ADOPTION":
+                    focus_ai_adoption_items += 1
             _validate_reader_visible_mix_copy(
                 item,
                 mix_classification,
@@ -978,20 +1222,29 @@ def validate_judgement_plan(
             expected_focus = set(allocated_source_ids.get("focus_numbers") or [])
             if newsroom_source_ids != expected_newsroom or focus_source_ids != expected_focus:
                 raise JudgementPlanError(
-                    "Planner source selection does not match the preallocated exact 3/2 section mix"
+                    "Planner source selection does not match the preallocated section contract"
                 )
-        ai_business_items = newsroom_ai_business_items + focus_ai_business_items
-        if (
-            newsroom_ai_business_items != REQUIRED_AI_BUSINESS_PER_SECTION
-            or focus_ai_business_items != REQUIRED_AI_BUSINESS_PER_SECTION
-            or ai_business_items != REQUIRED_AI_BUSINESS_ITEMS
-        ):
-            raise JudgementPlanError(
-                "The approved content mix requires exactly 3 AI_BUSINESS and 2 MAJOR_BUSINESS "
-                "items in each section (6/4 overall); received "
-                f"Newsroom {newsroom_ai_business_items}/{5 - newsroom_ai_business_items}, "
-                f"Focus {focus_ai_business_items}/{5 - focus_ai_business_items}"
-            )
+        if _is_ai_adoption_revision(plan):
+            adoption_items = newsroom_ai_adoption_items + focus_ai_adoption_items
+            industry_items = 10 - adoption_items
+            if adoption_items < MIN_AI_ADOPTION_ITEMS or industry_items > MAX_AI_INDUSTRY_IMPACT_ITEMS:
+                raise JudgementPlanError(
+                    "The all-AI adoption-first mix requires at least 8 AI_ADOPTION and at most "
+                    f"2 AI_INDUSTRY_IMPACT items; received {adoption_items}/{industry_items}"
+                )
+        else:
+            ai_business_items = newsroom_ai_business_items + focus_ai_business_items
+            if (
+                newsroom_ai_business_items != REQUIRED_AI_BUSINESS_PER_SECTION
+                or focus_ai_business_items != REQUIRED_AI_BUSINESS_PER_SECTION
+                or ai_business_items != REQUIRED_AI_BUSINESS_ITEMS
+            ):
+                raise JudgementPlanError(
+                    "The approved content mix requires exactly 3 AI_BUSINESS and 2 MAJOR_BUSINESS "
+                    "items in each section (6/4 overall); received "
+                    f"Newsroom {newsroom_ai_business_items}/{5 - newsroom_ai_business_items}, "
+                    f"Focus {focus_ai_business_items}/{5 - focus_ai_business_items}"
+                )
     else:
         visual = plan["visual_signal"]
         if visual.get("type") not in VISUAL_TYPES:
@@ -1069,9 +1322,11 @@ def generate_judgement_plan(
     verified_mix_by_source: dict[str, str] | None = None
     verified_ai_source_ids: list[str] = []
     verified_major_source_ids: list[str] = []
+    verified_adoption_source_ids: list[str] = []
+    verified_industry_source_ids: list[str] = []
     allocated_source_ids: dict[str, list[str]] | None = None
     if (
-        FOCUS_NUMBERS_REVISION in prompt_template
+        (FOCUS_NUMBERS_REVISION in prompt_template or AI_ADOPTION_REVISION in prompt_template)
         and len(focus_eligible_source_ids) < 5
     ):
         raise JudgementPlanError(
@@ -1079,7 +1334,31 @@ def generate_judgement_plan(
             "with pre-verified numeric evidence; received "
             f"{len(focus_eligible_source_ids)}"
         )
-    if FOCUS_NUMBERS_REVISION in prompt_template:
+    if AI_ADOPTION_REVISION in prompt_template:
+        planner_evidence, verified_mix_by_source = prepare_ai_adoption_evidence(planner_evidence)
+        verified_adoption_source_ids = sorted(
+            source_id for source_id, classification in verified_mix_by_source.items()
+            if classification == "AI_ADOPTION"
+        )
+        verified_industry_source_ids = sorted(
+            source_id for source_id, classification in verified_mix_by_source.items()
+            if classification == "AI_INDUSTRY_IMPACT"
+        )
+        if len(verified_adoption_source_ids) < MIN_AI_ADOPTION_ITEMS or (
+            len(verified_adoption_source_ids) + len(verified_industry_source_ids) < 10
+        ):
+            raise JudgementPlanError(
+                "The all-AI adoption-first edition requires at least eight verified AI adoption "
+                "sources and ten AI sources overall; received "
+                f"{len(verified_adoption_source_ids)} and "
+                f"{len(verified_adoption_source_ids) + len(verified_industry_source_ids)}"
+            )
+        allocated_source_ids = allocate_ai_adoption_content(
+            planner_evidence,
+            focus_eligible_source_ids,
+            verified_mix_by_source,
+        )
+    elif FOCUS_NUMBERS_REVISION in prompt_template:
         planner_evidence, verified_mix_by_source = prepare_content_mix_evidence(planner_evidence)
         verified_ai_source_ids = sorted(
             source_id
@@ -1112,6 +1391,10 @@ def generate_judgement_plan(
         "{AI_BUSINESS_SOURCE_IDS}", json.dumps(verified_ai_source_ids)
     ).replace(
         "{MAJOR_BUSINESS_SOURCE_IDS}", json.dumps(verified_major_source_ids)
+    ).replace(
+        "{AI_ADOPTION_SOURCE_IDS}", json.dumps(verified_adoption_source_ids)
+    ).replace(
+        "{AI_INDUSTRY_IMPACT_SOURCE_IDS}", json.dumps(verified_industry_source_ids)
     ).replace(
         "{NEWSROOM_SOURCE_IDS}", json.dumps(allocated_source_ids["newsroom"] if allocated_source_ids else [])
     ).replace(

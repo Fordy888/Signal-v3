@@ -1,0 +1,145 @@
+{
+  "editorial_revision": "ai-adoption-v1",
+  "founders_note": {
+    "headline": "Stop counting AI tools. Count changed work.",
+    "body": "The AI stories worth your time are not about who launched the cleverest model. They are about what changed inside the business: a workflow moved faster, a customer got a better answer, a cost came out or revenue went up. Today’s evidence carries a warning too. Adoption is easy to announce and hard to convert into value. Start with the work, name the measure and let the result earn the next investment. — Paul"
+  },
+  "evidence_items": [
+    {
+      "source_ids": ["S03"],
+      "category": "Operations & Delivery",
+      "action_tag": "ACT",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Companies deploy AI into finance, procurement, supply-chain and HR workflows, creating integration and governance work.",
+      "headline": "The hard AI work starts after the demo",
+      "evidence": "Companies are deploying AI into core operations, but value now depends on connecting legacy systems, live data, permissions and audit trails."
+    },
+    {
+      "source_ids": ["S04"],
+      "category": "Sales, Marketing & Customer",
+      "action_tag": "WATCH",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Professional-services teams use AI in legal work, improving efficiency and quality while exposing a pricing gap.",
+      "headline": "Law firms have an AI pricing problem",
+      "evidence": "Law firms using AI daily across legal work report stronger efficiency and quality, yet many cannot connect that changed work to client value or pricing."
+    },
+    {
+      "source_ids": ["S06"],
+      "category": "Sales, Marketing & Customer",
+      "action_tag": "WATCH",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Organizations deploy AI into customer service, but weak workflow design is preventing better outcomes and returns.",
+      "headline": "Customer-service AI is failing the value test",
+      "evidence": "Organizations are deploying AI across customer-service workflows, but only a small fraction report better outcomes and a return on investment."
+    },
+    {
+      "source_ids": ["S07"],
+      "category": "Finance & Capital",
+      "action_tag": "OPPORTUNITY",
+      "mix_classification": "AI_INDUSTRY_IMPACT",
+      "ai_business_connection": "A new AI research agent directly changes regulated banking research, governance and client preparation.",
+      "headline": "Banking AI is moving into auditable work",
+      "evidence": "Google Cloud launched a bank-designed AI research agent to reduce manual analysis in financial services, improve auditability and free time for client conversations."
+    },
+    {
+      "source_ids": ["S10"],
+      "category": "Operations & Delivery",
+      "action_tag": "ACT",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Procurement teams use AI for spend, contracts and supplier decisions, but few have embedded it at scale.",
+      "headline": "Procurement AI is stuck between habit and system",
+      "evidence": "Procurement teams use AI for spend analysis, contracts and supplier decisions, yet most pilots still fail to become large-scale operating workflows."
+    }
+  ],
+  "focus_numbers": [
+    {
+      "source_ids": ["S01"],
+      "entity": "Enterprise AI",
+      "number": "37% report positive profit impact",
+      "meaning": "Organizations use AI across workflows, but enterprise earnings still lag behind employee productivity gains.",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Organizations use AI across workflows, yet only 37% report positive enterprise earnings impact."
+    },
+    {
+      "source_ids": ["S02"],
+      "entity": "Japanese companies",
+      "number": "16% deploy AI company-wide",
+      "meaning": "Japanese companies use AI in operations, but most adoption remains limited to isolated parts of the business.",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Japanese companies use AI in operations, but only 16% have deployed it company-wide."
+    },
+    {
+      "source_ids": ["S05"],
+      "entity": "Advertising executives",
+      "number": "83% use AI in creative",
+      "meaning": "Advertisers use AI in production at scale, making disclosure and customer trust operating decisions rather than theory.",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Advertisers use AI in creative production, changing disclosure workflow and customer trust decisions."
+    },
+    {
+      "source_ids": ["S08"],
+      "entity": "Retail AI agents",
+      "number": "8% sales growth versus 2%",
+      "meaning": "Retailers deployed AI agents into sales and service workflows and reported four times stronger growth.",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Retailers deployed AI agents into sales and customer service, producing stronger reported sales growth."
+    },
+    {
+      "source_ids": ["S09"],
+      "entity": "Customer-service AI",
+      "number": "AI spending up 38%",
+      "meaning": "AI investment is rising while service budgets barely move, forcing leaders to prove value or cut elsewhere.",
+      "mix_classification": "AI_INDUSTRY_IMPACT",
+      "ai_business_connection": "Rising AI investment directly changes customer-service budgets, labour allocation and the required return hurdle."
+    }
+  ],
+  "interpretation_headline": "AI adoption is outrunning operating proof",
+  "interpretation": "The pattern is clear: AI has moved into real work across operations, legal services, customer experience, procurement, advertising and retail. The value gap is just as clear. Leaders are funding tools faster than they are redesigning workflows, pricing the outcome or measuring the return.",
+  "what_changed": {
+    "position_id": "ai-value-follows-workflow-change",
+    "classification": "STRENGTHENS",
+    "prior_position": "AI earns attention when it changes a real business process and measurable outcome.",
+    "current_position": "Current evidence strengthens the need to judge AI through changed work, customer value and financial proof.",
+    "explanation": "Ten independent sources show AI embedded across business functions while returns remain uneven and operating discipline determines value.",
+    "confidence": "HIGH"
+  },
+  "counter_signal": {
+    "headline": "Adoption data is not the same as causation",
+    "statement": "Several figures come from surveys or vendor platforms. They show where AI is being used and where results are claimed, but they do not prove every gain came from AI alone.",
+    "would_change_view_if": "Independent, audited results showed sustained margin, revenue and customer gains across multiple quarters and business sizes.",
+    "confidence_effect": "That evidence would strengthen the conclusion that workflow-level AI adoption is producing broad, durable business value."
+  },
+  "executive_actions": [
+    {
+      "action_tag": "ACT",
+      "headline": "Name the workflow before the tool",
+      "instruction": "Choose one customer or operating process and define what better means before adding AI."
+    },
+    {
+      "action_tag": "WATCH",
+      "headline": "Put value beside adoption",
+      "instruction": "Track revenue, cost, speed, quality or risk—not licences, prompts or demonstrations."
+    },
+    {
+      "action_tag": "OPPORTUNITY",
+      "headline": "Price the changed work",
+      "instruction": "If AI improves delivery, decide how customers, margins and staff should share the gain."
+    }
+  ],
+  "executive_read": {
+    "dtl_view": "AI is already moving through the business. The advantage will not belong to the company with the most tools, but to the one that redesigns the work and proves the consequence.",
+    "watch_headline": "Watch the distance between use and value",
+    "watch_items": [
+      "Whether enterprise earnings begin catching up with reported employee productivity gains.",
+      "Whether customer-service leaders cut weak AI projects rather than funding adoption for appearance.",
+      "Whether professional firms convert faster work into clearer client value and smarter pricing."
+    ]
+  },
+  "memory_update": {
+    "position_id": "ai-value-follows-workflow-change",
+    "theme": "AI adoption and operating proof",
+    "statement": "DTL Signal should judge AI through actual workflow change, practical business consequence and measurable value.",
+    "confidence": "HIGH",
+    "supporting_source_ids": ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10"]
+  }
+}

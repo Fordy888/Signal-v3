@@ -1,0 +1,102 @@
+[
+  {
+    "source_id": "S01",
+    "title": "Organizations use AI to redesign work, but earnings lag",
+    "source": "McKinsey Global Survey",
+    "url": "https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai",
+    "category": "Strategy & Business Model",
+    "score": 35,
+    "evidence": "Organizations use AI across business workflows, with 80% reporting individual productivity gains but only 37% reporting positive enterprise EBIT impact.",
+    "scoring_reason": "Actual enterprise AI use, workflow redesign and measured productivity and earnings consequences."
+  },
+  {
+    "source_id": "S02",
+    "title": "Japanese companies use AI narrowly rather than company-wide",
+    "source": "Reuters",
+    "url": "https://www.reuters.com/world/asia-pacific/strong-majority-japanese-firms-have-yet-fully-embrace-ai-2026-08-12/",
+    "category": "Leadership & Vision",
+    "score": 35,
+    "evidence": "Japanese companies use AI in limited operations: 16% have deployed it company-wide, while 60% use it only in parts of the business.",
+    "scoring_reason": "Actual company AI adoption across operations with measured deployment depth and budget consequences."
+  },
+  {
+    "source_id": "S03",
+    "title": "Companies are wiring AI into legacy business systems",
+    "source": "Reuters Europe",
+    "url": "https://www.reuters.com/business/media-telecom/europes-established-tech-firms-emerge-unexpected-ai-winners-2026-08-05/",
+    "category": "Operations & Delivery",
+    "score": 35,
+    "evidence": "Companies are deploying AI across finance, procurement, supply-chain and HR workflows, increasing demand for integration, permissions, audit trails and data governance.",
+    "scoring_reason": "Actual enterprise AI deployment changes core operating processes and implementation spending."
+  },
+  {
+    "source_id": "S04",
+    "title": "Professional-services teams embed AI but struggle to sell the value",
+    "source": "Thomson Reuters Institute",
+    "url": "https://www.thomsonreuters.com/en/institute/reports/turning-law-firm-ai-strategies-into-practice",
+    "category": "Sales, Marketing & Customer",
+    "score": 35,
+    "evidence": "Professional-services teams using AI daily across legal work were nine times more likely to report significant efficiency and quality gains than minimal users.",
+    "scoring_reason": "Actual workplace AI use changes legal delivery, efficiency, quality, pricing and client conversations."
+  },
+  {
+    "source_id": "S05",
+    "title": "Advertisers use AI at scale as disclosure rules tighten",
+    "source": "Marketing Dive",
+    "url": "https://www.marketingdive.com/news/iab-revisits-ai-disclosure-in-ads-as-legal-requirements-multiply/828182/",
+    "category": "Sales, Marketing & Customer",
+    "score": 35,
+    "evidence": "Advertising companies used AI in the creative process at scale: 83% of ad executives reported use, up 23 percentage points from 2024.",
+    "scoring_reason": "Actual AI use in marketing production changes disclosure, creative workflow and customer trust."
+  },
+  {
+    "source_id": "S06",
+    "title": "Customer-service AI adoption is racing ahead of value",
+    "source": "CX Dive",
+    "url": "https://www.customerexperiencedive.com/news/ai-adoption-in-cx-is-accelerating-but-few-projects-produce-value/827869/",
+    "category": "Sales, Marketing & Customer",
+    "score": 35,
+    "evidence": "Organizations adopted AI in customer-service workflows at a 70% rate, yet only 2% reported improved outcomes and return on investment.",
+    "scoring_reason": "Actual organizational AI use in customer service reveals a measured process and ROI gap."
+  },
+  {
+    "source_id": "S07",
+    "title": "Google launches a regulated AI research agent shaped by Deutsche Bank",
+    "source": "Deutsche Bank Newsroom",
+    "url": "https://www.db.com/news/detail/20260825-deutsche-bank-helps-shape-google-cloud-s-new-ai-solution-for-financial-services?language_id=1",
+    "category": "Finance & Capital",
+    "score": 34,
+    "evidence": "Google Cloud launched an AI-powered financial research agent designed with Deutsche Bank to reduce manual research and improve auditability and client preparation.",
+    "scoring_reason": "A real AI industry launch has direct consequences for regulated banking research, governance and client work."
+  },
+  {
+    "source_id": "S08",
+    "title": "Retailers deploy AI agents into sales and customer service",
+    "source": "Salesforce Agentic Enterprise Index",
+    "url": "https://www.salesforce.com/news/stories/agentic-enterprise-index-insights-2026/",
+    "category": "Sales, Marketing & Customer",
+    "score": 34,
+    "evidence": "Retailers deployed AI agents in sales and customer-service workflows, recording 8% year-on-year sales growth versus 2% without agents.",
+    "scoring_reason": "Vendor-owned production data links actual retail AI deployment to sales and service outcomes."
+  },
+  {
+    "source_id": "S09",
+    "title": "Customer-service leaders shift budgets toward AI",
+    "source": "Gartner",
+    "url": "https://www.gartner.com/en/newsroom/press-releases/2026-08-26-gartner-survey-finds-ai-spending-by-customer-service-leaders-has-surged-by-38-percent-despite-overall-service-and-support-function-budgets-rising-by-just-2-percent",
+    "category": "Finance & Capital",
+    "score": 34,
+    "evidence": "Customer-service leaders increased AI investment 38% while total function budgets grew 2%, changing the balance between labour, overhead and technology.",
+    "scoring_reason": "A measured AI investment shift has direct cost, workforce and service-delivery consequences."
+  },
+  {
+    "source_id": "S10",
+    "title": "Procurement teams use AI weekly but struggle to scale workflows",
+    "source": "Art of Procurement",
+    "url": "https://artofprocurement.com/blog/state-of-ai-in-procurement",
+    "category": "Operations & Delivery",
+    "score": 34,
+    "evidence": "Procurement teams use AI for spend analysis, contracts and supplier decisions: 49% ran pilots, but only 4% reached large-scale deployment.",
+    "scoring_reason": "Actual AI use changes procurement work, productivity, risk and decision quality, but production scale remains rare."
+  }
+]

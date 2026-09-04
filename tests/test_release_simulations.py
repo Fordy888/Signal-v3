@@ -75,6 +75,42 @@ def _focus_numbers_plan() -> dict:
     return plan
 
 
+def _ai_adoption_plan() -> dict:
+    plan = _focus_numbers_plan()
+    plan["editorial_revision"] = "ai-adoption-v1"
+    for index, item in enumerate(plan["evidence_items"]):
+        item["mix_classification"] = (
+            "AI_INDUSTRY_IMPACT" if index == 4 else "AI_ADOPTION"
+        )
+        item["headline"] = (
+            "OpenAI cuts enterprise AI prices"
+            if index == 4
+            else "Banks deploy AI into fraud reviews"
+        )
+        item["evidence"] = (
+            "The change reduces software costs for business customers."
+            if index == 4
+            else "The automated workflow cut operating costs while improving customer service."
+        )
+        item["ai_business_connection"] = (
+            "The explicit AI change affects a real process, cost or business decision."
+        )
+    for index, item in enumerate(plan["focus_numbers"]):
+        item["mix_classification"] = (
+            "AI_INDUSTRY_IMPACT" if index == 4 else "AI_ADOPTION"
+        )
+        item["ai_business_connection"] = (
+            "The explicit AI change affects a real process, cost or business decision."
+        )
+        if index == 4:
+            item["entity"] = "OpenAI"
+            item["meaning"] = "The AI price cut reduces software costs for business customers."
+        else:
+            item["entity"] = "Retail AI teams"
+            item["meaning"] = "The company used AI to automate customer service work and reduce operating costs."
+    return plan
+
+
 def _focus_evidence() -> list[dict]:
     evidence = json.loads(
         (ROOT / "data" / "fixtures" / "edition0042_evidence.json").read_text()
@@ -167,6 +203,61 @@ class ReleaseSimulationTests(unittest.TestCase):
             patch("src.main.send_brief", return_value=True),
         )
 
+    def _run_ai_daily_dry(
+        self,
+        *,
+        as_of: str,
+        moment_path: str,
+        alive_history: list[dict] | None = None,
+    ) -> tuple[int, object, str]:
+        output = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
+        output.close()
+        patches = self._common_patches()
+        with ExitStack() as stack:
+            entered = [stack.enter_context(item) for item in patches]
+            send_mock = entered[6]
+            stack.enter_context(
+                patch("src.main.scored_items_to_evidence", return_value=_focus_evidence())
+            )
+            stack.enter_context(
+                patch("src.main.generate_judgement_plan", return_value=_ai_adoption_plan())
+            )
+            stack.enter_context(
+                patch(
+                    "src.main.load_signal_memory",
+                    return_value={"version": 1, "positions": [], "events": []},
+                )
+            )
+            stack.enter_context(
+                patch("src.main.load_alive_history", return_value=alive_history or [])
+            )
+            stack.enter_context(
+                patch.dict(
+                    os.environ,
+                    {"SIGNAL_ALIVE_MOMENT_PATH": moment_path},
+                    clear=False,
+                )
+            )
+            stack.enter_context(
+                patch(
+                    "sys.argv",
+                    [
+                        "signal",
+                        "--dry-run",
+                        "--enhanced",
+                        "--as-of",
+                        as_of,
+                        "--save-html",
+                        output.name,
+                    ],
+                )
+            )
+            with redirect_stdout(io.StringIO()):
+                result = main()
+        html = Path(output.name).read_text()
+        Path(output.name).unlink(missing_ok=True)
+        return result, send_mock, html
+
     def _run_locked_send(self, delivery_results: list[bool]) -> tuple[int, object, object, object]:
         recipients = [
             {"email": f"eligible-{i}@example.com", "firstName": f"Reader{i}"}
@@ -243,40 +334,46 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertIn("REMEMBER THE WORLD", html)
         self.assertIn("DAD JOKE OF THE DAY", html)
 
-    def test_monday_edition_0043_dynamic_v4_full_dry_run_never_delivers(self) -> None:
-        output = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
-        output.close()
-        plan = _focus_numbers_plan()
-        evidence = _focus_evidence()
-        patches = self._common_patches()
-        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6] as send_mock, patch(
-            "src.main.scored_items_to_evidence", return_value=evidence
-        ), patch(
-            "src.main.generate_judgement_plan", return_value=plan
-        ), patch(
-            "src.main.load_signal_memory", return_value={"version": 1, "positions": [], "events": []}
-        ), patch(
-            "src.main.load_alive_history", return_value=[]
-        ), patch(
-            "sys.argv",
-            [
-                "signal",
-                "--dry-run",
-                "--enhanced",
-                "--alive-moment",
-                "--as-of",
-                "2026-08-31T06:00:00+10:00",
-                "--save-html",
-                output.name,
-            ],
-        ), redirect_stdout(io.StringIO()):
-            result = main()
-        html = Path(output.name).read_text()
-        Path(output.name).unlink(missing_ok=True)
+    def test_all_ai_daily_holds_when_image_record_has_wrong_date(self) -> None:
+        result, send_mock, html = self._run_ai_daily_dry(
+            as_of="2026-08-31T06:00:00+10:00",
+            moment_path="data/fixtures/alive_moment_0046.json",
+        )
+        self.assertEqual(result, 1)
+        send_mock.assert_not_called()
+        self.assertEqual(html, "")
+
+    def test_all_ai_daily_holds_when_required_image_record_is_missing(self) -> None:
+        result, send_mock, html = self._run_ai_daily_dry(
+            as_of="2026-09-04T06:00:00+10:00",
+            moment_path="data/fixtures/does-not-exist.json",
+        )
+        self.assertEqual(result, 1)
+        send_mock.assert_not_called()
+        self.assertEqual(html, "")
+
+    def test_all_ai_daily_holds_when_image_was_recently_delivered(self) -> None:
+        moment = json.loads(
+            (ROOT / "data" / "fixtures" / "alive_moment_0047.json").read_text()
+        )
+        result, send_mock, html = self._run_ai_daily_dry(
+            as_of="2026-09-04T06:00:00+10:00",
+            moment_path="data/fixtures/alive_moment_0047.json",
+            alive_history=[moment],
+        )
+        self.assertEqual(result, 1)
+        send_mock.assert_not_called()
+        self.assertEqual(html, "")
+
+    def test_all_ai_daily_renders_fresh_image_before_dad_joke_without_optional_flag(self) -> None:
+        result, send_mock, html = self._run_ai_daily_dry(
+            as_of="2026-09-04T06:00:00+10:00",
+            moment_path="data/alive_moments/{date}.json",
+        )
         self.assertEqual(result, 0)
         send_mock.assert_not_called()
-        self.assertIn("Edition 0043", html)
-        self.assertIn("Monday 31 August 2026", html)
+        self.assertIn("Edition 0047", html)
+        self.assertIn("Friday 04 September 2026", html)
         self.assertIn("THINK.</span>", html)
         self.assertIn("DECIDE.</span>", html)
         self.assertIn("LOOK UP.</span>", html)
@@ -289,13 +386,59 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertNotIn("THE ONE THING", html)
         self.assertNotIn("THE SHIFT", html)
         self.assertNotIn("WHAT CHANGED", html)
-        self.assertNotIn("REMEMBER THE WORLD", html)
+        self.assertIn("REMEMBER THE WORLD", html)
+        self.assertIn("Norderney, Germany", html)
+        self.assertIn("Dietmar Rabich", html)
+        self.assertLess(html.index("REMEMBER THE WORLD"), html.index("DAD JOKE OF THE DAY"))
         self.assertIn("DAD JOKE OF THE DAY", html)
-        self.assertIn("PF::SIGNAL-0043 // 31.08.2026 // 06:00 AEST", html)
+        self.assertIn("PF::SIGNAL-0047 // 04.09.2026 // 06:00 AEST", html)
+
+    def test_all_ai_release_canary_holds_against_historical_sixty_forty_manifest(self) -> None:
+        plan = _ai_adoption_plan()
+        evidence = _focus_evidence()
+        patches = self._common_patches()
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6] as send_mock, patch(
+            "src.main.scored_items_to_evidence", return_value=evidence
+        ), patch(
+            "src.main.generate_judgement_plan", return_value=plan
+        ), patch(
+            "src.main.load_signal_memory", return_value={"version": 1, "positions": [], "events": []}
+        ), patch(
+            "src.main.load_alive_history", return_value=[]
+        ), patch.dict(
+            os.environ,
+            {
+                "RENDER": "true",
+                "RENDER_GIT_BRANCH": "master",
+                "RENDER_GIT_COMMIT": "abcdef1234567890",
+                "RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
+            },
+            clear=False,
+        ), patch(
+            "sys.argv",
+            [
+                "signal", "--proof", "--release-canary", "--enhanced",
+                "--as-of", "2026-08-31T06:00:00+10:00",
+            ],
+        ), redirect_stdout(io.StringIO()):
+            result = main()
+
+        self.assertEqual(result, 1)
+        send_mock.assert_not_called()
 
     def test_monday_proof_subject_uses_the_same_release_clock_as_the_body(self) -> None:
         plan = _focus_numbers_plan()
         evidence = _focus_evidence()
+        valid_monday_moment = json.loads(
+            (ROOT / "data" / "fixtures" / "alive_moment_0047.json").read_text()
+        )
+        valid_monday_moment.update(
+            {
+                "id": "REMEMBER-0043-TEST-CLOCK",
+                "edition_id": "0043",
+                "date": "2026-08-31",
+            }
+        )
         production_env = {
             "RENDER": "true",
             "RENDER_GIT_BRANCH": "master",
@@ -310,6 +453,7 @@ class ReleaseSimulationTests(unittest.TestCase):
             "SIGNAL_TARGET_RELEASE_ID": "focus-numbers-60-40-v1",
             "SIGNAL_EXPECTED_APPROVED_PROOF_SHA256": "7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3",
             "SIGNAL_RELEASE_MANIFEST_PATH": "data/release_manifest.json",
+            "SIGNAL_ALIVE_MOMENT_PATH": "data/fixtures/alive_moment_0047.json",
         }
         patches = self._common_patches()
         with patch.dict(os.environ, production_env, clear=False), patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6] as send_mock, patch(
@@ -320,6 +464,8 @@ class ReleaseSimulationTests(unittest.TestCase):
             "src.main.load_signal_memory", return_value={"version": 1, "positions": [], "events": []}
         ), patch(
             "src.main.load_alive_history", return_value=[]
+        ), patch(
+            "src.main.load_alive_moment", return_value=valid_monday_moment
         ), patch(
             "src.main.send_receipt_email"
         ) as receipt_mock, patch(

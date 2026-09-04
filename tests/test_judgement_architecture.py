@@ -16,10 +16,12 @@ from src.human_signal import load_jokes, select_joke
 from src.judgement_plan import (
     JudgementPlanError,
     add_final_attempt_action_fallback,
+    allocate_ai_adoption_content,
     allocate_focus_numbers_content_mix,
     complete_ai_focus_reader_copy,
     generate_judgement_plan,
     normalise_word_bound_fields,
+    prepare_ai_adoption_evidence,
     prepare_content_mix_evidence,
     prepare_focus_number_evidence,
     recover_missing_focus_figures,
@@ -212,6 +214,60 @@ def focus_numeric_evidence(numeric_ids: set[str] | None = None) -> list[dict]:
             "scoring_reason": "Commercially material business evidence.",
         })
     return items
+
+
+def ai_adoption_numeric_evidence() -> list[dict]:
+    items: list[dict] = []
+    for index, source_id in enumerate(sorted(FOCUS_SOURCE_IDS), 11):
+        if source_id in {"S05", "S10"}:
+            evidence = (
+                f"OpenAI cut enterprise AI prices {index}%, reducing software costs "
+                "for business customers."
+            )
+        else:
+            evidence = (
+                f"A bank deployed AI to automate fraud review workflow, reducing costs {index}%."
+            )
+        items.append({
+            "source_id": source_id,
+            "title": f"Source {source_id} AI business result",
+            "evidence": evidence,
+            "scoring_reason": "Source-backed AI change with a practical business consequence.",
+        })
+    return items
+
+
+def ai_adoption_plan() -> dict:
+    plan = focus_numbers_plan()
+    plan["editorial_revision"] = "ai-adoption-v1"
+    for index, item in enumerate(plan["evidence_items"], 6):
+        item["source_ids"] = [f"S{index:02d}"]
+        item["mix_classification"] = (
+            "AI_INDUSTRY_IMPACT" if index == 10 else "AI_ADOPTION"
+        )
+        if item["mix_classification"] == "AI_ADOPTION":
+            item["headline"] = "Banks deploy AI into fraud reviews"
+            item["evidence"] = "The automated workflow cut operating costs while improving customer service."
+        else:
+            item["headline"] = "OpenAI cuts enterprise AI prices"
+            item["evidence"] = "The change reduces software costs for business customers."
+        item["ai_business_connection"] = (
+            "The explicit AI change affects a real process, cost or business decision."
+        )
+    for index, item in enumerate(plan["focus_numbers"], 1):
+        item["mix_classification"] = (
+            "AI_INDUSTRY_IMPACT" if index == 5 else "AI_ADOPTION"
+        )
+        item["ai_business_connection"] = (
+            "The explicit AI change affects a real process, cost or business decision."
+        )
+        if item["mix_classification"] == "AI_ADOPTION":
+            item["entity"] = "Retail AI teams"
+            item["meaning"] = "The company used AI to automate customer service work and reduce operating costs."
+        else:
+            item["entity"] = "OpenAI"
+            item["meaning"] = "The AI price cut reduces software costs for business customers."
+    return plan
 
 
 class JudgementArchitectureTests(unittest.TestCase):
@@ -411,6 +467,85 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertEqual(by_id["S01"]["verified_mix_classification"], "AI_BUSINESS")
         self.assertEqual(by_id["S04"]["verified_mix_classification"], "MAJOR_BUSINESS")
 
+    def test_ai_adoption_classifier_requires_real_application_and_practical_impact(self) -> None:
+        evidence = [
+            {
+                "source_id": "S01",
+                "evidence": "A bank deployed AI to automate fraud review workflow, reducing costs 20%.",
+            },
+            {
+                "source_id": "S02",
+                "evidence": "OpenAI cut enterprise AI prices 20%, reducing software costs for businesses.",
+            },
+            {
+                "source_id": "S03",
+                "evidence": "A bank increased revenue 20% after improving its customer strategy.",
+            },
+            {
+                "source_id": "S04",
+                "evidence": "OpenAI and Anthropic executives argued while company rivalry grew.",
+            },
+            {
+                "source_id": "S05",
+                "evidence": "The bank mentioned AI while revenue increased 20%.",
+            },
+            {
+                "source_id": "S06",
+                "evidence": "Banks could use AI to automate fraud review and reduce costs 20%.",
+            },
+            {
+                "source_id": "S07",
+                "evidence": "Klarna deployed AI to automate customer service work, reducing costs 20%.",
+            },
+        ]
+
+        prepared, verified = prepare_ai_adoption_evidence(evidence)
+
+        self.assertEqual(
+            verified,
+            {"S01": "AI_ADOPTION", "S02": "AI_INDUSTRY_IMPACT", "S07": "AI_ADOPTION"},
+        )
+        by_id = {item["source_id"]: item for item in prepared}
+        for source_id in {"S03", "S04", "S05", "S06"}:
+            self.assertFalse(by_id[source_id]["verified_mix_eligible"])
+
+    def test_all_ai_allocation_is_deterministic_and_adoption_first(self) -> None:
+        evidence = ai_adoption_numeric_evidence()
+        prepared, focus_eligible = prepare_focus_number_evidence(evidence)
+        prepared, verified = prepare_ai_adoption_evidence(prepared)
+
+        allocation = allocate_ai_adoption_content(prepared, focus_eligible, verified)
+
+        self.assertEqual(allocation["focus_numbers"], ["S01", "S02", "S03", "S04", "S05"])
+        self.assertEqual(allocation["newsroom"], ["S06", "S07", "S08", "S09", "S10"])
+        selected_classes = [
+            verified[source_id]
+            for source_id in allocation["focus_numbers"] + allocation["newsroom"]
+        ]
+        self.assertEqual(selected_classes.count("AI_ADOPTION"), 8)
+        self.assertEqual(selected_classes.count("AI_INDUSTRY_IMPACT"), 2)
+
+    def test_all_ai_plan_rejects_general_business_and_excess_industry_items(self) -> None:
+        plan = ai_adoption_plan()
+        self.assertIs(validate_judgement_plan(plan, FOCUS_SOURCE_IDS), plan)
+
+        plan["evidence_items"][0]["mix_classification"] = "MAJOR_BUSINESS"
+        with self.assertRaisesRegex(JudgementPlanError, "invalid content-mix classification"):
+            validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
+
+        plan = ai_adoption_plan()
+        plan["evidence_items"][0]["mix_classification"] = "AI_INDUSTRY_IMPACT"
+        with self.assertRaisesRegex(JudgementPlanError, "at least 8 AI_ADOPTION"):
+            validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
+
+    def test_ai_adoption_reader_copy_must_name_actual_use_and_work_change(self) -> None:
+        plan = ai_adoption_plan()
+        plan["evidence_items"][0]["headline"] = "AI creates a commercial opportunity"
+        plan["evidence_items"][0]["evidence"] = "The business impact could be significant for customers and costs."
+
+        with self.assertRaisesRegex(JudgementPlanError, "real-world use"):
+            validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
+
     def test_exact_section_mix_is_allocated_before_planner_generation(self) -> None:
         evidence = focus_numeric_evidence()
         prepared, focus_eligible = prepare_focus_number_evidence(evidence)
@@ -466,7 +601,7 @@ class JudgementArchitectureTests(unittest.TestCase):
             )
 
     def test_planner_receives_and_obeys_preallocated_section_sources(self) -> None:
-        plan = focus_numbers_plan()
+        plan = ai_adoption_plan()
         response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
         client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
 
@@ -474,7 +609,7 @@ class JudgementArchitectureTests(unittest.TestCase):
             "os.environ", {"ANTHROPIC_API_KEY": "test-key"}
         ):
             result = generate_judgement_plan(
-                focus_numeric_evidence(),
+                ai_adoption_numeric_evidence(),
                 {},
                 ROOT / "prompts" / "judgement_planner_prompt.md",
             )

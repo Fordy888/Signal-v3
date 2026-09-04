@@ -40,6 +40,22 @@ def load_alive_history(path: Path) -> list[dict[str, Any]]:
     return payload if isinstance(payload, list) else []
 
 
+def resolve_alive_moment_path(
+    root: Path,
+    configured_path: str,
+    *,
+    edition_id: str,
+    edition_date: str,
+) -> Path:
+    """Resolve one edition-specific image record from a safe date/edition template."""
+    try:
+        rendered = configured_path.format(date=edition_date, edition=edition_id)
+    except (KeyError, ValueError) as exc:
+        raise AliveMomentError(f"Invalid REMEMBER THE WORLD path template: {exc}") from exc
+    path = Path(rendered)
+    return path if path.is_absolute() else root / path
+
+
 def _parse_mmdd(value: str, year: int) -> date:
     month, day = (int(part) for part in value.split("-"))
     return date(year, month, day)

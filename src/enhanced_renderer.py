@@ -89,7 +89,9 @@ def render_enhanced_email(
     one = plan.get("one_thing")
     founders_note = plan["founders_note"]
     dynamic_headlines = plan.get("editorial_revision") == "dynamic-headlines-v1"
-    focus_numbers_revision = plan.get("editorial_revision") == "focus-on-the-numbers-v1"
+    focus_numbers_revision = plan.get("editorial_revision") in {
+        "focus-on-the-numbers-v1", "ai-adoption-v1"
+    }
     founder_padding = "18px 40px 22px 40px" if focus_numbers_revision else "4px 40px 22px 40px"
 
     html = [

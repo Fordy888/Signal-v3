@@ -5,7 +5,7 @@ services:
     runtime: python
     schedule: "0 0 1 1 *"
     buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
-    startCommand: python -m src.main --proof --release-canary --enhanced --alive-moment --save-html data/deployed-canary.html
+    startCommand: python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-09-04T06:00:00+10:00 --save-html data/deployed-canary-0047.html
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -34,13 +34,13 @@ services:
       - key: SIGNAL_EXPECTED_RENDER_SERVICE_ID
         value: crn-d8ouk0bsq97s73fgc36g
       - key: SIGNAL_TARGET_RELEASE_ID
-        value: focus-numbers-60-40-v1
+        value: ai-adoption-v1-proof-0047
       - key: SIGNAL_EXPECTED_APPROVED_PROOF_SHA256
-        value: 7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3
+        value: c43ec4b92fa8bc815ff09538b38e5ee5e32a3882586f90195d6166247c408a06
       - key: SIGNAL_RELEASE_MANIFEST_PATH
-        value: data/release_manifest.json
+        value: data/release_manifest_ai_adoption.json
       - key: SIGNAL_ALIVE_MOMENT_PATH
-        value: data/fixtures/alive_moment_0046.json
+        value: data/alive_moments/{date}.json
       - key: MODEL_SCORING
         value: claude-haiku-4-5-20251001
       - key: MODEL_SYNTHESIS
@@ -90,7 +90,7 @@ services:
     runtime: python
     schedule: "0 0 1 1 *"
     buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
-    startCommand: python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-09-03T06:00:00+10:00 --save-html data/deployed-canary-0046.html
+    startCommand: python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-09-04T06:00:00+10:00 --save-html data/deployed-canary-0047.html
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -115,13 +115,13 @@ services:
       - key: SIGNAL_EXPECTED_RENDER_SERVICE_ID
         sync: false
       - key: SIGNAL_TARGET_RELEASE_ID
-        value: focus-numbers-60-40-v1
+        value: ai-adoption-v1-proof-0047
       - key: SIGNAL_EXPECTED_APPROVED_PROOF_SHA256
-        value: 7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3
+        value: c43ec4b92fa8bc815ff09538b38e5ee5e32a3882586f90195d6166247c408a06
       - key: SIGNAL_RELEASE_MANIFEST_PATH
-        value: data/release_manifest.json
+        value: data/release_manifest_ai_adoption.json
       - key: SIGNAL_ALIVE_MOMENT_PATH
-        value: data/fixtures/alive_moment_0046.json
+        value: data/alive_moments/{date}.json
       - key: MODEL_SCORING
         value: claude-haiku-4-5-20251001
       - key: MODEL_SYNTHESIS

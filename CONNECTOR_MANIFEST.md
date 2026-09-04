@@ -67,12 +67,14 @@ Read this alongside `SIGNAL_CONTEXT.md` before starting any Signal work.
 | `SIGNAL_PIPELINE_API_KEY` | Authentication to subscriber API | Yes |
 | `MODEL_SCORING` | Scoring model identifier | No |
 | `MODEL_SYNTHESIS` | Synthesis model identifier | No |
+| `SIGNAL_ALIVE_MOMENT_PATH` | Date-resolved governed image record, normally `data/alive_moments/{date}.json` | No |
 | `TZ` | Timezone (`Australia/Brisbane`) | No |
 
 **Rules:**
 - Do not change the cron schedule without Paul's approval.
 - Do not change the region without testing delivery latency.
 - Model selection changes require approval.
+- The daily image path must resolve to a committed record for the Brisbane edition date; missing or mismatched records hold before rendering.
 
 ---
 

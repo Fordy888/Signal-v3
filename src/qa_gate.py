@@ -29,6 +29,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from .edition_counter import edition_for_date
+from .alive_moment import AliveMomentError, resolve_alive_moment_path
 
 log = logging.getLogger(__name__)
 
@@ -69,17 +70,31 @@ def load_release_manifest() -> dict[str, Any]:
             "approved proof checksum does not match the source-controlled release manifest"
         )
     editorial_contract = manifest["editorial_contract"]
-    expected_editorial_contract = {
+    historical_editorial_contract = {
         "newsroom_items": 5,
         "focus_number_items": 5,
         "ai_business_items_per_section": 3,
         "major_business_items_per_section": 2,
         "source_overlap_allowed": False,
     }
-    if editorial_contract != expected_editorial_contract:
+    ai_adoption_editorial_contract = {
+        "editorial_revision": "ai-adoption-v1",
+        "newsroom_items": 5,
+        "focus_number_items": 5,
+        "all_core_items_ai": True,
+        "minimum_ai_adoption_items": 8,
+        "maximum_ai_industry_impact_items": 2,
+        "source_overlap_allowed": False,
+    }
+    canonical_editorial_contract = json.dumps(editorial_contract, sort_keys=True)
+    if canonical_editorial_contract not in {
+        json.dumps(historical_editorial_contract, sort_keys=True),
+        json.dumps(ai_adoption_editorial_contract, sort_keys=True),
+    }:
         raise ValueError(
-            "release manifest editorial contract must require five distinct items per section "
-            "and an exact 3 AI_BUSINESS / 2 MAJOR_BUSINESS mix in each section"
+            "release manifest editorial contract must match either the frozen exact 3 "
+            "AI_BUSINESS / 2 MAJOR_BUSINESS historical contract or the versioned all-AI "
+            "adoption-first contract"
         )
     return manifest
 
@@ -144,6 +159,7 @@ def check_release_identity(
     renderer_id: str,
     edition_type: str,
     mode: str,
+    editorial_revision: str | None = None,
     as_of: datetime | None = None,
 ) -> QAResult:
     """Hold production or an explicit proof canary if live identity cannot prove v4."""
@@ -237,6 +253,18 @@ def check_release_identity(
         issues.append(
             f"manifest renderer is {manifest_renderer}, environment target is {expected_renderer or 'missing'}"
         )
+    if editorial_revision:
+        manifest_contract = manifest.get("editorial_contract") or {}
+        manifest_revision = str(manifest_contract.get("editorial_revision", "")).strip()
+        if not manifest_revision and {
+            "ai_business_items_per_section", "major_business_items_per_section"
+        }.issubset(manifest_contract):
+            manifest_revision = "focus-on-the-numbers-v1"
+        if editorial_revision != manifest_revision:
+            issues.append(
+                f"generated editorial revision is {editorial_revision}, release manifest "
+                f"contract is {manifest_revision or 'missing'}"
+            )
     image_required_on = str(manifest.get("approved_image_required_on", "")).strip()
     approved_image_identity = str(manifest.get("approved_image_identity", "")).strip()
     if image_required_on == runtime.date().isoformat() and approved_image_identity:
@@ -244,12 +272,15 @@ def check_release_identity(
         if not configured_image_path:
             issues.append("date-bound approved image path is missing")
         else:
-            image_path = Path(configured_image_path)
-            if not image_path.is_absolute():
-                image_path = Path(__file__).resolve().parents[1] / image_path
             try:
+                image_path = resolve_alive_moment_path(
+                    Path(__file__).resolve().parents[1],
+                    configured_image_path,
+                    edition_id=f"{edition_for_date(runtime.date()):04d}",
+                    edition_date=runtime.date().isoformat(),
+                )
                 actual_image_identity = str(json.loads(image_path.read_text()).get("id", "")).strip()
-            except (OSError, json.JSONDecodeError) as exc:
+            except (OSError, json.JSONDecodeError, AliveMomentError) as exc:
                 issues.append(f"approved image contract could not be read: {exc}")
             else:
                 if actual_image_identity != approved_image_identity:

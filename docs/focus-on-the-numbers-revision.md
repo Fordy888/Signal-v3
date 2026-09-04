@@ -20,7 +20,9 @@ The daily edition will retain the four-colour `THINK. DECIDE. LOOK UP. SMILE.` s
 
 `THE ONE THING` and reader-facing `WHAT CHANGED` are removed completely. Position movement remains an internal Signal Memory input and must never be rendered as a reader section.
 
-The ten Newsroom and Focus items must use ten distinct source records. Each section must contain exactly three `AI_BUSINESS` and two `MAJOR_BUSINESS` items, producing the approved 60/40 balance across the edition. AI-in-business requires a substantive connection to a real business function, decision, customer outcome, operating model, cost, risk or value. Major non-AI stories remain valid when they materially improve executive judgement, and Signal must not force an AI angle onto them.
+The ten Newsroom and Focus items must use ten distinct source records. The earlier `focus-on-the-numbers-v1` proof used exactly three `AI_BUSINESS` and two `MAJOR_BUSINESS` items per section; that 60/40 artefact remains frozen historical evidence and is not the current selection rule.
+
+The current `ai-adoption-v1` contract requires every one of the ten core items to be about AI. Real-world `AI_ADOPTION` must dominate; `AI_INDUSTRY_IMPACT` is secondary and qualifies only when an industry development creates a direct practical business consequence. General business-only stories, passing AI mentions, hypothetical adoption, model gossip and technical theatre are excluded. The implementation currently requires at least eight adoption items and no more than two industry-impact items, with at least four adoption items in each section. That threshold is a conservative implementation interpretation to be tested in the fresh proof, not a claim of separate quota approval.
 
 Newsroom `category` remains internal planning metadata. Machine keys such as `venture_capital`, `opportunity_radar` and `ai_market_signals` must never be shown to readers. A quiet action lead-in may be followed by a human editorial label, but machine-style underscore keys are omitted.
 

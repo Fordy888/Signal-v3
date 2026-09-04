@@ -1,4 +1,6 @@
 import json
+import hashlib
+import json
 import tempfile
 import unittest
 import os
@@ -186,6 +188,19 @@ class ReleaseIdentityTests(unittest.TestCase):
             "[CRITICAL] DTL Signal 0045 — Delivered; target release MISMATCH",
         )
 
+    def test_release_identity_rejects_all_ai_plan_against_historical_manifest(self):
+        with patch.dict(os.environ, self.production_env, clear=False):
+            result = check_release_identity(
+                renderer_id="enhanced-v4-focus-numbers",
+                edition_type="daily",
+                mode="send",
+                editorial_revision="ai-adoption-v1",
+                as_of=self.monday,
+            )
+        self.assertFalse(result.passed)
+        self.assertIn("generated editorial revision is ai-adoption-v1", result.message)
+        self.assertIn("release manifest contract is focus-on-the-numbers-v1", result.message)
+
     def test_edition_0046_target_requires_the_approved_image_identity(self):
         thursday = datetime(
             2026, 9, 3, 6, 0, tzinfo=ZoneInfo("Australia/Brisbane")
@@ -278,7 +293,7 @@ class ReleaseIdentityTests(unittest.TestCase):
         service = next(item for item in blueprint["services"] if item["name"] == "dtl-signal")
         self.assertEqual(
             service["startCommand"],
-            "python -m src.main --proof --release-canary --enhanced --alive-moment --save-html data/deployed-canary.html",
+            "python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-09-04T06:00:00+10:00 --save-html data/deployed-canary-0047.html",
         )
         self.assertEqual(service["schedule"], "0 0 1 1 *")
         self.assertNotIn("--send", service["startCommand"])
@@ -293,22 +308,23 @@ class ReleaseIdentityTests(unittest.TestCase):
             if item["key"] == "SIGNAL_EXPECTED_GIT_COMMIT"
         )
         self.assertFalse(expected_commit.get("value"))
-        self.assertEqual(env["SIGNAL_TARGET_RELEASE_ID"], "focus-numbers-60-40-v1")
+        self.assertEqual(env["SIGNAL_TARGET_RELEASE_ID"], "ai-adoption-v1-proof-0047")
         self.assertEqual(
             env["SIGNAL_EXPECTED_APPROVED_PROOF_SHA256"],
-            "7ff05b54870a4ed4e2db737752380bb3d1ae5da915c9f8d3c5b0c9cc67b606e3",
+            "c43ec4b92fa8bc815ff09538b38e5ee5e32a3882586f90195d6166247c408a06",
         )
         self.assertEqual(
             env["SIGNAL_EXPECTED_RENDER_SERVICE_ID"],
             "crn-d8ouk0bsq97s73fgc36g",
         )
-        self.assertEqual(env["SIGNAL_ALIVE_MOMENT_PATH"], "data/fixtures/alive_moment_0046.json")
+        self.assertEqual(env["SIGNAL_RELEASE_MANIFEST_PATH"], "data/release_manifest_ai_adoption.json")
+        self.assertEqual(env["SIGNAL_ALIVE_MOMENT_PATH"], "data/alive_moments/{date}.json")
         proof_service = next(
             item for item in blueprint["services"] if item["name"] == "dtl-signal-proof"
         )
         self.assertEqual(
             proof_service["startCommand"],
-            "python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-09-03T06:00:00+10:00 --save-html data/deployed-canary-0046.html",
+            "python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-09-04T06:00:00+10:00 --save-html data/deployed-canary-0047.html",
         )
 
     def test_release_manifest_requires_exact_section_content_mix(self):
@@ -342,6 +358,42 @@ class ReleaseIdentityTests(unittest.TestCase):
             ):
                 with self.assertRaisesRegex(ValueError, "exact 3 AI_BUSINESS / 2 MAJOR_BUSINESS"):
                     load_release_manifest()
+
+    def test_release_manifest_accepts_versioned_all_ai_adoption_contract(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            proof_path = root / "ai-adoption-proof.html"
+            proof_path.write_text("<html>all-AI adoption-first candidate</html>")
+            manifest = {
+                "release_id": "ai-adoption-v1-candidate",
+                "status": "PROPOSED",
+                "approved_proof_path": str(proof_path),
+                "approved_proof_sha256": hashlib.sha256(proof_path.read_bytes()).hexdigest(),
+                "expected_renderer": "enhanced-v4-focus-numbers",
+                "required_markers": ["FOUNDER'S NOTE", "FOCUS ON THE NUMBERS"],
+                "forbidden_markers": ["THE ONE THING", "WHAT CHANGED"],
+                "editorial_contract": {
+                    "editorial_revision": "ai-adoption-v1",
+                    "newsroom_items": 5,
+                    "focus_number_items": 5,
+                    "all_core_items_ai": True,
+                    "minimum_ai_adoption_items": 8,
+                    "maximum_ai_industry_impact_items": 2,
+                    "source_overlap_allowed": False,
+                },
+            }
+            manifest_path = root / "release_manifest.json"
+            manifest_path.write_text(json.dumps(manifest))
+
+            with patch.dict(
+                os.environ,
+                {"SIGNAL_RELEASE_MANIFEST_PATH": str(manifest_path)},
+                clear=False,
+            ):
+                loaded = load_release_manifest()
+
+        self.assertEqual(loaded["editorial_contract"]["editorial_revision"], "ai-adoption-v1")
+        self.assertTrue(loaded["editorial_contract"]["all_core_items_ai"])
 
 
 if __name__ == "__main__":

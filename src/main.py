@@ -43,7 +43,7 @@ from .signal_memory import (
 )
 from .enhanced_renderer import render_enhanced_email
 from .human_signal import load_joke_history, load_jokes, record_joke, select_joke
-from .alive_moment import AliveMomentError, load_alive_history, load_alive_moment, record_alive_moment, validate_alive_moment
+from .alive_moment import AliveMomentError, load_alive_history, load_alive_moment, record_alive_moment, resolve_alive_moment_path, validate_alive_moment
 from .edition_counter import edition_for_date, get_next_edition, increment_edition
 from .locked_edition import render_locked_edition
 from .weekly_wrap_qa import validate_weekly_wrap_html
@@ -186,7 +186,7 @@ def main() -> int:
     parser.add_argument("--enhanced", action="store_true",
                         help="Run Development Thesis V1 judgement architecture (default off; approval comparison only)")
     parser.add_argument("--alive-moment", action="store_true",
-                        help="Include a pre-approved WE ARE ALIVE candidate (requires --enhanced; default off)")
+                        help="Require a governed REMEMBER THE WORLD candidate (automatically required by current daily revisions)")
     parser.add_argument("--locked-edition", type=int, default=None,
                         help="Render a checksum-locked approved Enhanced daily edition")
     parser.add_argument("--as-of", type=str, default=None,
@@ -464,23 +464,42 @@ def main() -> int:
                     edition_number=edition_number,
                     recent_ids=load_joke_history(joke_history_path),
                 )
-                if args.alive_moment:
-                    alive_path = root / os.environ.get("SIGNAL_ALIVE_MOMENT_PATH", "data/alive_moment.json")
+                editorial_revision = str(enhanced_plan.get("editorial_revision", ""))
+                requires_alive_moment = args.alive_moment or editorial_revision in {
+                    "dynamic-headlines-v1",
+                    "focus-on-the-numbers-v1",
+                    "ai-adoption-v1",
+                }
+                if requires_alive_moment:
+                    alive_path = resolve_alive_moment_path(
+                        root,
+                        os.environ.get(
+                            "SIGNAL_ALIVE_MOMENT_PATH",
+                            "data/alive_moments/{date}.json",
+                        ),
+                        edition_id=f"{edition_number:04d}",
+                        edition_date=now_brisbane.strftime("%Y-%m-%d"),
+                    )
                     delivered_alive_history = (
                         alive_history_from_memory(signal_memory)
                         if args.send
                         else load_alive_history(alive_history_path)
                     )
-                    try:
-                        alive_moment = validate_alive_moment(
-                            load_alive_moment(alive_path),
-                            delivered_alive_history,
-                            expected_edition_id=f"{edition_number:04d}",
-                            expected_date=now_brisbane.strftime("%Y-%m-%d"),
+                    if not alive_path.exists():
+                        raise AliveMomentError(
+                            f"Required REMEMBER THE WORLD record is missing: {alive_path}"
                         )
-                    except AliveMomentError as exc:
-                        alive_moment = None
-                        log.warning("REMEMBER THE WORLD omitted: %s", exc)
+                    alive_moment = validate_alive_moment(
+                        load_alive_moment(alive_path),
+                        delivered_alive_history,
+                        expected_edition_id=f"{edition_number:04d}",
+                        expected_date=now_brisbane.strftime("%Y-%m-%d"),
+                    )
+                    log.info(
+                        "REMEMBER THE WORLD validated for Edition %04d: %s",
+                        edition_number,
+                        alive_moment["id"],
+                    )
                 html = render_enhanced_email(
                     plan=enhanced_plan,
                     sources=planner_evidence,
@@ -568,7 +587,9 @@ def main() -> int:
         if weekly_issues:
             log.error("Weekly Wrap gate issues: %s", "; ".join(weekly_issues))
     elif use_enhanced:
-        if enhanced_plan and enhanced_plan.get("editorial_revision") == "focus-on-the-numbers-v1":
+        if enhanced_plan and enhanced_plan.get("editorial_revision") in {
+            "focus-on-the-numbers-v1", "ai-adoption-v1"
+        }:
             required_labels = (
                 "FOUNDER'S NOTE",
                 "DTL SIGNAL NEWSROOM — READ THIS",
@@ -578,6 +599,8 @@ def main() -> int:
                 "WHAT TO DO NOW",
                 "THE OTHER SIDE",
                 "WATCH FOR THIS",
+                "REMEMBER THE WORLD",
+                "DAD JOKE OF THE DAY",
             )
             removed_labels = ("THE EVIDENCE", "THE ONE THING", "THE SHIFT", "WHAT CHANGED")
             newsroom_mix = [
@@ -590,12 +613,27 @@ def main() -> int:
                 for item in enhanced_plan.get("focus_numbers", [])
                 if isinstance(item, dict)
             ]
-            exact_mix_markers = (
-                newsroom_mix.count("AI_BUSINESS") == 3
-                and newsroom_mix.count("MAJOR_BUSINESS") == 2
-                and focus_mix.count("AI_BUSINESS") == 3
-                and focus_mix.count("MAJOR_BUSINESS") == 2
-            )
+            if enhanced_plan.get("editorial_revision") == "ai-adoption-v1":
+                complete_mix = newsroom_mix + focus_mix
+                exact_mix_markers = (
+                    len(newsroom_mix) == 5
+                    and len(focus_mix) == 5
+                    and all(
+                        classification in {"AI_ADOPTION", "AI_INDUSTRY_IMPACT"}
+                        for classification in complete_mix
+                    )
+                    and complete_mix.count("AI_ADOPTION") >= 8
+                    and complete_mix.count("AI_INDUSTRY_IMPACT") <= 2
+                )
+                gate_label = "founder-led all-AI adoption-first reader-visible intelligence sequence"
+            else:
+                exact_mix_markers = (
+                    newsroom_mix.count("AI_BUSINESS") == 3
+                    and newsroom_mix.count("MAJOR_BUSINESS") == 2
+                    and focus_mix.count("AI_BUSINESS") == 3
+                    and focus_mix.count("MAJOR_BUSINESS") == 2
+                )
+                gate_label = "founder-led exact 6/4 reader-visible intelligence sequence"
             leaked_internal_label = re.search(
                 r">[^<]*\b[a-z][a-z0-9]*_[a-z0-9_]+\b[^<]*<",
                 html,
@@ -603,7 +641,6 @@ def main() -> int:
             has_key_section = all(label in html for label in required_labels) and all(
                 label not in html for label in removed_labels
             ) and exact_mix_markers and leaked_internal_label is None
-            gate_label = "founder-led exact 6/4 reader-visible intelligence sequence"
         elif enhanced_plan and enhanced_plan.get("editorial_revision") == "dynamic-headlines-v1":
             has_key_section = all(
                 label in html
@@ -668,6 +705,11 @@ def main() -> int:
         renderer_id=renderer_id,
         edition_type=edition_type,
         mode=identity_mode,
+        editorial_revision=(
+            str(enhanced_plan.get("editorial_revision", "")).strip()
+            if enhanced_plan and edition_type == "daily"
+            else None
+        ),
         as_of=now_brisbane,
     )
     if args.release_canary:
@@ -799,7 +841,9 @@ def main() -> int:
             else:
                 subject_override = f"DTL Signal Weekly Wrap | Week Ending {week_ending}"
         elif args.proof:
-            if use_enhanced and enhanced_plan and enhanced_plan.get("editorial_revision") == "focus-on-the-numbers-v1":
+            if use_enhanced and enhanced_plan and enhanced_plan.get("editorial_revision") in {
+                "focus-on-the-numbers-v1", "ai-adoption-v1"
+            }:
                 subject_override = f"[PROOF] DTL Signal | Final Founder-Led Format | Edition {edition_number:04d}"
             else:
                 subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {runtime_now.strftime('%A %d %B %Y')}"

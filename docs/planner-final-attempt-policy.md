@@ -15,7 +15,7 @@ A missing Focus defining figure is handled separately. The final attempt may rec
 | Source identity | Source IDs are never added, removed or changed by word-bound normalisation. |
 | Defining figure | Focus-number trimming must retain a numeric token and its nearby unit. |
 | Missing figure | Recovery is allowed only from the same unambiguous source record; no cross-source search or invented number. |
-| Content mix | `AI_BUSINESS` and `MAJOR_BUSINESS` classifications are never changed. |
+| Content mix | For `ai-adoption-v1`, `AI_ADOPTION` and `AI_INDUSTRY_IMPACT` classifications are never changed. The frozen historical revision retains its original classes. |
 | Business meaning | AI-business connections and other copy are trimmed from the end; the substantive point must lead. |
 | Action integrity | Existing valid actions are preserved; a zero-action fallback is bound to selected source evidence. |
 | Reader language | Internal codes and unexplained technical shorthand remain hard failures. |
@@ -23,7 +23,7 @@ A missing Focus defining figure is handled separately. The final attempt may rec
 
 ## Failures that remain hard holds
 
-The safety layer must not invent missing evidence, numeric figures, classifications, source links, internal position movement, minimum-length Founder’s Note content or required sections. Unknown sources, any deviation from the preallocated exact 3/2 section mix, Newsroom/Focus overlap, missing AI-business connections, non-numeric Focus figures without eligible same-source evidence and other semantic failures continue to abort the edition.
+The safety layer must not invent missing evidence, numeric figures, classifications, source links, internal position movement, minimum-length Founder’s Note content or required sections. Unknown sources, any deviation from the preallocated revision contract, Newsroom/Focus overlap, missing AI-business connections, non-numeric Focus figures without eligible same-source evidence and other semantic failures continue to abort the edition.
 
 The purpose of normalisation is to prevent valid substance from failing on superficial length—not to convert an incomplete plan into a publishable one.
 
@@ -37,9 +37,9 @@ Same-source final-attempt recovery remains a secondary safeguard. It cannot make
 
 ## Same-source AI Focus copy completion
 
-An independently verified `AI_BUSINESS` Focus source can still be written too vaguely by the model, leaving the visible entity, figure and meaning without both an explicit AI subject and a concrete business consequence. On the third and final attempt only, Signal may replace that item’s `meaning` with one concise sentence copied from the same selected source record when the sentence itself contains both requirements.
+An independently verified AI Focus source can still be written too vaguely by the model, leaving the visible entity, figure and meaning without both an explicit AI subject and a concrete business consequence. On the third and final attempt only, Signal may replace that item’s `meaning` with one concise sentence copied from the same selected source record when the sentence itself contains both requirements. An `AI_ADOPTION` replacement must also identify actual use and a process or work change.
 
-The repair does not change the source ID, defining figure, classification or source link. It rejects internal source IDs, never searches another source, never touches `MAJOR_BUSINESS` items and remains a hard hold when the selected source contains no clean qualifying sentence.
+The repair does not change the source ID, defining figure, classification or source link. It rejects internal source IDs, never searches another source and remains a hard hold when the selected source contains no clean qualifying sentence.
 
 ## Independent content-mix classification
 
@@ -47,7 +47,7 @@ The planner’s own `mix_classification` is descriptive, not authoritative. Befo
 
 | Verified class | Evidence requirement |
 |---|---|
-| `AI_BUSINESS` | An explicit AI subject plus a concrete commercial, customer, workforce, operating, financial, risk or value connection. |
-| `MAJOR_BUSINESS` | Commercially material non-AI evidence with no AI-led subject. |
+| `AI_ADOPTION` | Explicit AI, actual application by a real or named organisation, a concrete process or work area, and a practical business consequence. |
+| `AI_INDUSTRY_IMPACT` | A real AI-industry development plus an explicit practical consequence for ordinary businesses. |
 
-The pipeline allocates source IDs to sections before the model is called. Focus receives three independently verified `AI_BUSINESS` sources and two independently verified `MAJOR_BUSINESS` sources that also contain pre-verified numeric evidence. Newsroom receives three remaining AI-business and two remaining major-business sources. The model may write only from its preallocated section IDs; validation rejects substitution, cross-section movement or relabelling. The pre-planning gate therefore requires at least six AI-business and four major-business sources, including three AI-business and two major-business numeric candidates for Focus.
+The pipeline allocates source IDs to sections before the model is called. Focus receives five all-AI sources with pre-verified numeric evidence; Newsroom receives five different all-AI sources. Each section contains at least four adoption items. Across the edition, at least eight items are `AI_ADOPTION` and no more than two are `AI_INDUSTRY_IMPACT`. The model may write only from its preallocated section IDs; validation rejects substitution, cross-section movement, relabelling or reader copy that hides the AI use and business consequence.

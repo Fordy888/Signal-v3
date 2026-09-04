@@ -497,3 +497,29 @@
 - [x] Re-run complete and isolated gates: 99/99 tests in both worktrees; reproduce approved proof SHA `7ff05b54…7b606e3`
 - [ ] Commit, push, deploy and rerun the one-recipient canary; restore subscriber mode only after technical and reader-visible verification
 - [ ] Restore the scheduled subscriber command only after CANARY VERIFIED evidence is complete
+- [x] Supersede the 6/4 AI-versus-general-business rule: every Newsroom and Focus item must now be about AI
+- [x] Classify AI coverage as `AI_ADOPTION` or `AI_INDUSTRY_IMPACT`; remove `MAJOR_BUSINESS` from the current daily selection contract
+- [x] Prioritise real-world AI adoption and measurable process improvement across the seven business pillars
+- [x] Admit AI-industry stories only when they create a direct practical consequence for ordinary businesses
+- [x] Require AI adoption stories to outnumber AI-industry stories across the ten core items; hold rather than use weak filler
+- [x] Add reader-visible regressions proving all ten core items are AI-relevant and adoption-led
+- [x] Version the all-AI release manifest and candidate proof separately from the frozen approved 60/40 artefact
+- [x] Migrate release simulations and runtime gate coverage to exercise `ai-adoption-v1` while retaining historical compatibility tests
+- [x] Update operational and editorial documentation without erasing prior incident chronology
+- [x] Run the complete and isolated release suites and verify the historical approved proof checksum remains unchanged
+- [x] Build a fresh no-send all-AI proof from current, source-verified evidence and date-valid image governance
+- [x] Send the new checksum-locked proof only to `paul.ford@gmail.com` and obtain fresh editorial approval
+- [x] Deliver the checksum-locked all-AI proof only to `paul.ford@gmail.com` and independently verify its actual Gmail body
+- [ ] Commit, push and deploy the exact approved candidate while keeping Render proof-only
+- [ ] Verify the deployed SHA, release contract, one-recipient Gmail canary and provider receipt before CANARY VERIFIED
+- [ ] Restore the scheduled subscriber command only after CANARY VERIFIED; do not resend Editions 0045 or 0046
+- [x] Restore mandatory `REMEMBER THE WORLD` to the all-AI Edition 0047 proof without changing the approved editorial copy
+- [x] Select or confirm a real, rights-cleared, date-valid and non-repeating image with complete creator, source and licence provenance
+- [x] Render `REMEMBER THE WORLD` immediately before the Dad Joke and verify the image, caption, credit and link in actual Gmail
+- [x] Recompute the proof checksum, update the proposed release manifest and pass all 116 tests in a detached worktree before resending
+- [x] Deliver the corrected proof only to `paul.ford@gmail.com`; the image-less checksum must never be deployed
+- [x] Repair the daily pipeline so `REMEMBER THE WORLD` is selected and validated for every eligible daily edition, not injected only into a manual proof
+- [x] Make the daily production path hold when the governed image is missing, stale, repeated, rights-ineligible or mismatched to edition/date
+- [x] Prevent silent omission of `REMEMBER THE WORLD` in proof, canary and subscriber modes when the release contract requires it
+- [x] Add production-path regressions for fresh-image success, consecutive-image rejection, wrong-date rejection, missing-image hold and renderer ordering before Dad Joke
+- [x] Prove the corrected daily image path in a no-send simulation and actual one-recipient Gmail copy before deployment approval

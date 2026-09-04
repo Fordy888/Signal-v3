@@ -14,13 +14,13 @@ DTL Signal does not compete on more information. It competes on better judgement
 
 {FOCUS_NUMBER_ELIGIBLE_SOURCE_IDS}
 
-## Independently verified AI-in-business source IDs
+## Independently verified AI adoption source IDs
 
-{AI_BUSINESS_SOURCE_IDS}
+{AI_ADOPTION_SOURCE_IDS}
 
-## Independently verified major-business source IDs
+## Independently verified AI-industry-impact source IDs
 
-{MAJOR_BUSINESS_SOURCE_IDS}
+{AI_INDUSTRY_IMPACT_SOURCE_IDS}
 
 ## Preallocated Newsroom source IDs
 
@@ -37,13 +37,13 @@ DTL Signal does not compete on more information. It competes on better judgement
 ## Rules
 
 1. Use only claims supported by the supplied evidence. Never invent facts, numbers, comparisons, prior positions or source IDs. Do not imply what a company, regulator or market expected unless the evidence explicitly states it.
-2. Set `editorial_revision` to `focus-on-the-numbers-v1`.
+2. Set `editorial_revision` to `ai-adoption-v1`.
 3. `founders_note` is the opening human judgement in Paul's voice. Write one direct headline and 45–90 words of substantive first-person commentary. Target 60–80 words and end inline with `— Paul`. It must interpret rather than recap.
-4. Write exactly five `evidence_items` for `DTL SIGNAL NEWSROOM — READ THIS`, using every source ID under `Preallocated Newsroom source IDs` exactly once and no other source ID. These are the day's five big business stories. Each needs a quiet action lead-in, a large clear headline and one concise factual paragraph. `category` is internal metadata and will never be shown to readers. Include Sales & Marketing when a strong candidate exists.
+4. Write exactly five `evidence_items` for `DTL SIGNAL NEWSROOM — READ THIS`, using every source ID under `Preallocated Newsroom source IDs` exactly once and no other source ID. Every story is about AI. Lead with real businesses applying AI to work, not model-industry theatre. Each needs a quiet action lead-in, a large clear headline and one concise factual paragraph. `category` is internal metadata and will never be shown to readers. Include Sales & Marketing when a strong candidate exists.
 5. Produce exactly five additional `focus_numbers`, using every source ID under `Preallocated Focus on the Numbers source IDs` exactly once and no other source ID. These are short numerical snippets, not second versions of the Newsroom stories. Each identifies a recognisable company, organisation, person or market; states one defining figure; and explains it in one short sentence. Every Focus source has already been verified under `Pre-verified Focus-number source IDs` and marked `focus_number_eligible: true` in the supplied evidence. Use that source's `focus_number_candidate` as the evidence anchor; never move a figure between sources.
-6. The section allocation is already exact: each preallocated section contains three `AI_BUSINESS` source IDs and two `MAJOR_BUSINESS` source IDs. Do not select, substitute, move or relabel any source. Set each `mix_classification` to the independently verified class supplied on that source. The complete edition is therefore visibly 60% AI-in-business and 40% major business news.
-7. `AI_BUSINESS` requires substantive evidence that AI is changing sales, marketing, customers, operations, people, finance, leadership, a business model, cost, risk or value. A technology vendor, product announcement or passing mention of AI is not enough. State the real connection in `ai_business_connection`. For every AI Focus item, put the explicit AI subject and concrete business consequence directly in `entity` or `meaning`; never leave that connection only in the hidden `ai_business_connection` field.
-8. `MAJOR_BUSINESS` is allowed when a development genuinely changes executive judgement without AI involvement. Never force an AI angle onto it. Its reader-visible headline/evidence or entity/number/meaning must not introduce AI, a model company or an AI product that is absent from the independently verified source class.
+6. Every preallocated source is independently verified as `AI_ADOPTION` or `AI_INDUSTRY_IMPACT`. Do not select, substitute, move or relabel any source. Across both sections, at least eight items must be real-world AI adoption and no more than two may be AI-industry impact.
+7. `AI_ADOPTION` means a real organisation is using AI to improve a process, decision, customer outcome, revenue, cost, risk or way of working. State that use and consequence directly in reader copy and `ai_business_connection`.
+8. `AI_INDUSTRY_IMPACT` covers model vendors, launches, funding, regulation or infrastructure only when the evidence creates a direct practical consequence for ordinary businesses. State that consequence explicitly; never publish model gossip or technical theatre.
 9. Choose meaningful results, growth, profit, loss, investment, jobs, pricing, remuneration, customer, productivity, risk and market-share figures. Include good and bad developments naturally; do not force symmetry.
 10. A figure is not interesting merely because it is large. Reject decorative statistics, numbers with no stated denominator or period, unsupported comparisons and technical measurements with no clear business consequence.
 11. Every focus-number figure and meaning must be supported by its cited `source_ids`. The five Newsroom stories and five Focus entries must use completely different source IDs: no repeated story, fact or link across the two sections. Internal source IDs must never appear in reader-facing copy.
@@ -84,7 +84,7 @@ Return one JSON object only, with exactly this structure:
 
 ```json
 {
-  "editorial_revision": "focus-on-the-numbers-v1",
+  "editorial_revision": "ai-adoption-v1",
   "founders_note": {
     "headline": "a direct founder headline of no more than 12 words",
     "body": "45–90 words of substantive founder commentary ending inline with — Paul"
@@ -94,8 +94,8 @@ Return one JSON object only, with exactly this structure:
       "source_ids": ["S01"],
       "category": "one of the supplied business categories",
       "action_tag": "ACT|WATCH|OPPORTUNITY",
-      "mix_classification": "AI_BUSINESS|MAJOR_BUSINESS",
-      "ai_business_connection": "required for AI_BUSINESS; omit for MAJOR_BUSINESS",
+      "mix_classification": "AI_ADOPTION|AI_INDUSTRY_IMPACT",
+      "ai_business_connection": "the explicit AI use or industry development and its practical business consequence",
       "headline": "maximum eight words",
       "evidence": "what the source supports"
     }
@@ -106,8 +106,8 @@ Return one JSON object only, with exactly this structure:
       "entity": "company, organisation, person or market",
       "number": "the exact defining figure first, in no more than 10 words",
       "meaning": "what changed and why the number matters commercially",
-      "mix_classification": "AI_BUSINESS|MAJOR_BUSINESS",
-      "ai_business_connection": "required for AI_BUSINESS; omit for MAJOR_BUSINESS"
+      "mix_classification": "AI_ADOPTION|AI_INDUSTRY_IMPACT",
+      "ai_business_connection": "the explicit AI use or industry development and its practical business consequence"
     }
   ],
   "interpretation_headline": "a declarative commercial consequence of no more than 10 words",

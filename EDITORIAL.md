@@ -106,15 +106,17 @@ REMEMBER THE WORLD exists to reconnect the reader with art, humanity, place, nat
 
 Signal may prefer a qualifying photograph whose natural colour harmonises with coral, amber, aqua or deep teal. It must never recolour an image, weaken the rights or provenance threshold, or choose a lesser photograph merely to match the brand.
 
+REMEMBER THE WORLD is a required daily content beat immediately before the Dad Joke. Each edition requires a fresh, edition-date-valid, rights-cleared photograph with complete provenance. If no candidate clears authenticity, rights, date, non-repetition and editorial-quality checks, the edition holds; the section must not be silently omitted and yesterday’s image must not be repeated.
+
 ---
 
-## 11. Keep the Mix AI-Informed and Business-Led
+## 11. Keep Every Story About AI — and Put Adoption First
 
-The ten core daily items must contain exactly **60% substantive AI-in-business intelligence** and **40% major business news**, split three-and-two in each section.
+Every core DTL Signal story is about AI. The dominant editorial priority is **real-world AI adoption**: businesses using AI to improve a process, reduce cost, grow revenue, improve customer experience, strengthen decisions or change how work gets done across the seven business pillars.
 
-AI earns its place when it changes a real business function, decision, customer outcome, operating model, cost, risk or source of value. A vendor label, technical announcement or passing mention does not qualify.
+AI-industry developments involving model vendors, launches, funding or competitive manoeuvring qualify only when they create a direct practical consequence for ordinary businesses. General business news without a meaningful AI connection is excluded.
 
-Major non-AI developments still belong when they materially improve executive judgement. Signal must never force an AI angle onto a story whose real business consequence stands on its own.
+Across the ten core items, real-world AI adoption stories must outnumber AI-industry stories. Signal must hold rather than publish weak filler, model gossip or an invented business consequence.
 
 Internal taxonomy must remain invisible. Machine labels with underscores belong to the planning layer, not the reader experience. Reader-facing headlines must end as complete phrases; a headline that finishes on a dangling article, preposition, conjunction, possessive or qualifier is not publishable.
 

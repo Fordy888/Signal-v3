@@ -1,10 +1,9 @@
 import copy
-import copy
 import json
 import unittest
 from pathlib import Path
 
-from src.alive_moment import AliveMomentError, validate_alive_moment
+from src.alive_moment import AliveMomentError, resolve_alive_moment_path, validate_alive_moment
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +15,43 @@ class AliveMomentTests(unittest.TestCase):
 
     def test_valid_real_licensed_seasonal_moment_passes(self):
         self.assertEqual(validate_alive_moment(self.moment, []), self.moment)
+
+    def test_edition_0047_featured_picture_passes_against_prior_quang_phu_cau(self):
+        candidate = json.loads(
+            (ROOT / "data" / "fixtures" / "alive_moment_0047.json").read_text()
+        )
+        previous = json.loads(
+            (ROOT / "data" / "fixtures" / "alive_moment_0046.json").read_text()
+        )
+        self.assertEqual(
+            validate_alive_moment(
+                candidate,
+                [previous],
+                expected_edition_id="0047",
+                expected_date="2026-09-04",
+            ),
+            candidate,
+        )
+
+    def test_daily_path_template_resolves_by_edition_date(self):
+        self.assertEqual(
+            resolve_alive_moment_path(
+                ROOT,
+                "data/alive_moments/{date}.json",
+                edition_id="0047",
+                edition_date="2026-09-04",
+            ),
+            ROOT / "data" / "alive_moments" / "2026-09-04.json",
+        )
+
+    def test_invalid_daily_path_template_is_rejected(self):
+        with self.assertRaises(AliveMomentError):
+            resolve_alive_moment_path(
+                ROOT,
+                "data/alive_moments/{unknown}.json",
+                edition_id="0047",
+                edition_date="2026-09-04",
+            )
 
     def test_real_licensed_human_craft_moment_passes(self):
         moment = json.loads(

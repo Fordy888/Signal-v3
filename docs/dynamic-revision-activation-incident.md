@@ -157,3 +157,11 @@ During GitHub recovery, remote master was found to contain two newer determinist
 GitHub master advanced to evidence commit `bc7bf1f683d01140d07a8898fe89ce580087208e`. Render build `bld-dad2j4f10e5c73d24tu0` checked out that exact commit, passed all 95 tests and completed successfully. A proof-only canary ran from 12:18 to 12:31 AEST on 4 September 2026 and delivered 0/0. All three planner attempts failed the same semantic gate: `Focus AI_BUSINESS reader copy must state an explicit AI subject and concrete business consequence`. The deterministic source allocation and release target were correct; the generated Focus wording did not make the selected AI source’s business relevance explicit. Subscriber mode remained disabled.
 
 The release remains **technical canary matched / editorial canary held / not live**. The next gate validates the actual reader fields against the independently verified source class and rejects incomplete directional or comparative headline endings. Subscriber mode remains disabled.
+
+## All-AI adoption-first supersession — 4 September 2026
+
+Fordy clarified that the earlier 60/40 interpretation no longer represented the product direction: all ten core stories must be about AI, with real-world business adoption and process improvement dominating AI-industry news. The frozen `focus-on-the-numbers-v1` proof and its checksum remain historical approval evidence only; they are not approval for the new selection rule.
+
+The candidate `ai-adoption-v1` implementation independently excludes general business-only evidence, passing AI mentions, hypothetical use, model gossip and technical theatre. It classifies qualifying sources as `AI_ADOPTION` or `AI_INDUSTRY_IMPACT`, allocates five distinct sources per section and enforces at least eight adoption items across the ten. The 8/2 safeguard is an implementation interpretation to be reviewed in the new proof rather than a separately ratified quota.
+
+At this entry, the migration has passed focused planner, runtime and release-control tests but has not been committed, deployed or emailed. The service remains proof-only. A new versioned manifest, checksum-locked proof, Fordy approval, exact-commit Render build and one-recipient Gmail canary are still required before `CANARY VERIFIED`; subscriber mode must remain disabled.
