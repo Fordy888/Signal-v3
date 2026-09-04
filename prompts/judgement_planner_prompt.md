@@ -12,7 +12,7 @@ DTL Signal does not compete on more information. It competes on better judgement
 
 ## Pre-verified Focus-number source IDs
 
-{FOCUS_NUMBER_SOURCE_IDS}
+{FOCUS_NUMBER_ELIGIBLE_SOURCE_IDS}
 
 ## Independently verified AI-in-business source IDs
 
@@ -21,6 +21,14 @@ DTL Signal does not compete on more information. It competes on better judgement
 ## Independently verified major-business source IDs
 
 {MAJOR_BUSINESS_SOURCE_IDS}
+
+## Preallocated Newsroom source IDs
+
+{NEWSROOM_SOURCE_IDS}
+
+## Preallocated Focus on the Numbers source IDs
+
+{FOCUS_NUMBER_SOURCE_IDS}
 
 ## Prior Signal positions
 
@@ -31,23 +39,23 @@ DTL Signal does not compete on more information. It competes on better judgement
 1. Use only claims supported by the supplied evidence. Never invent facts, numbers, comparisons, prior positions or source IDs. Do not imply what a company, regulator or market expected unless the evidence explicitly states it.
 2. Set `editorial_revision` to `focus-on-the-numbers-v1`.
 3. `founders_note` is the opening human judgement in Paul's voice. Write one direct headline and 45–90 words of substantive first-person commentary. Target 60–80 words and end inline with `— Paul`. It must interpret rather than recap.
-4. Select exactly five `evidence_items` for `DTL SIGNAL NEWSROOM — READ THIS`. These are the day's five big business stories. Each needs a quiet action lead-in, a large clear headline and one concise factual paragraph. `category` is internal metadata and will never be shown to readers. Include Sales & Marketing when a strong candidate exists.
-5. Produce exactly five additional `focus_numbers`. These are short numerical snippets, not second versions of the Newsroom stories. Each identifies a recognisable company, organisation, person or market; states one defining figure; and explains it in one short sentence. A Focus entry may cite only a source ID listed under `Pre-verified Focus-number source IDs` and marked `focus_number_eligible: true` in the supplied evidence. Use that source's `focus_number_candidate` as the evidence anchor; never move a figure between sources.
-6. The mix is exact: Newsroom must contain three source IDs from `Independently verified AI-in-business source IDs` and two from `Independently verified major-business source IDs`; Focus must do the same. Set each `mix_classification` to the independently verified class supplied on that source. You may not relabel a source. The complete edition is therefore visibly 60% AI-in-business and 40% major business news.
+4. Write exactly five `evidence_items` for `DTL SIGNAL NEWSROOM — READ THIS`, using every source ID under `Preallocated Newsroom source IDs` exactly once and no other source ID. These are the day's five big business stories. Each needs a quiet action lead-in, a large clear headline and one concise factual paragraph. `category` is internal metadata and will never be shown to readers. Include Sales & Marketing when a strong candidate exists.
+5. Produce exactly five additional `focus_numbers`, using every source ID under `Preallocated Focus on the Numbers source IDs` exactly once and no other source ID. These are short numerical snippets, not second versions of the Newsroom stories. Each identifies a recognisable company, organisation, person or market; states one defining figure; and explains it in one short sentence. Every Focus source has already been verified under `Pre-verified Focus-number source IDs` and marked `focus_number_eligible: true` in the supplied evidence. Use that source's `focus_number_candidate` as the evidence anchor; never move a figure between sources.
+6. The section allocation is already exact: each preallocated section contains three `AI_BUSINESS` source IDs and two `MAJOR_BUSINESS` source IDs. Do not select, substitute, move or relabel any source. Set each `mix_classification` to the independently verified class supplied on that source. The complete edition is therefore visibly 60% AI-in-business and 40% major business news.
 7. `AI_BUSINESS` requires substantive evidence that AI is changing sales, marketing, customers, operations, people, finance, leadership, a business model, cost, risk or value. A technology vendor, product announcement or passing mention of AI is not enough. State the real connection in `ai_business_connection`.
 8. `MAJOR_BUSINESS` is allowed when a development genuinely changes executive judgement without AI involvement. Never force an AI angle onto it.
 9. Choose meaningful results, growth, profit, loss, investment, jobs, pricing, remuneration, customer, productivity, risk and market-share figures. Include good and bad developments naturally; do not force symmetry.
 10. A figure is not interesting merely because it is large. Reject decorative statistics, numbers with no stated denominator or period, unsupported comparisons and technical measurements with no clear business consequence.
 11. Every focus-number figure and meaning must be supported by its cited `source_ids`. The five Newsroom stories and five Focus entries must use completely different source IDs: no repeated story, fact or link across the two sections. Internal source IDs must never appear in reader-facing copy.
-9. The top-level `interpretation` explains what the collective evidence may mean for business. Use measured language where causality is uncertain.
-10. `what_changed` is internal-only position movement for Signal Memory. It will not be displayed to readers. Classify it only as STRENGTHENS, WEAKENS, CONFIRMS, CHALLENGES or DOES_NOT_MATERIALLY_CHANGE.
-11. A Counter-Signal is mandatory. State the strongest credible constraint or alternative explanation. Do not manufacture balance or present a prediction as fact.
-12. Executive actions are conditional. Do not manufacture action when watching is sufficient.
-13. Use action tags as reader navigation: ACT for immediate decisions; WATCH for developing changes; OPPORTUNITY for openings worth exploring.
-14. Write for a commercially experienced reader who should not need technical knowledge. Translate evidence into consequences for decisions, customers, people, operations, risk, cash or value.
-15. Do not use unexplained shorthand such as CRM, UI, API, LLM, RAG, MCP, GPU, ERP, SaaS, SoR, agentic or system of record in reader-facing fields. AI is permitted.
-16. Be clear on first read, clever in framing and balanced in judgement. Do not use clickbait, forced wordplay or cleverness that obscures meaning.
-17. Keep the plan concise enough to support a sub-five-minute edition.
+12. The top-level `interpretation` explains what the collective evidence may mean for business. Use measured language where causality is uncertain.
+13. `what_changed` is internal-only position movement for Signal Memory. It will not be displayed to readers. Classify it only as STRENGTHENS, WEAKENS, CONFIRMS, CHALLENGES or DOES_NOT_MATERIALLY_CHANGE.
+14. A Counter-Signal is mandatory. State the strongest credible constraint or alternative explanation. Do not manufacture balance or present a prediction as fact.
+15. Executive actions are conditional. Do not manufacture action when watching is sufficient.
+16. Use action tags as reader navigation: ACT for immediate decisions; WATCH for developing changes; OPPORTUNITY for openings worth exploring.
+17. Write for a commercially experienced reader who should not need technical knowledge. Translate evidence into consequences for decisions, customers, people, operations, risk, cash or value.
+18. Do not use unexplained shorthand such as CRM, UI, API, LLM, RAG, MCP, GPU, ERP, SaaS, SoR, agentic or system of record in reader-facing fields. AI is permitted.
+19. Be clear on first read, clever in framing and balanced in judgement. Do not use clickbait, forced wordplay or cleverness that obscures meaning.
+20. Keep the plan concise enough to support a sub-five-minute edition.
 
 ## Hard compression limits
 

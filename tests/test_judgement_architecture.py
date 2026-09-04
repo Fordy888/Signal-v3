@@ -15,6 +15,7 @@ from src.human_signal import load_jokes, select_joke
 from src.judgement_plan import (
     JudgementPlanError,
     add_final_attempt_action_fallback,
+    allocate_focus_numbers_content_mix,
     generate_judgement_plan,
     normalise_word_bound_fields,
     prepare_content_mix_evidence,
@@ -390,6 +391,87 @@ class JudgementArchitectureTests(unittest.TestCase):
         by_id = {item["source_id"]: item for item in prepared}
         self.assertEqual(by_id["S01"]["verified_mix_classification"], "AI_BUSINESS")
         self.assertEqual(by_id["S04"]["verified_mix_classification"], "MAJOR_BUSINESS")
+
+    def test_exact_section_mix_is_allocated_before_planner_generation(self) -> None:
+        evidence = focus_numeric_evidence()
+        prepared, focus_eligible = prepare_focus_number_evidence(evidence)
+        prepared, verified = prepare_content_mix_evidence(prepared)
+
+        allocation = allocate_focus_numbers_content_mix(prepared, focus_eligible, verified)
+
+        self.assertEqual(allocation["focus_numbers"], ["S01", "S02", "S03", "S04", "S05"])
+        self.assertEqual(allocation["newsroom"], ["S06", "S07", "S08", "S09", "S10"])
+        self.assertEqual(
+            [verified[source_id] for source_id in allocation["focus_numbers"]],
+            ["AI_BUSINESS", "AI_BUSINESS", "AI_BUSINESS", "MAJOR_BUSINESS", "MAJOR_BUSINESS"],
+        )
+        self.assertEqual(
+            [verified[source_id] for source_id in allocation["newsroom"]],
+            ["AI_BUSINESS", "AI_BUSINESS", "AI_BUSINESS", "MAJOR_BUSINESS", "MAJOR_BUSINESS"],
+        )
+
+    def test_allocation_holds_before_model_when_focus_lacks_major_numeric_evidence(self) -> None:
+        evidence = focus_numeric_evidence({"S01", "S02", "S03", "S04"})
+        prepared, focus_eligible = prepare_focus_number_evidence(evidence)
+        prepared, verified = prepare_content_mix_evidence(prepared)
+
+        with self.assertRaisesRegex(JudgementPlanError, "at least 2 independently verified MAJOR_BUSINESS"):
+            allocate_focus_numbers_content_mix(prepared, focus_eligible, verified)
+
+    def test_preallocated_section_sources_cannot_be_substituted_by_planner(self) -> None:
+        evidence = focus_numeric_evidence()
+        prepared, focus_eligible = prepare_focus_number_evidence(evidence)
+        prepared, verified = prepare_content_mix_evidence(prepared)
+        allocation = allocate_focus_numbers_content_mix(prepared, focus_eligible, verified)
+        plan = focus_numbers_plan()
+
+        self.assertIs(
+            validate_judgement_plan(
+                plan,
+                FOCUS_SOURCE_IDS,
+                focus_eligible,
+                verified,
+                allocation,
+            ),
+            plan,
+        )
+        plan["focus_numbers"][3]["source_ids"] = ["S09"]
+        plan["evidence_items"][3]["source_ids"] = ["S04"]
+        with self.assertRaisesRegex(JudgementPlanError, "does not match the preallocated"):
+            validate_judgement_plan(
+                plan,
+                FOCUS_SOURCE_IDS,
+                focus_eligible,
+                verified,
+                allocation,
+            )
+
+    def test_planner_receives_and_obeys_preallocated_section_sources(self) -> None:
+        plan = focus_numbers_plan()
+        response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
+        client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
+
+        with patch("src.judgement_plan.Anthropic", return_value=client), patch.dict(
+            "os.environ", {"ANTHROPIC_API_KEY": "test-key"}
+        ):
+            result = generate_judgement_plan(
+                focus_numeric_evidence(),
+                {},
+                ROOT / "prompts" / "judgement_planner_prompt.md",
+            )
+
+        self.assertEqual(client.messages.create.call_count, 1)
+        self.assertEqual(
+            [item["source_ids"][0] for item in result["evidence_items"]],
+            ["S06", "S07", "S08", "S09", "S10"],
+        )
+        self.assertEqual(
+            [item["source_ids"][0] for item in result["focus_numbers"]],
+            ["S01", "S02", "S03", "S04", "S05"],
+        )
+        prompt = client.messages.create.call_args.kwargs["messages"][0]["content"]
+        self.assertIn('Preallocated Newsroom source IDs\n\n["S06", "S07", "S08", "S09", "S10"]', prompt)
+        self.assertIn('Preallocated Focus on the Numbers source IDs\n\n["S01", "S02", "S03", "S04", "S05"]', prompt)
 
     def test_planner_labels_cannot_reclassify_independently_verified_source(self) -> None:
         plan = focus_numbers_plan()

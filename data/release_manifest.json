@@ -25,8 +25,8 @@
   "editorial_contract": {
     "newsroom_items": 5,
     "focus_number_items": 5,
-    "minimum_ai_business_items": 6,
-    "maximum_major_business_items": 4,
+    "ai_business_items_per_section": 3,
+    "major_business_items_per_section": 2,
     "source_overlap_allowed": false
   }
 }

@@ -45,7 +45,7 @@ Signal is part of the DTLC.ai product ecosystem. It creates awareness, trust, an
 |-----------|--------|---------|
 | Code repository | GitHub | `Fordy888/Signal-v3` on `master` branch |
 | Deployment | Render | Cron job, auto-deploys from `master` |
-| Schedule | Daily | `0 20 * * *` UTC = 6:00 AM AEST (Brisbane) |
+| Schedule | Subscriber delivery hold | The source-controlled production job is proof-only and disabled by date until a deployed canary passes and Paul authorises restoration. |
 | Runtime | Python 3.11 | Render Standard plan, Singapore region |
 | AI Models | Anthropic Claude | Scoring: `claude-haiku-4-5`, Synthesis: `claude-sonnet-4-6` |
 | Email delivery | Resend | From: `signal@signal.dtlc.ai`, Reply-to: `paul.ford@gmail.com` |
@@ -173,7 +173,7 @@ Styled in coral (#E8533A) with numbered items. Instructions and examples are in 
 
 The current approved daily format leads with a shorter `FOUNDER’S NOTE`, then presents exactly five big stories under `DTL SIGNAL NEWSROOM — READ THIS`, followed by exactly five separate compact entries under `FOCUS ON THE NUMBERS`. Newsroom stories use a short action/category lead-in, large clear headline, concise source-backed context and one source link. Each Focus entry identifies a company, organisation, person or market; one defining figure; and one sentence explaining what changed and why it matters commercially.
 
-The ten core items must use ten distinct source records and contain no repeated story, fact or source link across the two sections. At least six of the ten items must qualify as substantive `AI_BUSINESS` intelligence, and no more than four may be `MAJOR_BUSINESS`. AI qualifies only when the evidence shows a real effect on a business function, decision, customer outcome, operating model, cost, risk or value. Major non-AI developments remain valid when they materially improve executive judgement; Signal must not force an AI angle onto them.
+The ten core items must use ten distinct source records and contain no repeated story, fact or source link across the two sections. `DTL SIGNAL NEWSROOM — READ THIS` must contain exactly three substantive `AI_BUSINESS` items and two `MAJOR_BUSINESS` items. `FOCUS ON THE NUMBERS` must contain the same exact three/two split. Source allocation is deterministic before planning: the model may write only from the five source IDs assigned to each section. AI qualifies only when the evidence shows a real effect on a business function, decision, customer outcome, operating model, cost, risk or value. Major non-AI developments remain valid when they materially improve executive judgement; Signal must not force an AI angle onto them.
 
 `THE ONE THING`, `THE SHIFT` and the reader-facing `WHAT CHANGED` section are not part of this format. Position movement remains internal to Signal Memory. The lower sequence remains `WHY IT MATTERS` → `WHAT TO DO NOW` → `THE OTHER SIDE` → `WATCH FOR THIS` → optional `REMEMBER THE WORLD` → mandatory Daily Dad Joke → minimal footer.
 
@@ -183,7 +183,7 @@ The planner’s third and final attempt may deterministically shorten presentati
 
 Before planning begins, Signal builds a verified Focus-number source pool. Only evidence records containing an explicit eligible business figure may be selected for `FOCUS ON THE NUMBERS`; bare years and unquantified claims do not qualify. Fewer than five distinct eligible sources is a pre-planning hold. The model receives the eligible IDs, and validation rejects any Focus citation outside that pool.
 
-Signal also classifies content mix before planning. A source qualifies as `AI_BUSINESS` only when its supplied title, evidence or scoring reason contains both an explicit AI subject and a concrete business-impact term. A source qualifies as `MAJOR_BUSINESS` only when it contains commercially material non-AI evidence and no AI-led subject. The planner receives two disjoint source-ID pools, must select three AI-business and two major-business sources in both Newsroom and Focus, and cannot relabel a source to satisfy the 6/4 gate. If fewer than six AI-business or four major-business candidates qualify, the edition holds before model generation.
+Signal also classifies content mix before planning. A source qualifies as `AI_BUSINESS` only when its supplied title, evidence or scoring reason contains both an explicit AI subject and a concrete business-impact term. A source qualifies as `MAJOR_BUSINESS` only when it contains commercially material non-AI evidence and no AI-led subject. The pipeline assigns three AI-business and two major-business sources to each section before the planner is called. Focus receives only pre-verified numeric sources. The planner cannot select, move, substitute or relabel those sources. If the evidence cannot fill both exact sections, the edition holds before model generation.
 
 REMEMBER THE WORLD candidates approved from 1 September 2026 onward must record a natural dominant colour family. Brand harmony is a curation preference only: photographs must never be recoloured or artificially tinted, and artistic power, authenticity, rights, provenance, date validity and non-repetition remain the hard gates.
 

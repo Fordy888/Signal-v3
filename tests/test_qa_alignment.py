@@ -1,3 +1,5 @@
+import json
+import tempfile
 import unittest
 import os
 from unittest.mock import patch
@@ -12,6 +14,7 @@ from src.qa_gate import (
     check_release_identity,
     check_subject_body_alignment,
     create_receipt,
+    load_release_manifest,
 )
 
 
@@ -270,13 +273,15 @@ class ReleaseIdentityTests(unittest.TestCase):
         self.assertIn("Not pre-certified", html)
         self.assertNotIn("Tomorrow's edition is safe", html)
 
-    def test_render_blueprint_uses_v4_daily_command_and_build_gate(self):
+    def test_render_blueprint_holds_subscribers_until_proof_canary_approval(self):
         blueprint = yaml.safe_load((Path(__file__).resolve().parents[1] / "render.yaml").read_text())
         service = next(item for item in blueprint["services"] if item["name"] == "dtl-signal")
         self.assertEqual(
             service["startCommand"],
-            "python -m src.main --send --enhanced --alive-moment",
+            "python -m src.main --proof --release-canary --enhanced --alive-moment --save-html data/deployed-canary.html",
         )
+        self.assertEqual(service["schedule"], "0 0 1 1 *")
+        self.assertNotIn("--send", service["startCommand"])
         self.assertIn("python -m unittest discover -s tests -v", service["buildCommand"])
         env = {item["key"]: item.get("value") for item in service["envVars"]}
         self.assertEqual(env["SIGNAL_RELEASE_PROFILE"], "v4.0")
@@ -305,6 +310,38 @@ class ReleaseIdentityTests(unittest.TestCase):
             proof_service["startCommand"],
             "python -m src.main --proof --release-canary --enhanced --alive-moment --as-of 2026-09-03T06:00:00+10:00 --save-html data/deployed-canary-0046.html",
         )
+
+    def test_release_manifest_requires_exact_section_content_mix(self):
+        manifest_path = Path(__file__).resolve().parents[1] / "data" / "release_manifest.json"
+        editorial_contract = json.loads(manifest_path.read_text())["editorial_contract"]
+
+        self.assertEqual(editorial_contract["newsroom_items"], 5)
+        self.assertEqual(editorial_contract["focus_number_items"], 5)
+        self.assertEqual(editorial_contract["ai_business_items_per_section"], 3)
+        self.assertEqual(editorial_contract["major_business_items_per_section"], 2)
+        self.assertFalse(editorial_contract["source_overlap_allowed"])
+
+    def test_release_manifest_rejects_overall_only_content_mix(self):
+        manifest_path = Path(__file__).resolve().parents[1] / "data" / "release_manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["editorial_contract"] = {
+            "newsroom_items": 5,
+            "focus_number_items": 5,
+            "minimum_ai_business_items": 6,
+            "maximum_major_business_items": 4,
+            "source_overlap_allowed": False,
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            invalid_path = Path(tmpdir) / "release_manifest.json"
+            invalid_path.write_text(json.dumps(manifest))
+            with patch.dict(
+                os.environ,
+                {"SIGNAL_RELEASE_MANIFEST_PATH": str(invalid_path)},
+                clear=False,
+            ):
+                with self.assertRaisesRegex(ValueError, "exact 3 AI_BUSINESS / 2 MAJOR_BUSINESS"):
+                    load_release_manifest()
 
 
 if __name__ == "__main__":
