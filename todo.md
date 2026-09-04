@@ -535,3 +535,5 @@
 - [x] Freeze approved Edition 0047 as a locked production manifest containing its exact plan, evidence, Dad Joke, governed image and HTML checksum
 - [ ] Run the next Render proof with `--locked-edition 47` so the canary reproduces the exact approved Gmail artefact instead of generating different live copy
 - [x] Pass all 121 tests in both the integration checkout and a fresh detached worktree after the canary repair
+- [ ] Bind the Render expected-image identity to `REMEMBER-0047-NORDERNEY-MARIENHOEHE` and make a fresh canary receipt report approved image = configured image
+- [ ] Reject `CANARY VERIFIED` when the receipt reports the expected configured image as omitted, even if Gmail visibly contains the image

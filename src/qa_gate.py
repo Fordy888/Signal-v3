@@ -1320,12 +1320,15 @@ def create_receipt(
     configured_image_identity = ""
     configured_image_path = os.environ.get("SIGNAL_ALIVE_MOMENT_PATH", "").strip()
     if configured_image_path:
-        image_path = Path(configured_image_path)
-        if not image_path.is_absolute():
-            image_path = Path(__file__).resolve().parents[1] / image_path
         try:
+            image_path = resolve_alive_moment_path(
+                Path(__file__).resolve().parents[1],
+                configured_image_path,
+                edition_id=f"{edition_number:04d}",
+                edition_date=now.date().isoformat(),
+            )
             configured_image_identity = str(json.loads(image_path.read_text()).get("id", ""))
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError, AliveMomentError):
             configured_image_identity = ""
     identity_result = check_release_identity(
         renderer_id=renderer_id,

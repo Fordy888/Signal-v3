@@ -243,6 +243,38 @@ class ReleaseIdentityTests(unittest.TestCase):
         self.assertFalse(mismatched.passed)
         self.assertIn("image identity is", mismatched.message)
 
+    def test_edition_0047_receipt_resolves_date_templated_image_identity(self):
+        friday = datetime(
+            2026, 9, 4, 16, 28, tzinfo=ZoneInfo("Australia/Brisbane")
+        )
+        env = {
+            **self.production_env,
+            "SIGNAL_TARGET_RELEASE_ID": "ai-adoption-v1-proof-0047",
+            "SIGNAL_EXPECTED_APPROVED_PROOF_SHA256": "c43ec4b92fa8bc815ff09538b38e5ee5e32a3882586f90195d6166247c408a06",
+            "SIGNAL_RELEASE_MANIFEST_PATH": "data/release_manifest_ai_adoption.json",
+            "SIGNAL_ALIVE_MOMENT_PATH": "data/alive_moments/{date}.json",
+        }
+        with patch.dict(os.environ, env, clear=False), patch("src.qa_gate.datetime") as mocked_datetime:
+            mocked_datetime.now.return_value = friday
+            receipt = create_receipt(
+                edition_number=47,
+                mode="proof",
+                recipients_attempted=1,
+                recipients_delivered=1,
+                pipeline_result="success",
+                code_version=env["RENDER_GIT_COMMIT"],
+                edition_type="daily",
+                renderer_id="enhanced-v4-focus-numbers",
+                html_sha256="c43ec4b92fa8bc815ff09538b38e5ee5e32a3882586f90195d6166247c408a06",
+                release_identity_status="MATCH",
+            )
+        self.assertEqual(
+            receipt.approved_image_identity,
+            "REMEMBER-0047-NORDERNEY-MARIENHOEHE",
+        )
+        self.assertEqual(receipt.configured_image_identity, receipt.approved_image_identity)
+        self.assertIn("REMEMBER-0047-NORDERNEY-MARIENHOEHE", receipt.alert_email_html())
+
     def test_plain_proof_delivery_never_claims_target_release_is_live(self):
         with patch.dict(os.environ, self.production_env, clear=False):
             receipt = create_receipt(
