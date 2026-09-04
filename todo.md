@@ -489,7 +489,11 @@
 - [x] Integrate reader-semantic commit `7316aa7` onto GitHub master without force-pushing or losing either control set
 - [x] Resolve planner prompt and judgement-plan overlap by retaining deterministic 3/2 section allocation plus reader-visible source-class validation
 - [x] Pass the combined detached release gate: 95/95 tests; reproduce approved proof SHA `7ff05b54…7b606e3`
-- [ ] Push combined commit `b772eb7` and verify GitHub master matches its full SHA
-- [ ] Deploy the exact combined GitHub commit through Render’s guarded build while subscriber mode remains disabled
-- [ ] Run a one-recipient proof canary to `paul.ford@gmail.com` and independently verify technical identity and the actual reader-visible 6/4 mix
+- [x] Push combined release and verify GitHub master at `bc7bf1f683d01140d07a8898fe89ce580087208e`
+- [x] Deploy exact combined GitHub commit `bc7bf1f683d01140d07a8898fe89ce580087208e` through Render build `bld-dad2j4f10e5c73d24tu0` after 95/95 tests while subscriber mode remains disabled
+- [x] Run the one-recipient proof canary on `bc7bf1f`; confirm safe 0/0 hold after all three attempts failed `Focus AI_BUSINESS reader copy must state an explicit AI subject and concrete business consequence`
+- [x] Deterministically complete AI-classified Focus reader copy from the same selected source without changing its source, defining figure or classification
+- [x] Add exact regressions proving AI Focus completion is evidence-grounded, never borrows another source and never alters major-business copy; focused 47/47 tests passed
+- [x] Re-run complete and isolated gates: 99/99 tests in both worktrees; reproduce approved proof SHA `7ff05b54…7b606e3`
+- [ ] Commit, push, deploy and rerun the one-recipient canary; restore subscriber mode only after technical and reader-visible verification
 - [ ] Restore the scheduled subscriber command only after CANARY VERIFIED evidence is complete

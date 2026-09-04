@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import tempfile
 import unittest
@@ -16,6 +17,7 @@ from src.judgement_plan import (
     JudgementPlanError,
     add_final_attempt_action_fallback,
     allocate_focus_numbers_content_mix,
+    complete_ai_focus_reader_copy,
     generate_judgement_plan,
     normalise_word_bound_fields,
     prepare_content_mix_evidence,
@@ -688,6 +690,90 @@ class JudgementArchitectureTests(unittest.TestCase):
 
         with self.assertRaisesRegex(JudgementPlanError, "explicit AI subject"):
             validate_judgement_plan(plan, FOCUS_SOURCE_IDS, FOCUS_SOURCE_IDS, verified)
+
+    def test_ai_focus_reader_copy_completion_uses_only_its_selected_source(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][0]["entity"] = "SpaceX"
+        plan["focus_numbers"][0]["meaning"] = "The result is notable."
+        evidence = focus_numeric_evidence()
+
+        repaired, repairs = complete_ai_focus_reader_copy(plan, evidence)
+
+        self.assertEqual(
+            repaired["focus_numbers"][0]["meaning"],
+            "AI revenue increased 11% as enterprise customers expanded contracted work.",
+        )
+        self.assertEqual(
+            repaired["focus_numbers"][0]["reader_copy_completed_from_source"],
+            "S01",
+        )
+        self.assertIn("focus_numbers[0].meaning", repairs)
+        _, verified = prepare_content_mix_evidence(evidence)
+        allocation = allocate_focus_numbers_content_mix(
+            evidence,
+            FOCUS_SOURCE_IDS,
+            verified,
+        )
+        self.assertIs(
+            validate_judgement_plan(
+                repaired,
+                FOCUS_SOURCE_IDS,
+                FOCUS_SOURCE_IDS,
+                verified,
+                allocation,
+            ),
+            repaired,
+        )
+
+    def test_ai_focus_reader_copy_completion_never_borrows_another_source(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][0]["entity"] = "SpaceX"
+        plan["focus_numbers"][0]["meaning"] = "The result is notable."
+        evidence = focus_numeric_evidence()
+        evidence[0]["evidence"] = "The company discussed strategy without publishing a quantified operating result."
+        evidence[0]["title"] = "Company strategy update"
+        evidence[0]["scoring_reason"] = "General update."
+
+        repaired, repairs = complete_ai_focus_reader_copy(plan, evidence)
+
+        self.assertEqual(repairs, [])
+        self.assertEqual(repaired["focus_numbers"][0]["meaning"], "The result is notable.")
+        self.assertNotIn("reader_copy_completed_from_source", repaired["focus_numbers"][0])
+
+    def test_major_business_focus_copy_is_never_modified_by_ai_completion(self) -> None:
+        plan = focus_numbers_plan()
+        original = copy.deepcopy(plan["focus_numbers"][3])
+
+        repaired, repairs = complete_ai_focus_reader_copy(plan, focus_numeric_evidence())
+
+        self.assertEqual(repairs, [])
+        self.assertEqual(repaired["focus_numbers"][3], original)
+
+    def test_planner_final_attempt_completes_live_ai_focus_reader_copy(self) -> None:
+        plan = focus_numbers_plan()
+        plan["focus_numbers"][0]["entity"] = "SpaceX"
+        plan["focus_numbers"][0]["meaning"] = "The result is notable."
+        response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
+        client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
+        evidence = focus_numeric_evidence()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prompt_path = Path(tmpdir) / "prompt.md"
+            prompt_path.write_text("{EVIDENCE_ITEMS}\n{SIGNAL_MEMORY}")
+            with patch("src.judgement_plan.Anthropic", return_value=client), patch(
+                "src.judgement_plan.time.sleep"
+            ), patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+                result = generate_judgement_plan(evidence, {}, prompt_path)
+
+        self.assertEqual(client.messages.create.call_count, 3)
+        self.assertEqual(
+            result["focus_numbers"][0]["meaning"],
+            "AI revenue increased 11% as enterprise customers expanded contracted work.",
+        )
+        self.assertEqual(
+            result["focus_numbers"][0]["reader_copy_completed_from_source"],
+            "S01",
+        )
 
     def test_final_attempt_normalisation_keeps_substantive_failures_hard(self) -> None:
         for path in ("newsroom_connection", "focus_connection", "numeric_figure"):

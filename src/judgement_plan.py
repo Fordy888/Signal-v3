@@ -612,6 +612,84 @@ def recover_missing_focus_figures(
     return repaired, repairs
 
 
+def complete_ai_focus_reader_copy(
+    plan: dict[str, Any],
+    evidence_items: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[str]]:
+    """Complete missing AI-business wording from the item's one selected source.
+
+    The repair is deliberately narrow and final-attempt only. It may replace the
+    reader-facing meaning with one concise sentence copied from the same source
+    when that sentence explicitly contains both an AI subject and a business
+    consequence. It never changes source IDs, figures, classifications or
+    MAJOR_BUSINESS copy, and it never borrows language from another source.
+    """
+    repaired = copy.deepcopy(plan)
+    if not _is_focus_numbers_revision(repaired):
+        return repaired, []
+
+    evidence_by_id: dict[str, dict[str, Any]] = {}
+    duplicate_ids: set[str] = set()
+    for source in evidence_items:
+        source_id = str(source.get("source_id", "")).strip()
+        if not source_id:
+            continue
+        if source_id in evidence_by_id:
+            duplicate_ids.add(source_id)
+        evidence_by_id[source_id] = source
+
+    repairs: list[str] = []
+    focus_numbers = repaired.get("focus_numbers")
+    if not isinstance(focus_numbers, list):
+        return repaired, repairs
+
+    for index, item in enumerate(focus_numbers):
+        if not isinstance(item, dict) or item.get("mix_classification") != "AI_BUSINESS":
+            continue
+        reader_text = " ".join(
+            str(item.get(field, "")).strip() for field in ("entity", "number", "meaning")
+        )
+        if AI_SUBJECT_RE.search(reader_text) and BUSINESS_IMPACT_RE.search(reader_text):
+            continue
+
+        source_ids = [str(source_id) for source_id in item.get("source_ids") or []]
+        if len(source_ids) != 1 or source_ids[0] in duplicate_ids:
+            continue
+        source = evidence_by_id.get(source_ids[0])
+        if source is None:
+            continue
+
+        source_text = " ".join(
+            str(source.get(field, "")).strip()
+            for field in ("title", "evidence", "scoring_reason")
+            if str(source.get(field, "")).strip()
+        )
+        if not (AI_SUBJECT_RE.search(source_text) and BUSINESS_IMPACT_RE.search(source_text)):
+            continue
+
+        candidate: str | None = None
+        for field in ("evidence", "title", "scoring_reason"):
+            field_text = str(source.get(field, "")).strip()
+            for sentence in re.split(r"(?<=[.!?])\s+|\s*;\s*", field_text):
+                sentence = " ".join(sentence.split()).strip(" ,;:-—")
+                if not sentence or SOURCE_ID_RE.search(sentence):
+                    continue
+                if AI_SUBJECT_RE.search(sentence) and BUSINESS_IMPACT_RE.search(sentence):
+                    bounded = _trim_words(sentence, 26).strip(" ,;:-—")
+                    if AI_SUBJECT_RE.search(bounded) and BUSINESS_IMPACT_RE.search(bounded):
+                        candidate = bounded.rstrip(".!?") + "."
+                        break
+            if candidate is not None:
+                break
+        if candidate is None:
+            continue
+
+        item["meaning"] = candidate
+        item["reader_copy_completed_from_source"] = source_ids[0]
+        repairs.append(f"focus_numbers[{index}].meaning")
+    return repaired, repairs
+
+
 def add_final_attempt_action_fallback(plan: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     """Add one source-bound action only when a dynamic final attempt returns none.
 
@@ -1064,6 +1142,11 @@ def generate_judgement_plan(
                 candidate, repairs = normalise_word_bound_fields(candidate)
                 candidate, figure_repairs = recover_missing_focus_figures(candidate, planner_evidence)
                 repairs.extend(figure_repairs)
+                candidate, reader_copy_repairs = complete_ai_focus_reader_copy(
+                    candidate,
+                    planner_evidence,
+                )
+                repairs.extend(reader_copy_repairs)
                 candidate, action_repairs = add_final_attempt_action_fallback(candidate)
                 repairs.extend(action_repairs)
                 if repairs:

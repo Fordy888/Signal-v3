@@ -19,6 +19,7 @@ A missing Focus defining figure is handled separately. The final attempt may rec
 | Business meaning | AI-business connections and other copy are trimmed from the end; the substantive point must lead. |
 | Action integrity | Existing valid actions are preserved; a zero-action fallback is bound to selected source evidence. |
 | Reader language | Internal codes and unexplained technical shorthand remain hard failures. |
+| AI Focus completion | Visible AI subject and business consequence may be copied only from the same selected source; no cross-source or invented wording. |
 
 ## Failures that remain hard holds
 
@@ -33,6 +34,12 @@ Focus-number safety begins before the model is called. Each supplied evidence re
 Eligible records are annotated with `focus_number_eligible: true` and a compact `focus_number_candidate` copied from that same source. The planner receives the complete eligible source-ID list and may cite only those IDs in `focus_numbers`. If fewer than five distinct eligible records exist, Signal holds before model generation. Validation independently rejects any Focus source outside the verified pool, even if generated copy happens to contain a digit.
 
 Same-source final-attempt recovery remains a secondary safeguard. It cannot make an ineligible source eligible and cannot transfer a figure between sources.
+
+## Same-source AI Focus copy completion
+
+An independently verified `AI_BUSINESS` Focus source can still be written too vaguely by the model, leaving the visible entity, figure and meaning without both an explicit AI subject and a concrete business consequence. On the third and final attempt only, Signal may replace that item’s `meaning` with one concise sentence copied from the same selected source record when the sentence itself contains both requirements.
+
+The repair does not change the source ID, defining figure, classification or source link. It rejects internal source IDs, never searches another source, never touches `MAJOR_BUSINESS` items and remains a hard hold when the selected source contains no clean qualifying sentence.
 
 ## Independent content-mix classification
 
