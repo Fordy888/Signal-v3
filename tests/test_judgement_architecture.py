@@ -604,12 +604,19 @@ class JudgementArchitectureTests(unittest.TestCase):
         plan = ai_adoption_plan()
         response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
         client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
+        evidence = ai_adoption_numeric_evidence()
+        evidence.append({
+            "source_id": "S11",
+            "title": "Unallocated AI result",
+            "evidence": "A bank deployed AI to automate finance workflow, reducing costs 99%.",
+            "scoring_reason": "Source-backed AI change with a practical business consequence.",
+        })
 
         with patch("src.judgement_plan.Anthropic", return_value=client), patch.dict(
             "os.environ", {"ANTHROPIC_API_KEY": "test-key"}
         ):
             result = generate_judgement_plan(
-                ai_adoption_numeric_evidence(),
+                evidence,
                 {},
                 ROOT / "prompts" / "judgement_planner_prompt.md",
             )
@@ -626,6 +633,7 @@ class JudgementArchitectureTests(unittest.TestCase):
         prompt = client.messages.create.call_args.kwargs["messages"][0]["content"]
         self.assertIn('Preallocated Newsroom source IDs\n\n["S06", "S07", "S08", "S09", "S10"]', prompt)
         self.assertIn('Preallocated Focus on the Numbers source IDs\n\n["S01", "S02", "S03", "S04", "S05"]', prompt)
+        self.assertNotIn('"source_id": "S11"', prompt)
 
     def test_planner_labels_cannot_reclassify_independently_verified_source(self) -> None:
         plan = focus_numbers_plan()

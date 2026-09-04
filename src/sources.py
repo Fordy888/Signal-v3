@@ -8,7 +8,9 @@ v4.1 — Enhanced with:
 """
 from __future__ import annotations
 
+import html
 import logging
+import re
 import socket
 import time
 from dataclasses import dataclass, field
@@ -75,11 +77,12 @@ class RawItem:
     source: str
     category: str
     published_at: datetime | None = None
+    source_evidence: str = ""
     raw: dict[str, Any] = field(default_factory=dict)
 
     def to_scoring_payload(self) -> dict[str, Any]:
         """The compact view sent to the scoring layer."""
-        return {
+        payload = {
             "item_id": self.item_id,
             "title": self.title,
             "summary": self.summary[:600],  # truncate for cost
@@ -87,6 +90,9 @@ class RawItem:
             "category": self.category,
             "url": self.url,
         }
+        if self.source_evidence and self.source_evidence != self.summary:
+            payload["source_evidence"] = self.source_evidence[:1200]
+        return payload
 
 
 def _load_sources_config(path: str) -> dict[str, Any]:
@@ -238,6 +244,33 @@ def _fetch_with_retry(
     return None, last_error_type, last_error_detail, retries_used
 
 
+def _clean_feed_text(value: Any) -> str:
+    """Convert publisher-supplied feed HTML to compact plain source evidence."""
+    if not isinstance(value, str):
+        return ""
+    text = html.unescape(value)
+    text = re.sub(r"<script\b[^>]*>.*?</script>", " ", text, flags=re.I | re.S)
+    text = re.sub(r"<style\b[^>]*>.*?</style>", " ", text, flags=re.I | re.S)
+    text = re.sub(r"<[^>]+>", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _entry_source_evidence(entry: Any) -> str:
+    """Retain publisher-owned RSS/Atom detail without fetching or inferring facts."""
+    candidates: list[Any] = [entry.get("summary", ""), entry.get("description", "")]
+    content = entry.get("content", []) or []
+    if isinstance(content, list):
+        for block in content:
+            if isinstance(block, dict):
+                candidates.append(block.get("value", ""))
+    parts: list[str] = []
+    for candidate in candidates:
+        cleaned = _clean_feed_text(candidate)
+        if cleaned and cleaned not in parts:
+            parts.append(cleaned)
+    return " ".join(parts)[:4000]
+
+
 def _fetch_rss(name: str, url: str, category: str, timeout: int, max_age_hours: int) -> tuple[list[RawItem], SourceFetchResult]:
     """Fetch and parse a single RSS feed. Returns items and structured fetch result."""
     start = time.time()
@@ -292,12 +325,8 @@ def _fetch_rss(name: str, url: str, category: str, timeout: int, max_age_hours: 
             continue  # too old
 
         title = entry.get("title", "").strip()
-        summary = entry.get("summary", "") or entry.get("description", "")
-        # Strip basic HTML tags from summary for the scoring payload
-        if "<" in summary:
-            import re
-            summary = re.sub(r"<[^>]+>", " ", summary)
-            summary = re.sub(r"\s+", " ", summary).strip()
+        summary = _clean_feed_text(entry.get("summary", "") or entry.get("description", ""))
+        source_evidence = _entry_source_evidence(entry)
 
         url_link = entry.get("link", "")
         if not title or not url_link:
@@ -311,6 +340,7 @@ def _fetch_rss(name: str, url: str, category: str, timeout: int, max_age_hours: 
             source=name,
             category=category,
             published_at=published_at,
+            source_evidence=source_evidence,
         ))
 
     result.success = True

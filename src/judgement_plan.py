@@ -464,7 +464,9 @@ def _source_bound_focus_figure(source: dict[str, Any], focus_item: dict[str, Any
         )
     }
     candidates: list[tuple[int, int, str]] = []
-    for field_priority, field in enumerate(("evidence", "title", "scoring_reason")):
+    for field_priority, field in enumerate(
+        ("evidence", "source_evidence", "title", "scoring_reason")
+    ):
         text = str(source.get(field, "")).strip()
         if not text:
             continue
@@ -566,7 +568,7 @@ def prepare_ai_adoption_evidence(
             continue
         text = " ".join(
             str(source.get(field, "")).strip()
-            for field in ("title", "evidence", "scoring_reason")
+            for field in ("title", "evidence", "source_evidence", "scoring_reason")
         )
         if not (AI_SUBJECT_RE.search(text) and BUSINESS_IMPACT_RE.search(text)):
             source["verified_mix_eligible"] = False
@@ -878,14 +880,14 @@ def complete_ai_focus_reader_copy(
 
         source_text = " ".join(
             str(source.get(field, "")).strip()
-            for field in ("title", "evidence", "scoring_reason")
+            for field in ("title", "evidence", "source_evidence", "scoring_reason")
             if str(source.get(field, "")).strip()
         )
         if not (AI_SUBJECT_RE.search(source_text) and BUSINESS_IMPACT_RE.search(source_text)):
             continue
 
         candidate: str | None = None
-        for field in ("evidence", "title", "scoring_reason"):
+        for field in ("evidence", "source_evidence", "title", "scoring_reason"):
             field_text = str(source.get(field, "")).strip()
             for sentence in re.split(r"(?<=[.!?])\s+|\s*;\s*", field_text):
                 sentence = " ".join(sentence.split()).strip(" ,;:-—")
@@ -1381,8 +1383,18 @@ def generate_judgement_plan(
             focus_eligible_source_ids,
             verified_mix_by_source,
         )
+    prompt_evidence = planner_evidence
+    if allocated_source_ids:
+        selected_source_ids = set(
+            allocated_source_ids["newsroom"] + allocated_source_ids["focus_numbers"]
+        )
+        prompt_evidence = [
+            item
+            for item in planner_evidence
+            if str(item.get("source_id", "")) in selected_source_ids
+        ]
     prompt = prompt_template.replace(
-        "{EVIDENCE_ITEMS}", json.dumps(planner_evidence, indent=2)
+        "{EVIDENCE_ITEMS}", json.dumps(prompt_evidence, indent=2)
     ).replace(
         "{SIGNAL_MEMORY}", json.dumps(prior_memory, indent=2)
     ).replace(
@@ -1467,6 +1479,7 @@ def scored_items_to_evidence(scored_items: list[Any]) -> list[dict[str, Any]]:
                 "category": raw.category,
                 "score": scored.total,
                 "evidence": raw.summary[:700],
+                "source_evidence": getattr(raw, "source_evidence", "")[:2500],
                 "scoring_reason": scored.reason,
             }
         )

@@ -37,3 +37,4 @@ data/alive_moments/*
 !data/locked_editions/
 data/locked_editions/*
 !data/locked_editions/0042.json
+!data/locked_editions/0047.json

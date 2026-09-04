@@ -163,6 +163,23 @@ class ProductionParityTests(unittest.TestCase):
         self.assertIsNotNone(joke)
         self.assertEqual(moment["id"], "REMEMBER-0042-MOOREA-HUMPBACK")
 
+    def test_locked_edition_0047_reproduces_the_exact_approved_all_ai_html(self) -> None:
+        root = __import__("pathlib").Path(__file__).resolve().parents[1]
+        html, plan, evidence, joke, moment = render_locked_edition(root, 47)
+        self.assertIn("Edition 0047", html)
+        self.assertIn("DTL SIGNAL NEWSROOM — READ THIS", html)
+        self.assertIn("FOCUS ON THE NUMBERS", html)
+        self.assertIn("Norderney, Germany", html)
+        self.assertIn("DAD JOKE OF THE DAY", html)
+        self.assertEqual(plan["editorial_revision"], "ai-adoption-v1")
+        self.assertEqual(len(evidence), 10)
+        self.assertEqual(joke["setup"], "Why did the workflow bring a ruler to the meeting?")
+        self.assertEqual(moment["id"], "REMEMBER-0047-NORDERNEY-MARIENHOEHE")
+        self.assertEqual(
+            hashlib.sha256(html.encode()).hexdigest(),
+            "c43ec4b92fa8bc815ff09538b38e5ee5e32a3882586f90195d6166247c408a06",
+        )
+
     def test_missing_locked_edition_is_rejected(self) -> None:
         root = __import__("pathlib").Path(__file__).resolve().parents[1]
         with self.assertRaises(LockedEditionError):

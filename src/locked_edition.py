@@ -11,7 +11,11 @@ from .alive_moment import load_alive_history, load_alive_moment, validate_alive_
 from .edition_counter import edition_for_date
 from .enhanced_renderer import render_enhanced_email
 from .human_signal import load_joke_history, load_jokes, select_joke
-from .judgement_plan import validate_judgement_plan
+from .judgement_plan import (
+    prepare_ai_adoption_evidence,
+    prepare_focus_number_evidence,
+    validate_judgement_plan,
+)
 
 
 class LockedEditionError(ValueError):
@@ -47,20 +51,51 @@ def render_locked_edition(
         raise LockedEditionError("Manifest timestamp does not match issue date")
 
     evidence = json.loads(_resolve(root, str(manifest["evidence_path"])).read_text())
-    plan = validate_judgement_plan(
-        json.loads(_resolve(root, str(manifest["plan_path"])).read_text()),
-        {str(item["source_id"]) for item in evidence},
-    )
-    joke = select_joke(
-        load_jokes(root / "data" / "dad_jokes.json"),
-        edition_number=edition_number,
-        recent_ids=load_joke_history(root / "data" / "joke_history.json"),
-    )
+    plan_data = json.loads(_resolve(root, str(manifest["plan_path"])).read_text())
+    if plan_data.get("editorial_revision") == "ai-adoption-v1":
+        evidence, focus_ids = prepare_focus_number_evidence(evidence)
+        evidence, verified_mix = prepare_ai_adoption_evidence(evidence)
+        allocation = {
+            "newsroom": [
+                str(item["source_ids"][0]) for item in plan_data.get("evidence_items", [])
+            ],
+            "focus_numbers": [
+                str(item["source_ids"][0]) for item in plan_data.get("focus_numbers", [])
+            ],
+        }
+        plan = validate_judgement_plan(
+            plan_data,
+            {str(item["source_id"]) for item in evidence},
+            focus_ids,
+            verified_mix,
+            allocation,
+        )
+    else:
+        plan = validate_judgement_plan(
+            plan_data,
+            {str(item["source_id"]) for item in evidence},
+        )
+    manifest_joke = manifest.get("joke")
+    if isinstance(manifest_joke, dict):
+        joke = {
+            "setup": str(manifest_joke.get("setup", "")).strip(),
+            "punchline": str(manifest_joke.get("punchline", "")).strip(),
+        }
+        if not joke["setup"] or not joke["punchline"]:
+            raise LockedEditionError("Locked Dad Joke is incomplete")
+    else:
+        joke = select_joke(
+            load_jokes(root / "data" / "dad_jokes.json"),
+            edition_number=edition_number,
+            recent_ids=load_joke_history(root / "data" / "joke_history.json"),
+        )
     moment = None
     if manifest.get("include_alive_moment"):
         moment = validate_alive_moment(
             load_alive_moment(_resolve(root, str(manifest["alive_moment_path"]))),
             load_alive_history(root / "data" / "alive_moment_history.json"),
+            expected_edition_id=f"{edition_number:04d}",
+            expected_date=issue_date.isoformat(),
         )
 
     html = render_enhanced_email(

@@ -426,6 +426,69 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertEqual(result, 1)
         send_mock.assert_not_called()
 
+    def test_locked_all_ai_release_canary_sends_exact_approved_html_to_paul_only(self) -> None:
+        patches = self._common_patches()
+        friday = datetime(
+            2026, 9, 4, 6, 0, tzinfo=ZoneInfo("Australia/Brisbane")
+        )
+        approved_html = (ROOT / "data" / "ai-adoption-proof-0047.html").read_text()
+        production_env = {
+            "RENDER": "true",
+            "RENDER_GIT_BRANCH": "master",
+            "RENDER_GIT_COMMIT": "abcdef1234567890",
+            "RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
+            "SIGNAL_EXPECTED_DAILY_RENDERER": "enhanced-v4-focus-numbers",
+            "SIGNAL_EXPECTED_GIT_BRANCH": "master",
+            "SIGNAL_EXPECTED_GIT_COMMIT": "abcdef1234567890",
+            "SIGNAL_EXPECTED_RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
+            "SIGNAL_TARGET_RELEASE_ID": "ai-adoption-v1-proof-0047",
+            "SIGNAL_EXPECTED_APPROVED_PROOF_SHA256": "c43ec4b92fa8bc815ff09538b38e5ee5e32a3882586f90195d6166247c408a06",
+            "SIGNAL_RELEASE_MANIFEST_PATH": "data/release_manifest_ai_adoption.json",
+            "SIGNAL_ALIVE_MOMENT_PATH": "data/alive_moments/{date}.json",
+        }
+        with ExitStack() as stack:
+            stack.enter_context(patch.dict(os.environ, production_env, clear=False))
+            mocked_datetime = stack.enter_context(patch("src.main.datetime"))
+            mocked_datetime.now.return_value = friday
+            stack.enter_context(patch("src.main.get_next_edition", return_value=47))
+            entered = [stack.enter_context(item) for item in patches]
+            send_mock = entered[6]
+            stack.enter_context(
+                patch(
+                    "src.main.load_signal_memory",
+                    return_value={"version": 1, "positions": [], "events": []},
+                )
+            )
+            receipt_mock = stack.enter_context(patch("src.main.send_receipt_email"))
+            stack.enter_context(patch("src.main.ping_heartbeat"))
+            stack.enter_context(
+                patch(
+                    "sys.argv",
+                    [
+                        "signal",
+                        "--proof",
+                        "--release-canary",
+                        "--enhanced",
+                        "--alive-moment",
+                        "--locked-edition",
+                        "47",
+                    ],
+                )
+            )
+            with redirect_stdout(io.StringIO()):
+                result = main()
+
+        self.assertEqual(result, 0)
+        self.assertEqual(send_mock.call_count, 1)
+        self.assertEqual(send_mock.call_args.kwargs["recipient_email"], "paul.ford@gmail.com")
+        self.assertEqual(
+            send_mock.call_args.kwargs["subject_override"],
+            "[PROOF] DTL Signal | Final Founder-Led Format | Edition 0047",
+        )
+        self.assertTrue(send_mock.call_args.kwargs["html_body"].startswith(approved_html))
+        receipt = receipt_mock.call_args.args[0]
+        self.assertEqual(receipt.release_identity_status, "MATCH")
+
     def test_monday_proof_subject_uses_the_same_release_clock_as_the_body(self) -> None:
         plan = _focus_numbers_plan()
         evidence = _focus_evidence()
