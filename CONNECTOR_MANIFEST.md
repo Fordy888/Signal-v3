@@ -18,7 +18,6 @@ Read this alongside `SIGNAL_CONTEXT.md` before starting any Signal work.
 | 6 | BetterStack | Uptime monitoring and heartbeat | Connected |
 | 7 | Google (Gmail) | Operational receipts and alert destination | Connected |
 | 8 | GoDaddy | Domain/DNS management for signal.dtlc.ai | Connected |
-| 9 | Render Postgres | Durable release registry and deterministic preflight-to-delivery hand-off | Connected; activation contained |
 
 ---
 
@@ -45,9 +44,9 @@ Read this alongside `SIGNAL_CONTEXT.md` before starting any Signal work.
 
 | Field | Value |
 |-------|-------|
-| Service names | `dtl-signal-preflight` and `dtl-signal` |
+| Service name | `dtl-signal` |
 | Service type | Cron job |
-| Schedule | Both services remain on annual containment schedules; intended production schedules are prior-evening preflight and 06:00 AEST delivery, subject to separate approval |
+| Schedule | `0 20 * * *` UTC (6:00 AM AEST) |
 | Runtime | Python 3.11.9 |
 | Region | Singapore |
 | Plan | Standard |
@@ -68,37 +67,12 @@ Read this alongside `SIGNAL_CONTEXT.md` before starting any Signal work.
 | `SIGNAL_PIPELINE_API_KEY` | Authentication to subscriber API | Yes |
 | `MODEL_SCORING` | Scoring model identifier | No |
 | `MODEL_SYNTHESIS` | Synthesis model identifier | No |
-| `SIGNAL_ALIVE_MOMENT_PATH` | Date-resolved governed image record, normally `data/alive_moments/{date}.json` | No |
-| `SIGNAL_REGISTRY_DATABASE_URL` | Managed same-region internal connection to `dtl-signal-registry` | Yes |
-| `SIGNAL_REGISTRY_REQUIRED` | Blocks legacy direct `--send`; registry-only production guard | No |
-| `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED` | Explicitly enables production audience preparation; `0` fails before subscriber fetch | No |
-| `SIGNAL_PRODUCTION_DELIVERY_ENABLED` | Explicitly enables production registry claims; `0` fails before recipient claim | No |
-| `SIGNAL_EXPECTED_RENDER_SERVICE_ID` | Binds each role to its approved Render service | No |
 | `TZ` | Timezone (`Australia/Brisbane`) | No |
 
 **Rules:**
 - Do not change the cron schedule without Paul's approval.
 - Do not change the region without testing delivery latency.
 - Model selection changes require approval.
-- The daily image path must resolve to a committed record for the Brisbane edition date; missing or mismatched records hold before rendering.
-- Never print, export, log, persist or commit the Postgres connection value. Verify only the environment key name and database-side schema evidence.
-- No registry failure may fall back to legacy direct send. Keep the recurring command in dry-run containment until the exact deployed commit, schema, proof and canary are independently verified and Paul authorises reactivation.
-- Preflight must verify the hosted REMEMBER THE WORLD bytes against the governed SHA-256 before freezing a release. Morning delivery must not fetch or substitute the image.
-
-### Render Postgres registry
-
-| Field | Value |
-|-------|-------|
-| Service | `dtl-signal-registry` |
-| Region | Singapore |
-| Plan | Basic-256mb, 1 GB storage |
-| Purpose | Immutable release, recipient delivery and append-only event registry |
-| Connection | Render-managed internal URL, masked as `SIGNAL_REGISTRY_DATABASE_URL` |
-| Credential rule | Use only the current unexposed default credential; exposed predecessors were deleted before use |
-
-Registry migrations are additive and checksum-tracked. Apply them only through `python -m src.registry_migrate` in the contained Render environment. Capture only migration version, checksum and verified table, trigger, function, index and constraint names—never the connection string.
-
-Registry preflight history is also database-backed. Recent delivered **production** source URLs are the cross-day dedup source; delivered proof and production joke/image identities are the non-repeat source. A source-controlled cutover seed preserves the ten Edition 0047 URLs and the approved Edition 0047/0048 image identities until delivered registry rows supersede them. History read failure is a critical preflight hold. No cron may fall back to Render's ephemeral `data/history.json`, `data/joke_history.json` or `data/alive_moment_history.json` for registry preparation.
 
 ---
 

@@ -8,9 +8,7 @@ v4.1 — Enhanced with:
 """
 from __future__ import annotations
 
-import html
 import logging
-import re
 import socket
 import time
 from dataclasses import dataclass, field
@@ -77,12 +75,11 @@ class RawItem:
     source: str
     category: str
     published_at: datetime | None = None
-    source_evidence: str = ""
     raw: dict[str, Any] = field(default_factory=dict)
 
     def to_scoring_payload(self) -> dict[str, Any]:
         """The compact view sent to the scoring layer."""
-        payload = {
+        return {
             "item_id": self.item_id,
             "title": self.title,
             "summary": self.summary[:600],  # truncate for cost
@@ -90,9 +87,6 @@ class RawItem:
             "category": self.category,
             "url": self.url,
         }
-        if self.source_evidence and self.source_evidence != self.summary:
-            payload["source_evidence"] = self.source_evidence[:1200]
-        return payload
 
 
 def _load_sources_config(path: str) -> dict[str, Any]:
@@ -244,41 +238,7 @@ def _fetch_with_retry(
     return None, last_error_type, last_error_detail, retries_used
 
 
-def _clean_feed_text(value: Any) -> str:
-    """Convert publisher-supplied feed HTML to compact plain source evidence."""
-    if not isinstance(value, str):
-        return ""
-    text = html.unescape(value)
-    text = re.sub(r"<script\b[^>]*>.*?</script>", " ", text, flags=re.I | re.S)
-    text = re.sub(r"<style\b[^>]*>.*?</style>", " ", text, flags=re.I | re.S)
-    text = re.sub(r"<[^>]+>", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def _entry_source_evidence(entry: Any) -> str:
-    """Retain publisher-owned RSS/Atom detail without fetching or inferring facts."""
-    candidates: list[Any] = [entry.get("summary", ""), entry.get("description", "")]
-    content = entry.get("content", []) or []
-    if isinstance(content, list):
-        for block in content:
-            if isinstance(block, dict):
-                candidates.append(block.get("value", ""))
-    parts: list[str] = []
-    for candidate in candidates:
-        cleaned = _clean_feed_text(candidate)
-        if cleaned and cleaned not in parts:
-            parts.append(cleaned)
-    return " ".join(parts)[:4000]
-
-
-def _fetch_rss(
-    name: str,
-    url: str,
-    category: str,
-    timeout: int,
-    max_age_hours: int,
-    reference_time: datetime | None = None,
-) -> tuple[list[RawItem], SourceFetchResult]:
+def _fetch_rss(name: str, url: str, category: str, timeout: int, max_age_hours: int) -> tuple[list[RawItem], SourceFetchResult]:
     """Fetch and parse a single RSS feed. Returns items and structured fetch result."""
     start = time.time()
     result = SourceFetchResult(name=name, url=url, category=category, success=False)
@@ -318,12 +278,7 @@ def _fetch_rss(
         log.info("RSS %s: empty feed (0 entries)", name)
         return [], result
 
-    reference_utc = (
-        reference_time.astimezone(timezone.utc)
-        if reference_time is not None
-        else datetime.now(timezone.utc)
-    )
-    cutoff = reference_utc - timedelta(hours=max_age_hours)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
     items: list[RawItem] = []
     for i, entry in enumerate(parsed.entries[:20]):  # cap items per feed
         # Determine published time
@@ -337,8 +292,12 @@ def _fetch_rss(
             continue  # too old
 
         title = entry.get("title", "").strip()
-        summary = _clean_feed_text(entry.get("summary", "") or entry.get("description", ""))
-        source_evidence = _entry_source_evidence(entry)
+        summary = entry.get("summary", "") or entry.get("description", "")
+        # Strip basic HTML tags from summary for the scoring payload
+        if "<" in summary:
+            import re
+            summary = re.sub(r"<[^>]+>", " ", summary)
+            summary = re.sub(r"\s+", " ", summary).strip()
 
         url_link = entry.get("link", "")
         if not title or not url_link:
@@ -352,7 +311,6 @@ def _fetch_rss(
             source=name,
             category=category,
             published_at=published_at,
-            source_evidence=source_evidence,
         ))
 
     result.success = True
@@ -465,24 +423,7 @@ def _fetch_reddit(subreddit: str, max_items: int, category: str, timeout: int) -
     return items, result
 
 
-def resolve_max_age_hours(
-    configured_hours: int,
-    edition_type: str,
-    reference_time: datetime | None,
-) -> int:
-    """Use a wider Monday window to bridge the weekend without changing other runs."""
-    if edition_type == "daily" and reference_time is not None and reference_time.weekday() == 0:
-        return max(configured_hours, 96)
-    return configured_hours
-
-
-def fetch_all(
-    sources_config_path: str,
-    history_urls: set[str] | None = None,
-    *,
-    edition_type: str = "",
-    reference_time: datetime | None = None,
-) -> tuple[list[RawItem], list[str], list[SourceFetchResult]]:
+def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) -> tuple[list[RawItem], list[str], list[SourceFetchResult]]:
     """Top-level: fetch from every configured source. Returns raw items, deduplicated by URL.
 
     Args:
@@ -495,18 +436,7 @@ def fetch_all(
     config = _load_sources_config(sources_config_path)
     fetch_cfg = config.get("fetch", {})
     timeout = fetch_cfg.get("timeout_seconds", 15)
-    configured_max_age_hours = fetch_cfg.get("max_age_hours", 48)
-    max_age_hours = resolve_max_age_hours(
-        configured_max_age_hours,
-        edition_type,
-        reference_time,
-    )
-    if max_age_hours != configured_max_age_hours:
-        log.info(
-            "Monday daily source window widened from %dh to %dh to bridge weekend publishing",
-            configured_max_age_hours,
-            max_age_hours,
-        )
+    max_age_hours = fetch_cfg.get("max_age_hours", 48)
 
     all_items: list[RawItem] = []
     failed_sources: list[str] = []
@@ -527,7 +457,6 @@ def fetch_all(
             category=feed["category"],
             timeout=timeout,
             max_age_hours=max_age_hours,
-            reference_time=reference_time,
         )
         all_results.append(fetch_result)
 

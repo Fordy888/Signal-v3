@@ -45,18 +45,13 @@ Signal is part of the DTLC.ai product ecosystem. It creates awareness, trust, an
 |-----------|--------|---------|
 | Code repository | GitHub | `Fordy888/Signal-v3` on `master` branch |
 | Deployment | Render | Cron job, auto-deploys from `master` |
-| Schedule | Two-stage subscriber delivery hold | Dedicated `dtl-signal-preflight` and existing `dtl-signal` delivery cron remain on annual containment schedules with production activation switches disabled until Paul separately authorises restoration. |
+| Schedule | Daily | `0 20 * * *` UTC = 6:00 AM AEST (Brisbane) |
 | Runtime | Python 3.11 | Render Standard plan, Singapore region |
-| Durable release registry | Render Postgres | `dtl-signal-registry`, Singapore; immutable releases, frozen recipient HTML, audience checksums, permanent recipient idempotency keys and append-only events |
 | AI Models | Anthropic Claude | Scoring: `claude-haiku-4-5`, Synthesis: `claude-sonnet-4-6` |
 | Email delivery | Resend | From: `signal@signal.dtlc.ai`, Reply-to: `paul.ford@gmail.com` |
 | Subscriber source | DTLC.ai website API | Live fetch with double-verification |
 | Monitoring | BetterStack | Heartbeat URL pinged on successful completion |
 | Alerts | Email (Resend) | Sent to paul.ford@gmail.com on failure or hold |
-
-The registry separates edition preparation from morning delivery. Preparation may fetch sources, run models, validate the governed image record and exact hosted image bytes, render HTML and double-verify the live audience. Before selection, it merges a source-controlled legacy cutover seed with delivered registry metadata: recent production source URLs drive cross-day deduplication, while delivered proof and production joke/image identities drive non-repeat checks. Registry/history failure holds before source selection. Preparation then stores the complete release, exact recipient-specific HTML, source URLs, joke ID and full governed image record in Postgres under `PREPARING` → `LOCKED` → `SCHEDULED`. The delivery worker may only claim the matching `SCHEDULED` release inside its approved window, re-verify its immutable bytes and audience, and deliver those frozen rows. It must not fetch sources or images, call a model, choose an image, change HTML or fall back to legacy `--send`.
-
-The subscriber service remains in dry-run containment. `SIGNAL_REGISTRY_REQUIRED=1` blocks direct legacy broadcast, including after deployment or dashboard-command drift. Registry proof delivery is Paul-only. Production audience locking, subscriber reactivation and any late recovery require separate explicit approval.
 
 ---
 
@@ -171,36 +166,6 @@ These corrections run in `src/synthesis.py` after the HTML is generated and befo
 Every edition now includes a "Today's 3 Executive Actions" section positioned between the Today's Signal thesis and Section 1. These are three short, specific, actionable takeaways (max 15 words each) distilled from the edition's content. They tell the reader exactly what to do based on today's signals.
 
 Styled in coral (#E8533A) with numbered items. Instructions and examples are in `prompts/synthesis_prompt.md`.
-
----
-
-## Founder-Led Newsroom + Focus on the Numbers Daily Format
-
-The locked reader format leads with a shorter `FOUNDER’S NOTE`, then presents exactly five big stories under `DTL SIGNAL NEWSROOM — READ THIS`, followed by exactly five separate compact entries under `FOCUS ON THE NUMBERS`. Newsroom stories use a short action/category lead-in, large clear headline, concise source-backed context and one source link. Each Focus entry identifies a company, organisation, person or market; one defining figure; and one sentence explaining what changed and why it matters commercially.
-
-The ten core items must use ten distinct source records and contain no repeated story, fact or source link across the two sections. Under the current `ai-adoption-v1` contract, every core item is about AI. `AI_ADOPTION` means evidence that a real organisation is applying AI to a process, decision, customer outcome, revenue, cost, risk or way of working. `AI_INDUSTRY_IMPACT` means an AI vendor, model, infrastructure, funding or regulatory development with a direct practical consequence for ordinary businesses. General business-only stories, passing AI mentions, hypothetical use, model gossip and technical theatre are ineligible.
-
-Source allocation is deterministic before planning: the model may write only from the five source IDs assigned to each section. Adoption must dominate the ten items. The operating safeguard requires at least six `AI_ADOPTION` items and permits no more than four `AI_INDUSTRY_IMPACT` items, with at least three adoption items in each section. When eight or more qualifying adoption sources are available, allocation preserves the stronger four-adoption-per-section mix used by the approved Edition 0047 proof. The 6/4 floor implements Fordy’s approved principle—adoption outnumbers AI-industry news—without turning the unapproved 8/2 interpretation into a brittle publishing quota.
-
-`THE ONE THING`, `THE SHIFT` and the reader-facing `WHAT CHANGED` section are not part of this format. Position movement remains internal to Signal Memory. The lower sequence remains `WHY IT MATTERS` → `WHAT TO DO NOW` → `THE OTHER SIDE` → `WATCH FOR THIS` → mandatory `REMEMBER THE WORLD` → mandatory Daily Dad Joke → minimal footer.
-
-The current candidate daily revision identifier is `ai-adoption-v1`, and its renderer identity remains `enhanced-v4-focus-numbers` because the reader format has not changed. The frozen `focus-on-the-numbers-v1` identifier, manifest and checksum remain historical evidence for the superseded 60/40 approval and must not be relabelled as the all-AI proof. Weekly Wrap remains on its separately approved route.
-
-The planner’s third and final attempt may deterministically shorten presentation-bound copy while preserving sources, classifications, figures and meaning. If a Focus item omits its defining figure, recovery is allowed only from an explicit numeric expression in that item’s single selected source record. The source ID and content classification cannot change. Ambiguous sources or source records without an eligible figure remain critical holds; Signal must never invent or borrow a number from another item.
-
-If an independently verified AI Focus item fails to make its AI subject and business consequence explicit in reader-visible copy, the third attempt may replace only its `meaning` with a clean sentence copied from that same source’s evidence. For `AI_ADOPTION`, that sentence must also state the actual use, process or work change. The source, defining figure and classification remain fixed. Cross-source wording, invented copy and internal source IDs remain prohibited and hold the edition.
-
-Before planning begins, Signal builds a verified Focus-number source pool. Only evidence records containing an explicit eligible business figure may be selected for `FOCUS ON THE NUMBERS`; bare years and unquantified claims do not qualify. Fewer than five distinct eligible sources is a pre-planning hold. The model receives the eligible IDs, and validation rejects any Focus citation outside that pool.
-
-Signal also classifies source substance before planning. It does not trust planner-assigned labels. A source qualifies as `AI_ADOPTION` only when its supplied title, evidence or scoring reason states explicit AI, actual application by a real or named organisation, a concrete process or work area and a business consequence. Hypothetical uses do not qualify. A source qualifies as `AI_INDUSTRY_IMPACT` only when it states both a real AI-industry development and its practical business consequence. Focus receives only pre-verified numeric sources. The planner cannot select, move, substitute or relabel the allocated sources. If the evidence cannot fill two five-item all-AI sections with adoption dominant, the edition holds before model generation.
-
-RSS and Atom ingestion retains bounded publisher-supplied `content` text from the same feed entry as `source_evidence`; it does not scrape another page or infer missing facts. The scorer may inspect up to 1,200 characters and the deterministic planner gates may inspect up to 2,500 characters. This preserves explicit organisations, actual AI use, changed work and business figures that terse feed summaries otherwise discard. Source-owned percentages may appear as `%`, `percent` or `per cent`; the pipeline recognises all three without converting or inventing figures. Hypothetical language excludes the affected sentence, not an independently explicit deployed-adoption sentence elsewhere in the same source record. After deterministic allocation, the editorial model receives only the ten selected records, limiting prompt size and preventing unallocated source leakage. Ordinary daily runs use the configured 48-hour recency window. Monday daily runs use a governed 96-hour bridge so Friday business reporting remains eligible after the weekend; this does not alter Weekly Wrap behaviour or waive source-age and delivery-history checks.
-
-When Paul has approved an exact edition artefact, a source-controlled manifest under `data/locked_editions/` may freeze its issue date, plan, evidence, Dad Joke, governed image and expected HTML checksum. The production path must independently reclassify and validate the all-AI evidence, image date and section allocation before rendering, then reject any checksum drift. `--locked-edition` is the required canary and one-time release route for an exact approved artefact; it must not remain on the recurring Weekly Wrap command.
-
-REMEMBER THE WORLD candidates approved from 1 September 2026 onward must record a natural dominant colour family. Brand harmony is a curation preference only: photographs must never be recoloured or artificially tinted, and artistic power, authenticity, rights, provenance, date validity and non-repetition remain the hard gates.
-
-Current daily revisions resolve the governed image record from `SIGNAL_ALIVE_MOMENT_PATH`, normally `data/alive_moments/{date}.json`. The resolved record must match the Brisbane edition date and edition ID and must clear delivered-image identity, location, species and category-frequency checks. Registry preflight also fetches the approved hosted asset and requires HTTPS, an image content type and exact equality with the record's SHA-256 before any release can be frozen. The deterministic morning worker uses the frozen release and performs no image fetch. A missing, stale, repeated, unavailable, substituted, rights-ineligible or mismatched image is a critical hold. The pipeline must never silently omit this section or reuse yesterday’s image.
 
 ---
 

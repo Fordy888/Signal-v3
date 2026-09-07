@@ -8,13 +8,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import logging
 import os
-import re
 import sys
 import time
-from datetime import date, datetime, time as datetime_time, timedelta
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -28,36 +26,9 @@ from .delivery import send_brief
 from .attribution import report_send_results, resolve_subscriber_ids
 from .founders_note import generate_founders_note, inject_founders_note
 from .signal_gauge import is_gauge_enabled, inject_gauge_into_html, personalise_gauge_for_subscriber
-from .share_block import inject_share_block, personalise_share_for_subscriber
 from .history import load_history, record_edition
-from .judgement_plan import (
-    MAX_AI_INDUSTRY_IMPACT_ITEMS,
-    MIN_AI_ADOPTION_ITEMS,
-    MIN_AI_ADOPTION_ITEMS_PER_SECTION,
-    generate_judgement_plan,
-    scored_items_to_evidence,
-)
-from .signal_memory import (
-    alive_history_from_memory,
-    apply_alive_moment_update,
-    apply_memory_update,
-    embed_delivery_memory,
-    load_signal_memory,
-    memory_context,
-    recover_signal_memory_from_resend,
-    save_signal_memory,
-)
-from .enhanced_renderer import render_enhanced_email
-from .human_signal import load_joke_history, load_jokes, record_joke, select_joke
-from .alive_moment import AliveMomentError, load_alive_history, load_alive_moment, record_alive_moment, resolve_alive_moment_path, validate_alive_moment, verify_alive_moment_asset
-from .edition_counter import edition_for_date, get_next_edition, increment_edition
-from .locked_edition import render_locked_edition
-from .weekly_wrap_qa import validate_weekly_wrap_html
+from .edition_counter import get_next_edition, increment_edition
 from .subscribers import fetch_subscribers
-from .release_registry import ReleaseRegistry, RegistryError
-from .release_history import load_cutover_history, merge_release_histories
-from .registry_pipeline import deliver_release as deliver_registry_release
-from .registry_pipeline import prepare_release as prepare_registry_release
 from .qa_gate import (
     run_pre_send_qa,
     create_receipt,
@@ -67,8 +38,6 @@ from .qa_gate import (
     classify_subscribers,
     build_category_coverage,
     build_failed_source_summary,
-    check_release_identity,
-    check_registry_preflight_identity,
 )
 
 BRISBANE = ZoneInfo("Australia/Brisbane")
@@ -189,60 +158,12 @@ def main() -> int:
                             help="Send mode: broadcast to all active subscribers from website API")
     mode_group.add_argument("--dry-run", action="store_true",
                             help="Dry run: pipeline runs but no email sent")
-    mode_group.add_argument("--prepare-release", action="store_true",
-                            help="Build, validate and store an immutable registry release without sending")
-    mode_group.add_argument("--deliver-release", action="store_true",
-                            help="Deliver only a previously locked registry release")
-    parser.add_argument("--release-scope", choices=["proof", "production"], default=None,
-                        help="Registry release scope; required by --prepare-release and --deliver-release")
-    parser.add_argument("--release-date", type=str, default=None,
-                        help="Registry edition date in YYYY-MM-DD; preparation renders that date, delivery selects it")
-    parser.add_argument("--next-issue-date", action="store_true",
-                        help="Preparation only: target the next Brisbane calendar date")
-    parser.add_argument("--deliver-prepared-proof", action="store_true",
-                        help="After locking a proof-scope release, deliver it immediately through the registry")
     parser.add_argument("--save-html", type=str, default=None,
                         help="Also save the brief to this file path")
     parser.add_argument("--force-type", type=str, choices=["daily", "weekly_wrap"],
                         default=None,
                         help="Override day-of-week detection (for testing)")
-    parser.add_argument("--enhanced", action="store_true",
-                        help="Run Development Thesis V1 judgement architecture (default off; approval comparison only)")
-    parser.add_argument("--alive-moment", action="store_true",
-                        help="Require a governed REMEMBER THE WORLD candidate (automatically required by current daily revisions)")
-    parser.add_argument("--locked-edition", type=int, default=None,
-                        help="Render a checksum-locked approved Enhanced daily edition")
-    parser.add_argument("--as-of", type=str, default=None,
-                        help="ISO timestamp for proof/dry-run route and metadata simulation; never permitted with --send")
-    parser.add_argument("--release-canary", action="store_true",
-                        help="Proof-only mode: enforce the live production release-identity gate")
     args = parser.parse_args()
-    if args.alive_moment and not args.enhanced:
-        parser.error("--alive-moment requires --enhanced")
-    if args.locked_edition is not None and not args.enhanced:
-        parser.error("--locked-edition requires --enhanced")
-    if args.as_of and args.send:
-        parser.error("--as-of is never permitted with --send")
-    if args.release_canary and not args.proof:
-        parser.error("--release-canary requires --proof")
-    if args.release_canary and not args.enhanced:
-        parser.error("--release-canary requires --enhanced")
-    if (args.prepare_release or args.deliver_release) and not args.release_scope:
-        parser.error("--release-scope is required for registry preparation and delivery")
-    if args.prepare_release and not args.enhanced:
-        parser.error("--prepare-release currently requires --enhanced")
-    if args.deliver_release and (
-        args.enhanced or args.alive_moment or args.locked_edition is not None
-    ):
-        parser.error("--deliver-release consumes the locked registry artefact and accepts no render flags")
-    if args.deliver_prepared_proof and not (
-        args.prepare_release and args.release_scope == "proof"
-    ):
-        parser.error("--deliver-prepared-proof requires --prepare-release --release-scope proof")
-    if args.next_issue_date and args.release_date:
-        parser.error("--next-issue-date cannot be combined with --release-date")
-    if args.next_issue_date and not args.prepare_release:
-        parser.error("--next-issue-date requires --prepare-release")
 
     # Locate project root (parent of src/)
     root = Path(__file__).resolve().parent.parent
@@ -257,53 +178,24 @@ def main() -> int:
     log = logging.getLogger("dtl_signal")
 
     start_time = time.time()
-    mode = (
-        "proof" if args.proof
-        else "send" if args.send
-        else "prepare-release" if args.prepare_release
-        else "deliver-release" if args.deliver_release
-        else "dry-run"
-    )
-    if args.as_of:
-        runtime_now = datetime.fromisoformat(args.as_of)
-        if runtime_now.tzinfo is None:
-            parser.error("--as-of must include a timezone offset")
-        runtime_now = runtime_now.astimezone(BRISBANE)
-    else:
-        runtime_now = datetime.now(BRISBANE)
-    release_date = None
-    if args.next_issue_date:
-        release_date = runtime_now.date() + timedelta(days=1)
-    elif args.release_date:
-        try:
-            release_date = date.fromisoformat(args.release_date)
-        except ValueError:
-            parser.error("--release-date must be YYYY-MM-DD")
-    content_now = (
-        datetime.combine(release_date, datetime_time(6, 0), tzinfo=BRISBANE)
-        if args.prepare_release and release_date
-        else runtime_now
-    )
+    mode = "proof" if args.proof else "send" if args.send else "dry-run"
     log.info("DTL Signal v3 starting (mode=%s) at %s",
-             mode, runtime_now.strftime("%Y-%m-%d %H:%M AEST"))
+             mode, datetime.now(BRISBANE).strftime("%Y-%m-%d %H:%M AEST"))
 
-    # Prefer Render's deployed revision; fall back to local Git for development.
-    code_version = os.environ.get("RENDER_GIT_COMMIT", "").strip()
-    if not code_version:
-        try:
-            import subprocess
-            code_version = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"],
-                cwd=str(root), stderr=subprocess.DEVNULL
-            ).decode().strip()
-        except Exception:
-            code_version = "unknown"
+    # Get code version for traceability in run receipts
+    try:
+        import subprocess
+        code_version = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=str(root), stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        code_version = "unknown"
     log.info("Code version: %s", code_version)
 
     # ─── DAY-OF-WEEK ROUTING ──────────────────────────────────────────
-    now_brisbane = content_now
-    routing_date = release_date or now_brisbane.date()
-    day_of_week = routing_date.weekday()  # 0=Mon, 5=Sat, 6=Sun
+    now_brisbane = datetime.now(BRISBANE)
+    day_of_week = now_brisbane.weekday()  # 0=Mon, 5=Sat, 6=Sun
 
     if args.force_type:
         edition_type = args.force_type
@@ -317,87 +209,6 @@ def main() -> int:
     else:
         edition_type = "daily"
         log.info("Weekday detected — running Daily Signal")
-    use_enhanced = args.enhanced and edition_type == "daily"
-    renderer_id = (
-        "enhanced-v4-focus-numbers"
-        if use_enhanced
-        else "weekly-wrap-current" if edition_type == "weekly_wrap" else "legacy-daily"
-    )
-    if args.enhanced and not use_enhanced:
-        log.info("Enhanced daily format not applied to %s; using its approved route", edition_type)
-
-    if (
-        args.deliver_release
-        and args.release_scope == "production"
-        and os.environ.get("SIGNAL_PRODUCTION_DELIVERY_ENABLED") != "1"
-    ):
-        log.error("REGISTRY PRODUCTION DELIVERY DISABLED")
-        send_alert(
-            "Registry production delivery disabled — edition NOT sent",
-            "SIGNAL_PRODUCTION_DELIVERY_ENABLED is not 1. No registry release was claimed.",
-        )
-        return 1
-
-    if args.deliver_release:
-        try:
-            registry_result = deliver_registry_release(
-                registry=ReleaseRegistry.from_env(),
-                issue_time=runtime_now,
-                release_issue_date=release_date,
-                edition_type=edition_type,
-                release_scope=args.release_scope,
-                actual_git_commit=code_version,
-            )
-        except RegistryError as exc:
-            log.error("REGISTRY DELIVERY HELD: %s", exc)
-            send_alert("Registry delivery held — edition NOT sent", str(exc))
-            return 1
-        except Exception as exc:
-            log.exception("REGISTRY DELIVERY FAILED CLOSED")
-            send_alert(
-                "Registry delivery unavailable — edition NOT sent",
-                f"The locked-release worker failed before a safe completion: {str(exc)[:500]}",
-            )
-            return 1
-        log.info(
-            "Registry delivery complete: edition=%04d scope=%s state=%s sent=%d/%d failed=%d",
-            registry_result["edition_number"],
-            registry_result["scope"],
-            registry_result["state"],
-            registry_result["sent"],
-            registry_result["total"],
-            registry_result["failed"],
-        )
-        if registry_result["state"] != "DELIVERED":
-            send_alert(
-                "Registry delivery failed",
-                f"Edition {registry_result['edition_number']:04d} ended in "
-                f"{registry_result['state']} with {registry_result['failed']} failure(s).",
-            )
-            return 1
-        ping_heartbeat()
-        return 0
-
-    if args.send and os.environ.get("SIGNAL_REGISTRY_REQUIRED") == "1":
-        log.error("DIRECT SEND DISABLED: SIGNAL_REGISTRY_REQUIRED=1")
-        send_alert(
-            "Direct send blocked — edition NOT sent",
-            "The registry is required. Use --deliver-release with a locked release.",
-        )
-        return 1
-
-    preparing_proof = args.prepare_release and args.release_scope == "proof"
-    preparing_production = args.prepare_release and args.release_scope == "production"
-    if (
-        preparing_production
-        and os.environ.get("SIGNAL_PRODUCTION_PREFLIGHT_ENABLED") != "1"
-    ):
-        log.error("REGISTRY PRODUCTION PREFLIGHT DISABLED")
-        send_alert(
-            "Registry production preflight disabled — no release locked",
-            "SIGNAL_PRODUCTION_PREFLIGHT_ENABLED is not 1. No subscriber audience was fetched.",
-        )
-        return 1
 
     if not os.environ.get("ANTHROPIC_API_KEY"):
         log.error("ANTHROPIC_API_KEY not set. Configure .env or environment.")
@@ -410,7 +221,7 @@ def main() -> int:
              source_counts["active"], source_counts["disabled"], source_counts["probation"])
 
     # ─── Resolve recipient list based on mode ───────────────────────────
-    if args.proof or preparing_proof:
+    if args.proof:
         # Proof mode: send to Paul only
         proof_email = load_proof_recipient()
         if not proof_email:
@@ -419,20 +230,25 @@ def main() -> int:
         recipients = [{"email": proof_email, "firstName": "Paul"}]
         log.info("PROOF MODE: sending to %s only", proof_email)
 
-    elif args.send or preparing_production:
+    elif args.send:
         # Send mode: fetch all active subscribers from website API
         log.info("SEND MODE: fetching subscribers from website API...")
         api_subscribers = fetch_subscribers()
 
         if not api_subscribers:
-            log.error("ABORT: Live subscriber API returned no eligible recipients.")
-            send_alert(
-                "Subscriber fetch failed — edition NOT sent",
-                "The live website API returned no eligible subscribers. "
-                "No static or YAML audience fallback is permitted. Please check WEBSITE_BASE_URL, "
-                "SIGNAL_PIPELINE_API_KEY and the API response on Render."
-            )
-            return 1
+            log.warning("Website API returned no subscribers — trying YAML fallback")
+            yaml_subs = load_subscribers_from_yaml(root)
+            if yaml_subs:
+                recipients = [{"email": s["email"], "firstName": s.get("name", "").split()[0]} for s in yaml_subs]
+                log.warning("Using %d subscriber(s) from YAML fallback", len(recipients))
+            else:
+                log.error("ABORT: No subscribers from API or YAML. Cannot send to 0 people.")
+                send_alert(
+                    "Subscriber fetch failed — edition NOT sent",
+                    "The website API returned no subscribers and the YAML fallback is also empty. "
+                    "Today's edition was NOT sent. Please check WEBSITE_BASE_URL and SIGNAL_PIPELINE_API_KEY on Render."
+                )
+                return 1
         else:
             recipients = api_subscribers
             log.info("Fetched %d active subscriber(s) from website API", len(recipients))
@@ -457,7 +273,7 @@ def main() -> int:
         return 1
 
     # ─── FAIL-SAFE: Verify against live subscriber source of truth ──────
-    if args.send or preparing_production:
+    if args.send:
         log.info("FAIL-SAFE: Verifying recipients against live subscriber source of truth...")
         verify_subscribers = fetch_subscribers()
         if verify_subscribers:
@@ -495,108 +311,47 @@ def main() -> int:
 
             log.info("FAIL-SAFE: Source of truth verified — %d subscribers confirmed", api_count)
         else:
-            if args.send or preparing_production:
-                log.error("FAIL-SAFE ABORT: Subscriber verification fetch returned empty.")
-                send_alert(
-                    "Subscriber verification failed — edition NOT sent",
-                    "The second source-of-truth fetch returned no eligible subscribers. "
-                    "The release was not sent or locked.",
-                )
-                return 1
-            log.warning("FAIL-SAFE: Verification fetch returned empty — proceeding with proof audience")
+            log.warning("FAIL-SAFE: Verification fetch returned empty — proceeding with original list")
 
     # ─── Pipeline stages ────────────────────────────────────────────────
 
     # 0. Load edition history and get next edition number
-    registry: ReleaseRegistry | None = None
-    durable_release_history = {
-        "source_urls": set(),
-        "joke_ids": [],
-        "alive_moments": [],
-    }
     history_urls = load_history(root)
-    if args.prepare_release:
-        try:
-            registry = ReleaseRegistry.from_env()
-            durable_release_history = merge_release_histories(
-                load_cutover_history(root),
-                registry.load_recent_delivery_history(as_of=runtime_now),
-            )
-        except Exception as exc:
-            log.exception("REGISTRY HISTORY FAILED CLOSED")
-            send_alert(
-                "Registry history unavailable — no release locked",
-                f"Durable source, joke or image history could not be loaded: {str(exc)[:500]}",
-            )
-            return 1
-        history_urls.update(durable_release_history["source_urls"])
-        log.info(
-            "Durable preflight history: sources=%d jokes=%d images=%d",
-            len(durable_release_history["source_urls"]),
-            len(durable_release_history["joke_ids"]),
-            len(durable_release_history["alive_moments"]),
-        )
     log.info("Loaded %d URLs from recent editions for cross-day dedup", len(history_urls))
-    edition_number = (
-        edition_for_date(now_brisbane.date())
-        if args.as_of or release_date
-        else get_next_edition(root)
-    )
+    edition_number = get_next_edition(root)
     log.info("Next edition number: %04d", edition_number)
-    if use_enhanced and args.locked_edition is not None and edition_number != args.locked_edition:
-        log.error(
-            "LOCKED EDITION HOLD: runtime Edition %04d does not match approved Edition %04d",
-            edition_number,
-            args.locked_edition,
-        )
-        return 1
 
-    locked_preflight = bool(
-        args.prepare_release and use_enhanced and args.locked_edition is not None
-    )
-    if locked_preflight:
-        log.info(
-            "LOCKED PREFLIGHT: bypassing source fetch, scoring and model generation for Edition %04d",
-            args.locked_edition,
-        )
-        raw_items = []
-        failed_sources = []
-        fetch_results = []
-        degraded_sources = []
-        scored = []
-        category_coverage = {}
+    # 1. Fetch raw items (returns tuple with failed sources AND detailed fetch results)
+    log.info("Stage 1: Fetching sources...")
+    raw_items, failed_sources, fetch_results = fetch_all(sources_config_path, history_urls=history_urls)
+    if not raw_items:
+        log.warning("No items fetched. Proceeding to graceful quiet-day briefs.")
     else:
-        # 1. Fetch raw items (returns tuple with failed sources AND detailed fetch results)
-        log.info("Stage 1: Fetching sources...")
-        raw_items, failed_sources, fetch_results = fetch_all(
-            sources_config_path,
-            history_urls=history_urls,
-            edition_type=edition_type,
-            reference_time=now_brisbane,
-        )
-        if not raw_items:
-            log.warning("No items fetched. Proceeding to graceful quiet-day briefs.")
-        else:
-            log.info("Stage 1 complete: %d raw items fetched", len(raw_items))
+        log.info("Stage 1 complete: %d raw items fetched", len(raw_items))
 
-        sources_succeeded = sum(1 for r in fetch_results if r.success)
-        log.info("Source fetch summary: %d succeeded, %d failed out of %d attempted",
-                 sources_succeeded, len(failed_sources), len(fetch_results))
-        degraded_sources = record_source_failures(
-            root,
-            failed_sources=failed_sources,
-            active_sources=source_counts["active_names"],
-        )
+    # Log fetch diagnostics
+    sources_succeeded = sum(1 for r in fetch_results if r.success)
+    log.info("Source fetch summary: %d succeeded, %d failed out of %d attempted",
+             sources_succeeded, len(failed_sources), len(fetch_results))
 
-        # 2. Score items
-        log.info("Stage 2: Scoring items...")
-        scored = score_items(
-            items=raw_items,
-            scoring_prompt_path=str(root / "prompts" / "scoring_prompt.md"),
-        )
-        log.info("Stage 2 complete: %d items survived scoring", len(scored))
-        category_coverage = build_category_coverage(scored)
-        log.info("Category coverage: %s", {k: v for k, v in category_coverage.items() if v > 0})
+    # Track source health (consecutive failures)
+    degraded_sources = record_source_failures(
+        root,
+        failed_sources=failed_sources,
+        active_sources=source_counts["active_names"],
+    )
+
+    # 2. Score items
+    log.info("Stage 2: Scoring items...")
+    scored = score_items(
+        items=raw_items,
+        scoring_prompt_path=str(root / "prompts" / "scoring_prompt.md"),
+    )
+    log.info("Stage 2 complete: %d items survived scoring", len(scored))
+
+    # Build category coverage for QA gate
+    category_coverage = build_category_coverage(scored)
+    log.info("Category coverage: %s", {k: v for k, v in category_coverage.items() if v > 0})
 
     # 3. Synthesise brief (one edition for all subscribers — same content)
     log.info("Stage 3: Synthesising brief...")
@@ -611,112 +366,15 @@ def main() -> int:
     else:
         synthesis_prompt_path = str(root / "prompts" / "synthesis_prompt.md")
 
-    enhanced_plan = None
-    selected_joke = None
-    signal_memory = None
-    alive_moment = None
-    html_sha256 = ""
-    memory_path = root / os.environ.get("SIGNAL_MEMORY_PATH", "data/signal_memory.json")
-    joke_history_path = root / os.environ.get("SIGNAL_JOKE_HISTORY_PATH", "data/joke_history.json")
-    alive_history_path = root / os.environ.get("SIGNAL_ALIVE_HISTORY_PATH", "data/alive_moment_history.json")
-
     try:
-        if use_enhanced:
-            log.info("Stage 3: Building structured judgement plan (enhanced mode)...")
-            signal_memory = (
-                recover_signal_memory_from_resend()
-                if args.send or preparing_production
-                else load_signal_memory(memory_path)
-            )
-            if args.locked_edition is not None:
-                html, enhanced_plan, planner_evidence, selected_joke, alive_moment = (
-                    render_locked_edition(root, args.locked_edition)
-                )
-                category_coverage = build_category_coverage(planner_evidence)
-                log.info("Loaded checksum-locked Edition %04d", args.locked_edition)
-            else:
-                planner_evidence = scored_items_to_evidence(scored)
-                enhanced_plan = generate_judgement_plan(
-                    evidence_items=planner_evidence,
-                    prior_memory=memory_context(signal_memory),
-                    prompt_path=root / "prompts" / "judgement_planner_prompt.md",
-                )
-                jokes = load_jokes(root / "data" / "dad_jokes.json")
-                selected_joke = select_joke(
-                    jokes,
-                    edition_number=edition_number,
-                    recent_ids=(
-                        durable_release_history["joke_ids"]
-                        if args.prepare_release
-                        else load_joke_history(joke_history_path)
-                    ),
-                )
-                editorial_revision = str(enhanced_plan.get("editorial_revision", ""))
-                requires_alive_moment = args.alive_moment or editorial_revision in {
-                    "dynamic-headlines-v1",
-                    "focus-on-the-numbers-v1",
-                    "ai-adoption-v1",
-                }
-                if requires_alive_moment:
-                    alive_path = resolve_alive_moment_path(
-                        root,
-                        os.environ.get(
-                            "SIGNAL_ALIVE_MOMENT_PATH",
-                            "data/alive_moments/{date}.json",
-                        ),
-                        edition_id=f"{edition_number:04d}",
-                        edition_date=now_brisbane.strftime("%Y-%m-%d"),
-                    )
-                    delivered_alive_history = (
-                        durable_release_history["alive_moments"]
-                        if args.prepare_release
-                        else alive_history_from_memory(signal_memory)
-                        if args.send or preparing_production
-                        else load_alive_history(alive_history_path)
-                    )
-                    if not alive_path.exists():
-                        raise AliveMomentError(
-                            f"Required REMEMBER THE WORLD record is missing: {alive_path}"
-                        )
-                    alive_moment = validate_alive_moment(
-                        load_alive_moment(alive_path),
-                        delivered_alive_history,
-                        expected_edition_id=f"{edition_number:04d}",
-                        expected_date=now_brisbane.strftime("%Y-%m-%d"),
-                    )
-                    log.info(
-                        "REMEMBER THE WORLD validated for Edition %04d: %s",
-                        edition_number,
-                        alive_moment["id"],
-                    )
-                html = render_enhanced_email(
-                    plan=enhanced_plan,
-                    sources=planner_evidence,
-                    joke=selected_joke,
-                    edition_number=edition_number,
-                    generated_at=now_brisbane,
-                    alive_moment=alive_moment,
-                )
-        else:
-            html = synthesise(
-                scored_items=scored,
-                context_path=context_path,
-                synthesis_prompt_path=synthesis_prompt_path,
-                edition_number=edition_number,
-                edition_type=edition_type,
-                generated_at=now_brisbane,
-            )
-        if alive_moment and args.prepare_release:
-            asset_identity = verify_alive_moment_asset(alive_moment)
-            log.info(
-                "REMEMBER THE WORLD hosted bytes verified: sha256=%s bytes=%d content_type=%s",
-                asset_identity["sha256"],
-                asset_identity["bytes"],
-                asset_identity["content_type"],
-            )
+        html = synthesise(
+            scored_items=scored,
+            context_path=context_path,
+            synthesis_prompt_path=synthesis_prompt_path,
+            edition_number=edition_number,
+            edition_type=edition_type,
+        )
         log.info("Stage 3 complete: %d chars of HTML produced", len(html))
-        html_sha256 = hashlib.sha256(html.encode("utf-8")).hexdigest()
-        log.info("Release identity: renderer=%s html_sha256=%s", renderer_id, html_sha256)
     except Exception as e:
         log.error("Synthesis failed: %s", e)
         receipt = create_receipt(
@@ -733,8 +391,6 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
             edition_type=edition_type,
-            renderer_id=renderer_id,
-            html_sha256=html_sha256,
         )
         receipt.qa_issues = [f"[CRITICAL] Synthesis: Generation failed with error: {e}"]
         save_receipt(root, receipt)
@@ -742,26 +398,19 @@ def main() -> int:
         return 1
 
     # ─── Stage 3b: Founder's Note ──────────────────────────────────────
-    if use_enhanced:
-        log.info("Stage 3b: Enhanced mode uses governed DTL View + Human Signal; standalone Founder's Note skipped")
-    else:
-        log.info("Stage 3b: Generating Founder's Note...")
-        try:
-            founders_note = generate_founders_note(scored, edition_number, root)
-            if founders_note:
-                html = inject_founders_note(html, founders_note)
-                log.info("Stage 3b complete: Founder's Note injected ('%s', %d words)",
-                         founders_note.get("headline", ""), founders_note.get("word_count", 0))
-            else:
-                log.warning("Stage 3b: Founder's Note generation returned empty — skipping")
-        except Exception as e:
-            log.warning("Stage 3b: Founder's Note failed (non-fatal) — %s", e)
+    log.info("Stage 3b: Generating Founder's Note...")
+    try:
+        founders_note = generate_founders_note(scored, edition_number, root)
+        if founders_note:
+            html = inject_founders_note(html, founders_note)
+            log.info("Stage 3b complete: Founder's Note injected ('%s', %d words)",
+                     founders_note.get("headline", ""), founders_note.get("word_count", 0))
+        else:
+            log.warning("Stage 3b: Founder's Note generation returned empty — skipping")
+    except Exception as e:
+        log.warning("Stage 3b: Founder's Note failed (non-fatal) — %s", e)
     # ─── Stage 3c: Signal Strength Gauge ───────────────────────────────
-    if (
-        not use_enhanced
-        and edition_type != "weekly_wrap"
-        and is_gauge_enabled(mode, edition_number)
-    ):
+    if is_gauge_enabled(mode, edition_number):
         log.info("Stage 3c: Injecting Signal Strength Gauge...")
         try:
             html = inject_gauge_into_html(html, scored, edition_number)
@@ -769,92 +418,10 @@ def main() -> int:
         except Exception as e:
             log.warning("Stage 3c: Gauge injection failed (non-fatal) — %s", e)
 
-    # Source-controlled parity with the live legacy/Weekly Wrap share block.
-    # The locked Enhanced proof intentionally has no unapproved share module.
-    if not use_enhanced:
-        try:
-            html = inject_share_block(html, edition_number)
-            log.info("Stage 3d complete: Share block injected for edition %04d", edition_number)
-        except Exception as e:
-            log.warning("Stage 3d: Share block injection failed (non-fatal) — %s", e)
-
     # Quality gate: block delivery if key synthesis section is missing
     if edition_type == "weekly_wrap":
-        has_key_section, weekly_issues = validate_weekly_wrap_html(html)
-        gate_label = "Weekly Wrap structure"
-        if weekly_issues:
-            log.error("Weekly Wrap gate issues: %s", "; ".join(weekly_issues))
-    elif use_enhanced:
-        if enhanced_plan and enhanced_plan.get("editorial_revision") in {
-            "focus-on-the-numbers-v1", "ai-adoption-v1"
-        }:
-            required_labels = (
-                "FOUNDER'S NOTE",
-                "DTL SIGNAL NEWSROOM — READ THIS",
-                "YOUR SIGNAL AT A GLANCE",
-                "FOCUS ON THE NUMBERS",
-                "WHY IT MATTERS",
-                "WHAT TO DO NOW",
-                "THE OTHER SIDE",
-                "WATCH FOR THIS",
-                "REMEMBER THE WORLD",
-                "DAD JOKE OF THE DAY",
-            )
-            removed_labels = ("THE EVIDENCE", "THE ONE THING", "THE SHIFT", "WHAT CHANGED")
-            newsroom_mix = [
-                item.get("mix_classification")
-                for item in enhanced_plan.get("evidence_items", [])
-                if isinstance(item, dict)
-            ]
-            focus_mix = [
-                item.get("mix_classification")
-                for item in enhanced_plan.get("focus_numbers", [])
-                if isinstance(item, dict)
-            ]
-            if enhanced_plan.get("editorial_revision") == "ai-adoption-v1":
-                complete_mix = newsroom_mix + focus_mix
-                exact_mix_markers = (
-                    len(newsroom_mix) == 5
-                    and len(focus_mix) == 5
-                    and all(
-                        classification in {"AI_ADOPTION", "AI_INDUSTRY_IMPACT"}
-                        for classification in complete_mix
-                    )
-                    and complete_mix.count("AI_ADOPTION") >= MIN_AI_ADOPTION_ITEMS
-                    and complete_mix.count("AI_INDUSTRY_IMPACT") <= MAX_AI_INDUSTRY_IMPACT_ITEMS
-                    and newsroom_mix.count("AI_ADOPTION")
-                    >= MIN_AI_ADOPTION_ITEMS_PER_SECTION
-                    and focus_mix.count("AI_ADOPTION")
-                    >= MIN_AI_ADOPTION_ITEMS_PER_SECTION
-                )
-                gate_label = "founder-led all-AI adoption-first reader-visible intelligence sequence"
-            else:
-                exact_mix_markers = (
-                    newsroom_mix.count("AI_BUSINESS") == 3
-                    and newsroom_mix.count("MAJOR_BUSINESS") == 2
-                    and focus_mix.count("AI_BUSINESS") == 3
-                    and focus_mix.count("MAJOR_BUSINESS") == 2
-                )
-                gate_label = "founder-led exact 6/4 reader-visible intelligence sequence"
-            leaked_internal_label = re.search(
-                r">[^<]*\b[a-z][a-z0-9]*_[a-z0-9_]+\b[^<]*<",
-                html,
-            )
-            has_key_section = all(label in html for label in required_labels) and all(
-                label not in html for label in removed_labels
-            ) and exact_mix_markers and leaked_internal_label is None
-        elif enhanced_plan and enhanced_plan.get("editorial_revision") == "dynamic-headlines-v1":
-            has_key_section = all(
-                label in html
-                for label in ("THE ONE THING", "THE EVIDENCE", "THE SHIFT", "WHY IT MATTERS", "WHAT CHANGED", "WHAT TO DO NOW", "THE OTHER SIDE", "WATCH FOR THIS")
-            )
-            gate_label = "v4 dynamic-headline intelligence sequence"
-        else:
-            has_key_section = all(
-                label in html
-                for label in ("THE ONE THING", "THE EVIDENCE", "WHAT CHANGED?", "COUNTER-SIGNAL", "EXECUTIVE READ", "What to Watch")
-            )
-            gate_label = "Development Thesis V1 intelligence sequence"
+        has_key_section = ("THE PATTERN" in html and "EXECUTIVE TAKEAWAY" in html)
+        gate_label = "Weekly Wrap key sections (Traffic Light + EXECUTIVE TAKEAWAY)"
     else:
         has_key_section = ("EXECUTIVE READ" in html and "What to Watch" in html)
         gate_label = "Executive Read section"
@@ -879,8 +446,6 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
             edition_type=edition_type,
-            renderer_id=renderer_id,
-            html_sha256=html_sha256,
         )
         receipt.qa_issues = [f"[CRITICAL] Content Quality: {gate_label} is missing or incomplete"]
         save_receipt(root, receipt)
@@ -889,53 +454,18 @@ def main() -> int:
 
     # ─── PRE-SEND QA GATE ──────────────────────────────────────────────
     log.info("Running pre-send QA gate...")
-    qa_mode = (
-        "proof"
-        if args.proof or preparing_proof
-        else "send" if args.send or preparing_production
-        else mode
-    )
-    qa_evidence = planner_evidence if locked_preflight else scored
     should_send, qa_results = run_pre_send_qa(
         edition_number=edition_number,
         html=html,
-        scored_count=len(qa_evidence),
+        scored_count=len(scored),
         recipient_count=len(recipients),
         sources_failed=len(failed_sources),
         sources_active=source_counts["active"],
-        mode=qa_mode,
+        mode=mode,
         root=root,
-        scored_items=qa_evidence,
+        scored_items=scored,
         fetch_results=fetch_results,
-        as_of=now_brisbane,
-        locked_evidence=planner_evidence if locked_preflight else None,
     )
-    editorial_revision = (
-        str(enhanced_plan.get("editorial_revision", "")).strip()
-        if enhanced_plan and edition_type == "daily"
-        else None
-    )
-    if preparing_production:
-        release_identity_result = check_registry_preflight_identity(
-            renderer_id=renderer_id,
-            editorial_revision=editorial_revision or "",
-            actual_commit=code_version,
-        )
-    else:
-        identity_mode = "send" if args.release_canary else mode
-        release_identity_result = check_release_identity(
-            renderer_id=renderer_id,
-            edition_type=edition_type,
-            mode=identity_mode,
-            editorial_revision=editorial_revision,
-            as_of=now_brisbane,
-        )
-    if args.release_canary:
-        log.info("RELEASE CANARY: production identity gate enforced within proof-only recipient boundary")
-    qa_results.append(release_identity_result)
-    log.info(str(release_identity_result))
-    if not release_identity_result.passed and release_identity_result.severity == "critical":
-        should_send = False
 
     if not should_send:
         log.error("PRE-SEND QA GATE FAILED — Edition HELD. Not sending.")
@@ -956,127 +486,20 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
             edition_type=edition_type,
-            renderer_id=renderer_id,
-            html_sha256=html_sha256,
-            release_identity_status=(
-                "MATCH" if release_identity_result.passed else "MISMATCH"
-            ) if args.release_canary else None,
         )
         save_receipt(root, receipt)
         send_receipt_email(receipt)
         return 1
-
+    # Save HTML if requested
     if args.save_html:
         save_path = Path(args.save_html)
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        proof_html = personalise_gauge_for_subscriber(html, "proof@dtlc.ai")
-        proof_token = hashlib.sha256(b"proof@dtlc.ai").hexdigest()[:12]
-        proof_html = personalise_share_for_subscriber(proof_html, proof_token)
-        save_path.write_text(proof_html, encoding="utf-8")
+        with open(save_path, "w") as f:
+            # Personalise gauge with proof subscriber hash for saved HTML
+            proof_html = personalise_gauge_for_subscriber(html, "proof@dtlc.ai")
+            f.write(proof_html)
         log.info("Brief saved to %s", save_path)
 
-    if args.prepare_release:
-        delivery_memory = None
-        if use_enhanced and enhanced_plan and signal_memory is not None:
-            scheduled_delivery = now_brisbane.replace(
-                hour=6, minute=0, second=0, microsecond=0
-            )
-            delivery_memory = apply_memory_update(
-                signal_memory,
-                enhanced_plan["memory_update"],
-                enhanced_plan["what_changed"],
-                edition_number=edition_number,
-                delivered_at=scheduled_delivery.isoformat(),
-            )
-            if alive_moment is not None:
-                delivery_memory = apply_alive_moment_update(
-                    delivery_memory,
-                    alive_moment,
-                    edition_number=edition_number,
-                    delivered_at=scheduled_delivery.isoformat(),
-                )
-
-        source_urls = []
-        for item in qa_evidence:
-            if isinstance(item, dict):
-                url = str(item.get("url") or "")
-            else:
-                raw = item.raw if hasattr(item, "raw") else None
-                url = getattr(raw, "url", "") if raw is not None else ""
-            if url:
-                source_urls.append(url)
-        editorial_revision = (
-            str(enhanced_plan.get("editorial_revision", "")).strip()
-            if enhanced_plan else "legacy"
-        )
-        try:
-            if registry is None:
-                registry = ReleaseRegistry.from_env()
-            frozen = prepare_registry_release(
-                registry=registry,
-                edition_number=edition_number,
-                issue_time=now_brisbane,
-                delivery_time=runtime_now if args.release_scope == "proof" else now_brisbane,
-                edition_type=edition_type,
-                release_scope=args.release_scope,
-                editorial_revision=editorial_revision,
-                renderer=renderer_id,
-                release_id=(
-                    f"{editorial_revision}-registry-{edition_number:04d}-{args.release_scope}"
-                ),
-                git_commit=code_version,
-                html=html,
-                recipients=recipients,
-                image=alive_moment,
-                delivery_memory=delivery_memory,
-                metadata={
-                    "source_urls": sorted(set(source_urls)),
-                    "joke_id": selected_joke.get("id") if selected_joke else None,
-                    "alive_moment": alive_moment,
-                    "base_html_sha256": html_sha256,
-                },
-            )
-        except Exception as exc:
-            log.exception("REGISTRY PREPARATION FAILED CLOSED")
-            send_alert(
-                "Registry preparation held — no release locked",
-                f"The immutable release could not be stored safely: {str(exc)[:500]}",
-            )
-            return 1
-        log.info(
-            "Registry release locked: id=%s edition=%04d scope=%s html_sha256=%s audience=%d",
-            frozen.id,
-            frozen.edition_number,
-            frozen.release_scope,
-            frozen.html_sha256,
-            frozen.audience_count,
-        )
-        if not args.deliver_prepared_proof:
-            return 0
-        try:
-            registry_result = deliver_registry_release(
-                registry=registry,
-                issue_time=runtime_now,
-                release_issue_date=now_brisbane.date(),
-                edition_type=edition_type,
-                release_scope="proof",
-                actual_git_commit=code_version,
-            )
-        except Exception as exc:
-            log.exception("PREPARED PROOF DELIVERY FAILED CLOSED")
-            send_alert(
-                "Prepared registry proof held — proof NOT sent",
-                f"The proof could not be delivered safely: {str(exc)[:500]}",
-            )
-            return 1
-        log.info(
-            "Prepared proof delivered from registry: state=%s sent=%d/%d failed=%d",
-            registry_result["state"],
-            registry_result["sent"],
-            registry_result["total"],
-            registry_result["failed"],
-        )
-        return 0 if registry_result["state"] == "DELIVERED" else 1
     # ─── Dry-run: print recipient list and exit ─────────────────────────
     if args.dry_run:
         print(f"\n{'=' * 60}")
@@ -1111,8 +534,6 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
             edition_type=edition_type,
-            renderer_id=renderer_id,
-            html_sha256=html_sha256,
         )
         save_receipt(root, receipt)
         return 0
@@ -1125,22 +546,6 @@ def main() -> int:
     fail_count = 0
     failed_recipient_emails: list[str] = []
     delivery_map: list[tuple[str, str]] = []  # (email, resend_message_id)
-    delivery_memory = None
-    if use_enhanced and enhanced_plan and signal_memory is not None:
-        delivery_memory = apply_memory_update(
-            signal_memory,
-            enhanced_plan["memory_update"],
-            enhanced_plan["what_changed"],
-            edition_number=edition_number,
-            delivered_at=datetime.now(BRISBANE).isoformat(),
-        )
-        if alive_moment is not None:
-            delivery_memory = apply_alive_moment_update(
-                delivery_memory,
-                alive_moment,
-                edition_number=edition_number,
-                delivered_at=datetime.now(BRISBANE).isoformat(),
-            )
 
     for i, recipient in enumerate(recipients):
         email = recipient["email"]
@@ -1153,38 +558,21 @@ def main() -> int:
 
         subject_override = None
         if edition_type == "weekly_wrap":
-            week_ending = runtime_now.strftime('%d %B %Y')
+            week_ending = datetime.now(BRISBANE).strftime('%d %B %Y')
             if args.proof:
                 subject_override = f"[PROOF] DTL Signal Weekly Wrap | Week Ending {week_ending}"
             else:
                 subject_override = f"DTL Signal Weekly Wrap | Week Ending {week_ending}"
         elif args.proof:
-            if use_enhanced and enhanced_plan and enhanced_plan.get("editorial_revision") in {
-                "focus-on-the-numbers-v1", "ai-adoption-v1"
-            }:
-                subject_override = f"[PROOF] DTL Signal | Final Founder-Led Format | Edition {edition_number:04d}"
-            else:
-                subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {runtime_now.strftime('%A %d %B %Y')}"
+            subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
 
         # Personalise gauge links for this subscriber
         personalised_html = personalise_gauge_for_subscriber(html, email)
-        subscriber_token = hashlib.sha256(email.lower().strip().encode()).hexdigest()[:12]
-        personalised_html = personalise_share_for_subscriber(personalised_html, subscriber_token)
-        if delivery_memory is not None:
-            personalised_html = embed_delivery_memory(personalised_html, delivery_memory)
-        delivery_tags = [
-            {"name": "message_type", "value": "signal"},
-            {"name": "edition", "value": f"{edition_number:04d}"},
-            {"name": "edition_type", "value": edition_type},
-            {"name": "format", "value": renderer_id if use_enhanced else "legacy"},
-            {"name": "delivery_mode", "value": "production" if args.send else "proof"},
-        ]
         result = send_brief(
             html_body=personalised_html,
             recipient_email=email,
             subject_override=subject_override,
             edition_number=edition_number,
-            tags=delivery_tags,
         )
 
         if result:
@@ -1214,27 +602,6 @@ def main() -> int:
             edition_id = f"edition_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
             record_edition(root, delivered_urls, edition_id=edition_id)
             increment_edition(root)
-            if use_enhanced and enhanced_plan and selected_joke and signal_memory is not None:
-                delivered_at = datetime.now(BRISBANE).isoformat()
-                updated_memory = apply_memory_update(
-                    signal_memory,
-                    enhanced_plan["memory_update"],
-                    enhanced_plan["what_changed"],
-                    edition_number=edition_number,
-                    delivered_at=delivered_at,
-                )
-                if alive_moment:
-                    updated_memory = apply_alive_moment_update(
-                        updated_memory,
-                        alive_moment,
-                        edition_number=edition_number,
-                        delivered_at=delivered_at,
-                    )
-                save_signal_memory(memory_path, updated_memory)
-                record_joke(joke_history_path, selected_joke["id"])
-                if alive_moment:
-                    record_alive_moment(alive_history_path, alive_moment, published_at=delivered_at)
-                log.info("Enhanced memory and Human Signal rotation recorded after successful delivery")
             log.info("Edition counter incremented. Next edition will be %04d", edition_number + 1)
     except Exception as e:
         bookkeeping_error = str(e)
@@ -1307,11 +674,6 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
             edition_type=edition_type,
-            renderer_id=renderer_id,
-            html_sha256=html_sha256,
-            release_identity_status=(
-                "MATCH" if release_identity_result.passed else "MISMATCH"
-            ) if args.release_canary else None,
         )
 
         if bookkeeping_error:
