@@ -314,7 +314,7 @@ def verify_frozen_release(release: FrozenRelease) -> None:
         raise RegistryIntegrityError("release subject is missing")
     if not re.fullmatch(r"[0-9a-f]{40}", release.git_commit):
         raise RegistryIntegrityError("release git commit is invalid")
-    if "<html" not in release.html_body.lower() and "<!doctype" not in release.html_body.lower():
+    if not _is_complete_email_html(release.html_body):
         raise RegistryIntegrityError("release HTML is incomplete")
     if (
         release.scheduled_for.tzinfo is None

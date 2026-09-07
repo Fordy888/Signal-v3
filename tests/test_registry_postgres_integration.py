@@ -29,7 +29,17 @@ class RegistryPostgresIntegrationTests(unittest.TestCase):
         self.registry = ReleaseRegistry(DATABASE_URL)
         self.issue_time = datetime(2026, 9, 7, 6, 0, tzinfo=BRISBANE)
 
-    def _release(self, *, edition_number: int = 48):
+    def _release(self, *, edition_number: int = 48, table_fragment: bool = False):
+        release_html = (
+            "<table>" + ("Locked Signal release content " * 100) + "</table>"
+            if table_fragment
+            else "<!DOCTYPE html><html><body>Edition</body></html>"
+        )
+        recipient_html = (
+            "<table>" + ("Personalised Signal content for Paul " * 100) + "</table>"
+            if table_fragment
+            else "<!DOCTYPE html><html><body>Paul</body></html>"
+        )
         return build_frozen_release(
             edition_number=edition_number,
             issue_date=self.issue_time.date(),
@@ -40,7 +50,7 @@ class RegistryPostgresIntegrationTests(unittest.TestCase):
             release_id=f"ai-adoption-v1-registry-{edition_number:04d}",
             git_commit="a" * 40,
             subject=f"[PROOF] DTL Signal Edition {edition_number:04d}",
-            html_body="<!DOCTYPE html><html><body>Edition</body></html>",
+            html_body=release_html,
             image_id=f"REMEMBER-{edition_number:04d}",
             image_sha256="b" * 64,
             scheduled_for=self.issue_time,
@@ -51,10 +61,25 @@ class RegistryPostgresIntegrationTests(unittest.TestCase):
                     "subscriber_id": 1,
                     "email": "paul@example.com",
                     "first_name": "Paul",
-                    "html_body": "<!DOCTYPE html><html><body>Paul</body></html>",
+                    "html_body": recipient_html,
                 }
             ],
         )
+
+    def test_table_fragment_stores_and_reloads_through_real_postgres(self) -> None:
+        release = self._release(table_fragment=True)
+        self.registry.store_locked_release(release)
+        stored = self.registry.load_frozen_release(release.id)
+        self.assertEqual(release, stored)
+        with psycopg.connect(DATABASE_URL, row_factory=dict_row) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT state, audience_count FROM signal_releases WHERE id = %s",
+                    (release.id,),
+                )
+                row = cursor.fetchone()
+        self.assertEqual("SCHEDULED", row["state"])
+        self.assertEqual(1, row["audience_count"])
 
     def test_full_claim_send_complete_path_and_append_only_events(self) -> None:
         release = self._release()

@@ -79,6 +79,7 @@ class ReleaseRegistryContractTests(unittest.TestCase):
             recipients=[_recipient("paul@example.com", "Paul")],
         )
         self.assertEqual("proof", release.release_scope)
+        verify_frozen_release(release)
 
     def test_short_table_fragment_is_rejected(self):
         with self.assertRaisesRegex(RegistryIntegrityError, "HTML is incomplete"):
