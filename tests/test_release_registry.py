@@ -212,6 +212,28 @@ class ReleaseRegistryContractTests(unittest.TestCase):
                 ],
             )
 
+    def test_recipient_html_accepts_complete_table_fragment_and_rejects_short_fragment(self):
+        base = _release()
+        kwargs = {
+            key: value
+            for key, value in base.__dict__.items()
+            if key not in {"id", "html_sha256", "audience_sha256", "audience_count", "recipients"}
+        }
+        complete_fragment = "<table><tr><td>" + ("Personalised Signal content. " * 50) + "</td></tr></table>"
+        release = build_frozen_release(
+            **kwargs,
+            recipients=[_recipient("paul.ford@gmail.com", "Paul") | {"html_body": complete_fragment}],
+        )
+        self.assertEqual(release.recipients[0].html_body, complete_fragment)
+        with self.assertRaisesRegex(RegistryIntegrityError, "recipient HTML is incomplete"):
+            build_frozen_release(
+                **kwargs,
+                recipients=[
+                    _recipient("paul.ford@gmail.com", "Paul")
+                    | {"html_body": "<table><tr><td>short</td></tr></table>"}
+                ],
+            )
+
     def test_release_state_transitions_are_fail_closed(self):
         valid = [
             ("PREPARING", "LOCKED"),

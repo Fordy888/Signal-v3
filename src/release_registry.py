@@ -155,6 +155,17 @@ def recipient_idempotency_key(
     return sha256_text(raw)
 
 
+def _is_complete_email_html(html_body: str) -> bool:
+    normalised_html = html_body.lower()
+    has_document_wrapper = "<html" in normalised_html or "<!doctype" in normalised_html
+    has_complete_email_fragment = (
+        len(html_body) >= 1000
+        and "<table" in normalised_html
+        and "</table>" in normalised_html
+    )
+    return has_document_wrapper or has_complete_email_fragment
+
+
 def _freeze_recipients(
     *,
     edition_number: int,
@@ -170,7 +181,7 @@ def _freeze_recipients(
             raise RegistryIntegrityError(f"duplicate recipient in frozen audience: {email}")
         seen.add(email)
         html_body = str(recipient.get("html_body", ""))
-        if "<html" not in html_body.lower() and "<!doctype" not in html_body.lower():
+        if not _is_complete_email_html(html_body):
             raise RegistryIntegrityError(f"recipient HTML is incomplete for {email}")
         recipient_hash = sha256_text(email)
         html_sha256 = sha256_text(html_body)
@@ -248,14 +259,7 @@ def build_frozen_release(
     commit = str(git_commit or "").strip().lower()
     if not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise RegistryIntegrityError("git commit must be a full 40-character SHA")
-    normalised_html = html_body.lower()
-    has_document_wrapper = "<html" in normalised_html or "<!doctype" in normalised_html
-    has_complete_email_fragment = (
-        len(html_body) >= 1000
-        and "<table" in normalised_html
-        and "</table>" in normalised_html
-    )
-    if not has_document_wrapper and not has_complete_email_fragment:
+    if not _is_complete_email_html(html_body):
         raise RegistryIntegrityError("release HTML is incomplete")
     if scheduled_for.tzinfo is None or window_start.tzinfo is None or window_end.tzinfo is None:
         raise RegistryIntegrityError("scheduled delivery timestamps must be timezone-aware")

@@ -621,7 +621,13 @@
 - [x] Align and independently verify the contained registry-required dry-run command's expected commit to deployed `1543d78`, with no `--send` or `--deliver-release`
 - [ ] Create and re-read one proof-scope Edition 0048 registry release with exactly one Paul recipient, without contacting Resend
 - [x] Prove the first deployed Edition 0048 preflight failed closed before any database insert or provider call because the registry rejected the renderer's complete table-based email fragment for lacking a document wrapper
-- [ ] Deploy the audited HTML completeness correction that accepts a substantial closed table fragment while rejecting short/incomplete HTML, then retry preflight once
+- [x] Deploy audited HTML completeness correction `3be3b9584f52490237e3cf2ab1f5c232fa005113` as Render build `bld-daf0p68n74is73fqvp30`; complete integration and detached gates each passed 173 tests, and the Render build passed 173 tests with three production-only skips
+- [ ] Align the contained registry-required dry-run command's expected commit to deployed `3be3b95`, then retry the non-sending Paul-only Edition 0048 preflight exactly once
+- [x] Align the contained command to deployed `3be3b95` and retry the Paul-only non-sending preflight once; release-level HTML passed, but recipient-level completeness held before insert or provider contact
+- [ ] Align the recipient-specific HTML completeness check with the same audited substantial closed table-fragment rule, prove it against personalised frozen bytes, deploy, and retry preflight only after containment is restored
+- [x] Confirm the 01:04 UTC retry on commit `3be3b95` reproduced checksum `e77af51c...`, passed ten-source and Paul-only QA, then held at recipient-specific HTML validation before any insert or Resend call
+- [x] Restore and independently verify the recurring command after the second hold: exact commit `3be3b95`, registry required, `--dry-run`, no `--send`, no `--deliver-release`
+- [x] Unify release and recipient HTML completeness on one substantial closed table-fragment rule and pass all 174 tests across 16 modules in both the integration checkout and a fresh detached worktree, including three real PostgreSQL registry tests in each
 - [x] Commit and fast-forward Option B registry, Edition 0048 recovery and containment controls from deployed baseline `5fb530c` to GitHub master commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` without force-pushing
 - [x] Manually build and deploy exact commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` on Render as build `bld-daf074nqj5pc73b5j940`; build ran 169 tests successfully with 3 production-only skips
 - [x] Restore and independently verify the active recurring command after migration: `SIGNAL_REGISTRY_REQUIRED=1`, exact deployed commit `78f4ff2`, `--dry-run`, no `--send`, no `--deliver-release`, and no stale Edition 0047 release variables
