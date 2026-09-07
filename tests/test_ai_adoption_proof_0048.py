@@ -16,6 +16,7 @@ from src.judgement_plan import (
     prepare_focus_number_evidence,
     validate_judgement_plan,
 )
+from src.locked_edition import render_locked_edition
 from src.qa_gate import load_release_manifest
 
 
@@ -149,6 +150,16 @@ class AIAdoptionProof0048Tests(unittest.TestCase):
             manifest["editorial_contract"]["minimum_ai_adoption_items_per_section"],
             3,
         )
+
+    def test_locked_manifest_reproduces_exact_committed_proof(self):
+        html, plan, evidence, joke, moment = render_locked_edition(ROOT, 48)
+        self.assertEqual(html, PROOF_PATH.read_text())
+        self.assertEqual(hashlib.sha256(html.encode()).hexdigest(), PROOF_SHA256)
+        self.assertEqual(plan["editorial_revision"], "ai-adoption-v1")
+        self.assertEqual(len(evidence), 10)
+        self.assertEqual(joke["setup"], "Why did the robot take a welding class?")
+        self.assertEqual(moment["id"], "REMEMBER-0048-GARY-PLANT-WELDERS")
+        self.assertEqual(moment["date"], "2026-09-07")
 
 
 if __name__ == "__main__":

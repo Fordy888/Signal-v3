@@ -599,7 +599,7 @@
 - [x] Fail closed when an uncertain provider send is 23 hours old so retry cannot outlive Resend's 24-hour idempotency protection
 - [x] Retry uncertain provider sends only inside a 23-hour safe idempotency window; fail closed after it rather than risk a duplicate
 - [x] Link `dtl-signal-registry` to the contained cron through masked key `SIGNAL_REGISTRY_DATABASE_URL` using the managed same-region internal datastore reference
-- [ ] Apply and verify additive migration `001_release_registry.sql` before inserting any release
+- [x] Apply and verify additive migration `001_release_registry.sql` from deployed commit `78f4ff2` before inserting any release; source checksum `38b4fe9ce630a3b48613b90b746036e8b9f3c59b2a2a6d89a3100bc78e263eab`
 - [x] Add an idempotent checksum-tracked migration runner that verifies all registry tables and triggers without printing the database URL
 - [x] Rotate the registry database's initial default credential after it was exposed by the dashboard automation response
 - [x] Verify the initial credential is deleted or invalidated before linking the replacement to Signal
@@ -609,3 +609,7 @@
 - [x] Pass all 168 tests across 15 independently bounded modules in both the integration checkout and a fresh detached worktree, including real PostgreSQL transition, immutability, duplicate-claim and append-only event checks
 - [x] Distinguish definitive Resend rejection from uncertain transport outcomes so known failures become terminal while ambiguous sends retain the same idempotency key for safe resume
 - [x] Remove the unchecked direct SQL migration bypass and require the checksum-tracked migration runner
+- [x] Add a checksum-locked Edition 0048 manifest that reproduces committed proof `e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f` from committed plan, evidence, joke and date-resolved governed image without model generation
+- [x] Commit and fast-forward Option B registry, Edition 0048 recovery and containment controls from deployed baseline `5fb530c` to GitHub master commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` without force-pushing
+- [x] Manually build and deploy exact commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` on Render as build `bld-daf074nqj5pc73b5j940`; build ran 169 tests successfully with 3 production-only skips
+- [x] Restore and independently verify the active recurring command after migration: `SIGNAL_REGISTRY_REQUIRED=1`, exact deployed commit `78f4ff2`, `--dry-run`, no `--send`, no `--deliver-release`, and no stale Edition 0047 release variables
