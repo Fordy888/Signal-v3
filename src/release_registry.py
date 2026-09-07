@@ -248,7 +248,14 @@ def build_frozen_release(
     commit = str(git_commit or "").strip().lower()
     if not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise RegistryIntegrityError("git commit must be a full 40-character SHA")
-    if "<html" not in html_body.lower() and "<!doctype" not in html_body.lower():
+    normalised_html = html_body.lower()
+    has_document_wrapper = "<html" in normalised_html or "<!doctype" in normalised_html
+    has_complete_email_fragment = (
+        len(html_body) >= 1000
+        and "<table" in normalised_html
+        and "</table>" in normalised_html
+    )
+    if not has_document_wrapper and not has_complete_email_fragment:
         raise RegistryIntegrityError("release HTML is incomplete")
     if scheduled_for.tzinfo is None or window_start.tzinfo is None or window_end.tzinfo is None:
         raise RegistryIntegrityError("scheduled delivery timestamps must be timezone-aware")

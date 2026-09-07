@@ -59,6 +59,48 @@ def _release(*, edition_type: str = "daily"):
 
 
 class ReleaseRegistryContractTests(unittest.TestCase):
+    def test_complete_table_email_fragment_is_accepted_without_document_wrapper(self):
+        release = build_frozen_release(
+            edition_number=48,
+            issue_date=date(2026, 9, 7),
+            edition_type="daily",
+            release_scope="proof",
+            editorial_revision="ai-adoption-v1",
+            renderer="enhanced-v4-focus-numbers",
+            release_id="ai-adoption-v1-proof-0048",
+            git_commit="a" * 40,
+            subject="[PROOF] DTL Signal | Edition 0048 | Monday 07 September 2026",
+            html_body="<table>" + ("Signal content " * 100) + "</table>",
+            image_id="REMEMBER-0048",
+            image_sha256="b" * 64,
+            scheduled_for=datetime(2026, 9, 7, 7, 0, tzinfo=UTC),
+            window_start=datetime(2026, 9, 7, 6, 0, tzinfo=UTC),
+            window_end=datetime(2026, 9, 7, 20, 0, tzinfo=UTC),
+            recipients=[_recipient("paul@example.com", "Paul")],
+        )
+        self.assertEqual("proof", release.release_scope)
+
+    def test_short_table_fragment_is_rejected(self):
+        with self.assertRaisesRegex(RegistryIntegrityError, "HTML is incomplete"):
+            build_frozen_release(
+                edition_number=48,
+                issue_date=date(2026, 9, 7),
+                edition_type="daily",
+                release_scope="proof",
+                editorial_revision="ai-adoption-v1",
+                renderer="enhanced-v4-focus-numbers",
+                release_id="ai-adoption-v1-proof-0048",
+                git_commit="a" * 40,
+                subject="[PROOF] DTL Signal | Edition 0048 | Monday 07 September 2026",
+                html_body="<table><tr><td>short</td></tr></table>",
+                image_id="REMEMBER-0048",
+                image_sha256="b" * 64,
+                scheduled_for=datetime(2026, 9, 7, 7, 0, tzinfo=UTC),
+                window_start=datetime(2026, 9, 7, 6, 0, tzinfo=UTC),
+                window_end=datetime(2026, 9, 7, 20, 0, tzinfo=UTC),
+                recipients=[_recipient("paul@example.com", "Paul")],
+            )
+
     def test_build_freezes_sorted_audience_and_permanent_idempotency(self):
         release = _release()
         self.assertEqual(2, release.audience_count)

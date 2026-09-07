@@ -616,6 +616,12 @@
 - [x] Make locked registry preflight bypass live source fetching, scoring and model generation; validate the exact ten committed evidence rows and freeze source metadata from those same rows
 - [x] Re-read every stored release and recipient from Postgres immediately after preflight and fail closed unless the persisted immutable release exactly equals the in-memory candidate
 - [x] Pass all 171 tests across 16 independently bounded modules in both the integration checkout and a fresh detached worktree after deterministic locked preflight and persisted-readback controls
+- [x] Fast-forward deterministic locked-preflight commit `1543d78b023558f331fdd40a6bf3146814cf0cfe` to GitHub master without force-pushing
+- [x] Build and deploy exact commit `1543d78b023558f331fdd40a6bf3146814cf0cfe` as Render build `bld-daf0jjeq1p3s73b5h5s0`; build passed 171 tests with three production-only skips
+- [x] Align and independently verify the contained registry-required dry-run command's expected commit to deployed `1543d78`, with no `--send` or `--deliver-release`
+- [ ] Create and re-read one proof-scope Edition 0048 registry release with exactly one Paul recipient, without contacting Resend
+- [x] Prove the first deployed Edition 0048 preflight failed closed before any database insert or provider call because the registry rejected the renderer's complete table-based email fragment for lacking a document wrapper
+- [ ] Deploy the audited HTML completeness correction that accepts a substantial closed table fragment while rejecting short/incomplete HTML, then retry preflight once
 - [x] Commit and fast-forward Option B registry, Edition 0048 recovery and containment controls from deployed baseline `5fb530c` to GitHub master commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` without force-pushing
 - [x] Manually build and deploy exact commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` on Render as build `bld-daf074nqj5pc73b5j940`; build ran 169 tests successfully with 3 production-only skips
 - [x] Restore and independently verify the active recurring command after migration: `SIGNAL_REGISTRY_REQUIRED=1`, exact deployed commit `78f4ff2`, `--dry-run`, no `--send`, no `--deliver-release`, and no stale Edition 0047 release variables
