@@ -11,7 +11,7 @@ from contextlib import ExitStack, redirect_stdout
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from zoneinfo import ZoneInfo
 
 from src.main import main
@@ -673,6 +673,45 @@ class ReleaseSimulationTests(unittest.TestCase):
         alert_mock.assert_called_once()
         send_mock.assert_not_called()
 
+    def test_registry_history_failure_stops_before_source_fetch(self) -> None:
+        patches = self._common_patches()
+        with ExitStack() as stack:
+            entered = [stack.enter_context(item) for item in patches]
+            fetch_mock = entered[2]
+            send_mock = entered[6]
+            alert_mock = stack.enter_context(patch("src.main.send_alert"))
+            stack.enter_context(
+                patch(
+                    "src.main.ReleaseRegistry.from_env",
+                    side_effect=RuntimeError("registry unavailable"),
+                )
+            )
+            stack.enter_context(
+                patch(
+                    "sys.argv",
+                    [
+                        "signal",
+                        "--prepare-release",
+                        "--release-scope",
+                        "proof",
+                        "--enhanced",
+                        "--locked-edition",
+                        "48",
+                        "--release-date",
+                        "2026-09-07",
+                        "--as-of",
+                        "2026-09-07T07:00:00+10:00",
+                    ],
+                )
+            )
+            with redirect_stdout(io.StringIO()):
+                result = main()
+
+        self.assertEqual(1, result)
+        fetch_mock.assert_not_called()
+        send_mock.assert_not_called()
+        alert_mock.assert_called_once()
+
     def test_registry_proof_preparation_freezes_one_recipient_without_delivery(self) -> None:
         patches = self._common_patches()
         frozen = SimpleNamespace(
@@ -681,6 +720,11 @@ class ReleaseSimulationTests(unittest.TestCase):
             release_scope="proof",
             html_sha256="e" * 64,
             audience_count=1,
+        )
+        registry = SimpleNamespace(
+            load_recent_delivery_history=Mock(
+                return_value={"source_urls": set(), "joke_ids": [], "alive_moments": []}
+            )
         )
         with ExitStack() as stack:
             entered = [stack.enter_context(item) for item in patches]
@@ -701,7 +745,7 @@ class ReleaseSimulationTests(unittest.TestCase):
                 )
             )
             stack.enter_context(patch("src.main.load_alive_history", return_value=[]))
-            stack.enter_context(patch("src.main.ReleaseRegistry.from_env", return_value=object()))
+            stack.enter_context(patch("src.main.ReleaseRegistry.from_env", return_value=registry))
             prepare_mock = stack.enter_context(
                 patch("src.main.prepare_registry_release", return_value=frozen)
             )
@@ -751,6 +795,10 @@ class ReleaseSimulationTests(unittest.TestCase):
             hashlib.sha256(kwargs["html"].encode()).hexdigest(),
         )
         self.assertEqual(10, len(kwargs["metadata"]["source_urls"]))
+        self.assertEqual(
+            "REMEMBER-0048-GARY-PLANT-WELDERS",
+            kwargs["metadata"]["alive_moment"]["id"],
+        )
 
     def test_registry_delivery_bypasses_generation_and_uses_locked_release(self) -> None:
         registry_result = {
@@ -794,12 +842,20 @@ class ReleaseSimulationTests(unittest.TestCase):
         plan = _ai_adoption_majority_plan()
         patches = self._common_patches()
         frozen = SimpleNamespace(
-            id="registry-production-0048",
-            edition_number=48,
+            id="registry-production-0049",
+            edition_number=49,
             release_scope="production",
             html_sha256="e" * 64,
             audience_count=4,
         )
+        registry_history_mock = Mock(
+            return_value={
+                "source_urls": {"https://example.com/recent-production-source"},
+                "joke_ids": ["J001"],
+                "alive_moments": [],
+            }
+        )
+        registry = SimpleNamespace(load_recent_delivery_history=registry_history_mock)
         release_env = {
             "RENDER": "true",
             "RENDER_GIT_BRANCH": "master",
@@ -818,6 +874,7 @@ class ReleaseSimulationTests(unittest.TestCase):
             stack.enter_context(patch.dict(os.environ, release_env, clear=False))
             entered = [stack.enter_context(item) for item in patches]
             fetch_subscribers_mock = entered[0]
+            fetch_sources_mock = entered[2]
             send_mock = entered[6]
             image_asset_mock = entered[7]
             stack.enter_context(
@@ -833,7 +890,7 @@ class ReleaseSimulationTests(unittest.TestCase):
                 )
             )
             stack.enter_context(patch("src.main.load_alive_history", return_value=[]))
-            stack.enter_context(patch("src.main.ReleaseRegistry.from_env", return_value=object()))
+            stack.enter_context(patch("src.main.ReleaseRegistry.from_env", return_value=registry))
             stack.enter_context(
                 patch(
                     "src.main.check_registry_preflight_identity",
@@ -859,7 +916,7 @@ class ReleaseSimulationTests(unittest.TestCase):
                         "--enhanced",
                         "--next-issue-date",
                         "--as-of",
-                        "2026-09-06T18:00:00+10:00",
+                        "2026-09-07T18:00:00+10:00",
                     ],
                 )
             )
@@ -876,7 +933,16 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertEqual(6, kwargs["issue_time"].hour)
         self.assertEqual(6, kwargs["delivery_time"].hour)
         self.assertEqual(0, kwargs["delivery_time"].minute)
-        self.assertEqual("2026-09-07", kwargs["issue_time"].date().isoformat())
+        self.assertEqual("2026-09-08", kwargs["issue_time"].date().isoformat())
+        self.assertEqual(
+            "REMEMBER-0049-GREAT-BARRIER-REEF",
+            kwargs["metadata"]["alive_moment"]["id"],
+        )
+        self.assertIn(
+            "https://example.com/recent-production-source",
+            fetch_sources_mock.call_args.kwargs["history_urls"],
+        )
+        registry_history_mock.assert_called_once()
 
     def test_production_delivery_disabled_before_registry_claim(self) -> None:
         with patch.dict(

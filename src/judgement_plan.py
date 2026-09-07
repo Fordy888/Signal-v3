@@ -319,7 +319,7 @@ def normalise_word_bound_fields(plan: dict[str, Any]) -> tuple[dict[str, Any], l
 
 ELIGIBLE_FOCUS_FIGURE_RE = re.compile(
     r"(?:[$€£]\s?\d[\d,]*(?:\.\d+)?\s?(?:thousand|million|billion|trillion)?)"
-    r"|(?:\b\d[\d,]*(?:\.\d+)?\s?(?:%|percent\b|basis points?\b|bps\b|"
+    r"|(?:\b\d[\d,]*(?:\.\d+)?\s?(?:%|percent\b|per\s+cent\b|basis points?\b|bps\b|"
     r"thousand\b|million\b|billion\b|trillion\b|roles\b|jobs\b|customers\b|"
     r"workers\b|employees\b|firms\b|companies\b|points\b|times\b|x\b))",
     re.IGNORECASE,
@@ -411,15 +411,21 @@ PRACTICAL_CONSEQUENCE_RE = re.compile(
 
 def _has_ai_adoption_evidence(text: str) -> bool:
     """Require explicit AI application by a real business actor to work or outcomes."""
-    has_actor = bool(
-        AI_ADOPTION_ACTOR_RE.search(text) or AI_NAMED_ADOPTION_ACTOR_RE.search(text)
+    concrete_text = " ".join(
+        sentence
+        for sentence in re.split(r"(?<=[.!?])\s+", text)
+        if sentence.strip() and not AI_HYPOTHETICAL_RE.search(sentence)
     )
-    if AI_HYPOTHETICAL_RE.search(text) or not (
-        AI_SUBJECT_RE.search(text)
-        and BUSINESS_IMPACT_RE.search(text)
-        and AI_ADOPTION_RE.search(text)
+    has_actor = bool(
+        AI_ADOPTION_ACTOR_RE.search(concrete_text)
+        or AI_NAMED_ADOPTION_ACTOR_RE.search(concrete_text)
+    )
+    if not (
+        AI_SUBJECT_RE.search(concrete_text)
+        and BUSINESS_IMPACT_RE.search(concrete_text)
+        and AI_ADOPTION_RE.search(concrete_text)
         and has_actor
-        and AI_ADOPTION_WORK_RE.search(text)
+        and AI_ADOPTION_WORK_RE.search(concrete_text)
     ):
         return False
     patterns = (
@@ -429,7 +435,7 @@ def _has_ai_adoption_evidence(text: str) -> bool:
         rf"{AI_ADOPTION_RE.pattern}.{{0,80}}{AI_SUBJECT_RE.pattern}.{{0,120}}{AI_ADOPTION_WORK_RE.pattern}",
         rf"{AI_NAMED_ADOPTION_ACTOR_RE.pattern}.{{0,120}}{AI_SUBJECT_RE.pattern}",
     )
-    return any(re.search(pattern, text, re.IGNORECASE) for pattern in patterns)
+    return any(re.search(pattern, concrete_text, re.IGNORECASE) for pattern in patterns)
 
 
 def _has_ai_industry_impact_evidence(text: str) -> bool:
@@ -1376,6 +1382,21 @@ def generate_judgement_plan(
         verified_industry_source_ids = sorted(
             source_id for source_id, classification in verified_mix_by_source.items()
             if classification == "AI_INDUSTRY_IMPACT"
+        )
+        log.info(
+            "AI evidence pools: numeric=%d adoption=%d numeric_adoption=%d "
+            "industry_impact=%d numeric_industry_impact=%d",
+            len(focus_eligible_source_ids),
+            len(verified_adoption_source_ids),
+            sum(
+                source_id in focus_eligible_source_ids
+                for source_id in verified_adoption_source_ids
+            ),
+            len(verified_industry_source_ids),
+            sum(
+                source_id in focus_eligible_source_ids
+                for source_id in verified_industry_source_ids
+            ),
         )
         if len(verified_adoption_source_ids) < MIN_AI_ADOPTION_ITEMS or (
             len(verified_adoption_source_ids) + len(verified_industry_source_ids) < 10

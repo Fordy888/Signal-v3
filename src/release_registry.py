@@ -407,6 +407,70 @@ class ReleaseRegistry:
             raise RegistryConfigurationError("psycopg is required for the release registry") from exc
         return psycopg.connect(self.database_url, row_factory=dict_row)
 
+    def load_recent_delivery_history(
+        self,
+        *,
+        as_of: datetime,
+        source_window_hours: int = 72,
+        joke_limit: int = 30,
+        image_limit: int = 365,
+    ) -> dict[str, Any]:
+        """Read immutable delivered release metadata for future preflight deduplication."""
+        if as_of.tzinfo is None:
+            raise RegistryIntegrityError("history reference time must be timezone-aware")
+        source_cutoff = as_of - timedelta(hours=source_window_hours)
+        with self._connect() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT release_scope, metadata, image_id, image_sha256,
+                           issue_date, delivered_at
+                    FROM signal_releases
+                    WHERE edition_type = 'daily'
+                      AND state IN ('DELIVERED', 'LATE_RECOVERY')
+                      AND delivered_at IS NOT NULL
+                      AND delivered_at <= %s
+                    ORDER BY delivered_at ASC, edition_number ASC
+                    """,
+                    (as_of,),
+                )
+                rows = cursor.fetchall()
+
+        source_urls: set[str] = set()
+        joke_ids: list[str] = []
+        alive_moments: list[dict[str, Any]] = []
+        for row in rows:
+            metadata = row.get("metadata")
+            if isinstance(metadata, str):
+                metadata = json.loads(metadata)
+            metadata = dict(metadata or {})
+            if row["release_scope"] == "production" and row["delivered_at"] >= source_cutoff:
+                source_urls.update(
+                    str(url).strip()
+                    for url in metadata.get("source_urls", [])
+                    if str(url).strip().startswith("https://")
+                )
+            joke_id = str(metadata.get("joke_id") or "").strip()
+            if joke_id:
+                joke_ids.append(joke_id)
+            moment = metadata.get("alive_moment")
+            if isinstance(moment, dict):
+                alive_moments.append(dict(moment))
+            elif row.get("image_id"):
+                alive_moments.append(
+                    {
+                        "id": str(row["image_id"]),
+                        "image_sha256": str(row.get("image_sha256") or ""),
+                        "date": row["issue_date"].isoformat(),
+                        "published_at": row["delivered_at"].isoformat(),
+                    }
+                )
+        return {
+            "source_urls": source_urls,
+            "joke_ids": joke_ids[-joke_limit:],
+            "alive_moments": alive_moments[-image_limit:],
+        }
+
     def store_locked_release(self, release: FrozenRelease) -> str:
         verify_frozen_release(release)
         with self._connect() as connection:

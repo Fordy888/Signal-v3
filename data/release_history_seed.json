@@ -1,0 +1,20 @@
+{
+  "production_source_urls": [
+    "https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai",
+    "https://www.reuters.com/world/asia-pacific/strong-majority-japanese-firms-have-yet-fully-embrace-ai-2026-08-12/",
+    "https://www.reuters.com/business/media-telecom/europes-established-tech-firms-emerge-unexpected-ai-winners-2026-08-05/",
+    "https://www.thomsonreuters.com/en/institute/reports/turning-law-firm-ai-strategies-into-practice",
+    "https://www.marketingdive.com/news/iab-revisits-ai-disclosure-in-ads-as-legal-requirements-multiply/828182/",
+    "https://www.customerexperiencedive.com/news/ai-adoption-in-cx-is-accelerating-but-few-projects-produce-value/827869/",
+    "https://www.db.com/news/detail/20260825-deutsche-bank-helps-shape-google-cloud-s-new-ai-solution-for-financial-services?language_id=1",
+    "https://www.salesforce.com/news/stories/agentic-enterprise-index-insights-2026/",
+    "https://www.gartner.com/en/newsroom/press-releases/2026-08-26-gartner-survey-finds-ai-spending-by-customer-service-leaders-has-surged-by-38-percent-despite-overall-service-and-support-function-budgets-rising-by-just-2-percent",
+    "https://artofprocurement.com/blog/state-of-ai-in-procurement"
+  ],
+  "joke_ids": [],
+  "alive_moment_paths": [
+    "data/alive_moments/2026-09-04.json",
+    "data/alive_moments/2026-09-07.json"
+  ],
+  "note": "One-time registry cutover seed: Edition 0047 delivered sources plus approved Edition 0047 and proof-delivered Edition 0048 images. Edition 0047/0048 jokes are not in the governed catalogue, so no joke ID is invented."
+}

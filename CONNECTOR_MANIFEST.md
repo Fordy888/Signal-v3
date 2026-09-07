@@ -98,6 +98,8 @@ Read this alongside `SIGNAL_CONTEXT.md` before starting any Signal work.
 
 Registry migrations are additive and checksum-tracked. Apply them only through `python -m src.registry_migrate` in the contained Render environment. Capture only migration version, checksum and verified table, trigger, function, index and constraint names—never the connection string.
 
+Registry preflight history is also database-backed. Recent delivered **production** source URLs are the cross-day dedup source; delivered proof and production joke/image identities are the non-repeat source. A source-controlled cutover seed preserves the ten Edition 0047 URLs and the approved Edition 0047/0048 image identities until delivered registry rows supersede them. History read failure is a critical preflight hold. No cron may fall back to Render's ephemeral `data/history.json`, `data/joke_history.json` or `data/alive_moment_history.json` for registry preparation.
+
 ---
 
 ## 3. Resend

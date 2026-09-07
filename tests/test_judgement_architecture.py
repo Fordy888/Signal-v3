@@ -296,13 +296,14 @@ class JudgementArchitectureTests(unittest.TestCase):
             {"source_id": "S01", "evidence": "Revenue rose 20% in the quarter."},
             {"source_id": "S02", "evidence": "Profit reached $4.2 billion."},
             {"source_id": "S03", "evidence": "The company added 8,000 roles."},
+            {"source_id": "S06", "evidence": "Privacy concern reached 87 per cent."},
             {"source_id": "S04", "evidence": "The 2026 strategy names three priorities."},
             {"source_id": "S05", "evidence": "Management described stronger demand."},
         ]
 
         prepared, eligible = prepare_focus_number_evidence(evidence)
 
-        self.assertEqual(eligible, {"S01", "S02", "S03"})
+        self.assertEqual(eligible, {"S01", "S02", "S03", "S06"})
         by_id = {item["source_id"]: item for item in prepared}
         self.assertTrue(by_id["S01"]["focus_number_eligible"])
         self.assertIn("20%", by_id["S01"]["focus_number_candidate"])
@@ -497,13 +498,26 @@ class JudgementArchitectureTests(unittest.TestCase):
                 "source_id": "S07",
                 "evidence": "Klarna deployed AI to automate customer service work, reducing costs 20%.",
             },
+            {
+                "source_id": "S08",
+                "evidence": (
+                    "Retailers discussed what AI might replace. "
+                    "Australian retailers use AI in everyday checkout and loss-prevention operations, "
+                    "while 87 per cent of customers report privacy concerns."
+                ),
+            },
         ]
 
         prepared, verified = prepare_ai_adoption_evidence(evidence)
 
         self.assertEqual(
             verified,
-            {"S01": "AI_ADOPTION", "S02": "AI_INDUSTRY_IMPACT", "S07": "AI_ADOPTION"},
+            {
+                "S01": "AI_ADOPTION",
+                "S02": "AI_INDUSTRY_IMPACT",
+                "S07": "AI_ADOPTION",
+                "S08": "AI_ADOPTION",
+            },
         )
         by_id = {item["source_id"]: item for item in prepared}
         for source_id in {"S03", "S04", "S05", "S06"}:

@@ -55,6 +55,7 @@ from .locked_edition import render_locked_edition
 from .weekly_wrap_qa import validate_weekly_wrap_html
 from .subscribers import fetch_subscribers
 from .release_registry import ReleaseRegistry, RegistryError
+from .release_history import load_cutover_history, merge_release_histories
 from .registry_pipeline import deliver_release as deliver_registry_release
 from .registry_pipeline import prepare_release as prepare_registry_release
 from .qa_gate import (
@@ -507,7 +508,34 @@ def main() -> int:
     # ─── Pipeline stages ────────────────────────────────────────────────
 
     # 0. Load edition history and get next edition number
+    registry: ReleaseRegistry | None = None
+    durable_release_history = {
+        "source_urls": set(),
+        "joke_ids": [],
+        "alive_moments": [],
+    }
     history_urls = load_history(root)
+    if args.prepare_release:
+        try:
+            registry = ReleaseRegistry.from_env()
+            durable_release_history = merge_release_histories(
+                load_cutover_history(root),
+                registry.load_recent_delivery_history(as_of=runtime_now),
+            )
+        except Exception as exc:
+            log.exception("REGISTRY HISTORY FAILED CLOSED")
+            send_alert(
+                "Registry history unavailable — no release locked",
+                f"Durable source, joke or image history could not be loaded: {str(exc)[:500]}",
+            )
+            return 1
+        history_urls.update(durable_release_history["source_urls"])
+        log.info(
+            "Durable preflight history: sources=%d jokes=%d images=%d",
+            len(durable_release_history["source_urls"]),
+            len(durable_release_history["joke_ids"]),
+            len(durable_release_history["alive_moments"]),
+        )
     log.info("Loaded %d URLs from recent editions for cross-day dedup", len(history_urls))
     edition_number = (
         edition_for_date(now_brisbane.date())
@@ -617,7 +645,11 @@ def main() -> int:
                 selected_joke = select_joke(
                     jokes,
                     edition_number=edition_number,
-                    recent_ids=load_joke_history(joke_history_path),
+                    recent_ids=(
+                        durable_release_history["joke_ids"]
+                        if args.prepare_release
+                        else load_joke_history(joke_history_path)
+                    ),
                 )
                 editorial_revision = str(enhanced_plan.get("editorial_revision", ""))
                 requires_alive_moment = args.alive_moment or editorial_revision in {
@@ -636,7 +668,9 @@ def main() -> int:
                         edition_date=now_brisbane.strftime("%Y-%m-%d"),
                     )
                     delivered_alive_history = (
-                        alive_history_from_memory(signal_memory)
+                        durable_release_history["alive_moments"]
+                        if args.prepare_release
+                        else alive_history_from_memory(signal_memory)
                         if args.send or preparing_production
                         else load_alive_history(alive_history_path)
                     )
@@ -976,7 +1010,8 @@ def main() -> int:
             if enhanced_plan else "legacy"
         )
         try:
-            registry = ReleaseRegistry.from_env()
+            if registry is None:
+                registry = ReleaseRegistry.from_env()
             frozen = prepare_registry_release(
                 registry=registry,
                 edition_number=edition_number,
@@ -997,6 +1032,7 @@ def main() -> int:
                 metadata={
                     "source_urls": sorted(set(source_urls)),
                     "joke_id": selected_joke.get("id") if selected_joke else None,
+                    "alive_moment": alive_moment,
                     "base_html_sha256": html_sha256,
                 },
             )

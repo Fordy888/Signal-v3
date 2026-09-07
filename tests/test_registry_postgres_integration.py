@@ -29,7 +29,16 @@ class RegistryPostgresIntegrationTests(unittest.TestCase):
         self.registry = ReleaseRegistry(DATABASE_URL)
         self.issue_time = datetime(2026, 9, 7, 6, 0, tzinfo=BRISBANE)
 
-    def _release(self, *, edition_number: int = 48, table_fragment: bool = False):
+    def _release(
+        self,
+        *,
+        edition_number: int = 48,
+        table_fragment: bool = False,
+        release_scope: str = "proof",
+        issue_time: datetime | None = None,
+        metadata: dict | None = None,
+    ):
+        issue_time = issue_time or self.issue_time
         release_html = (
             "<table>" + ("Locked Signal release content " * 100) + "</table>"
             if table_fragment
@@ -42,20 +51,20 @@ class RegistryPostgresIntegrationTests(unittest.TestCase):
         )
         return build_frozen_release(
             edition_number=edition_number,
-            issue_date=self.issue_time.date(),
+            issue_date=issue_time.date(),
             edition_type="daily",
-            release_scope="proof",
+            release_scope=release_scope,
             editorial_revision="ai-adoption-v1",
             renderer="enhanced-v4-focus-numbers",
-            release_id=f"ai-adoption-v1-registry-{edition_number:04d}",
+            release_id=f"ai-adoption-v1-registry-{edition_number:04d}-{release_scope}",
             git_commit="a" * 40,
             subject=f"[PROOF] DTL Signal Edition {edition_number:04d}",
             html_body=release_html,
             image_id=f"REMEMBER-{edition_number:04d}",
             image_sha256="b" * 64,
-            scheduled_for=self.issue_time,
-            window_start=self.issue_time - timedelta(minutes=5),
-            window_end=self.issue_time + timedelta(minutes=20),
+            scheduled_for=issue_time,
+            window_start=issue_time - timedelta(minutes=5),
+            window_end=issue_time + timedelta(minutes=20),
             recipients=[
                 {
                     "subscriber_id": 1,
@@ -64,6 +73,31 @@ class RegistryPostgresIntegrationTests(unittest.TestCase):
                     "html_body": recipient_html,
                 }
             ],
+            metadata=metadata,
+        )
+
+    def _deliver(self, release, *, at: datetime) -> None:
+        self.registry.store_locked_release(release)
+        claimed = self.registry.claim_scheduled_release(
+            issue_date=release.issue_date,
+            edition_type="daily",
+            release_scope=release.release_scope,
+            now=at,
+        )
+        recipient = self.registry.claim_next_recipient(
+            release_id=release.id,
+            claim_token=str(claimed["claim_token"]),
+            now=at,
+        )
+        self.registry.mark_recipient_sent(
+            release_id=release.id,
+            claim_token=str(claimed["claim_token"]),
+            recipient_id=int(recipient["id"]),
+            provider_message_id=f"provider-{release.edition_number}",
+        )
+        self.registry.complete_release(
+            release_id=release.id,
+            claim_token=str(claimed["claim_token"]),
         )
 
     def test_table_fragment_stores_and_reloads_through_real_postgres(self) -> None:
@@ -175,6 +209,45 @@ class RegistryPostgresIntegrationTests(unittest.TestCase):
         )
         self.assertIsNotNone(first)
         self.assertIsNone(second)
+
+    def test_recent_delivery_history_survives_restart_and_scopes_sources(self) -> None:
+        proof_time = self.issue_time - timedelta(days=1)
+        proof = self._release(
+            edition_number=48,
+            issue_time=proof_time,
+            metadata={
+                "source_urls": ["https://example.com/proof-only"],
+                "joke_id": "J048",
+                "alive_moment": {"id": "IMAGE-48", "category": "craft"},
+            },
+        )
+        production = self._release(
+            edition_number=49,
+            release_scope="production",
+            issue_time=self.issue_time,
+            metadata={
+                "source_urls": ["https://example.com/production"],
+                "joke_id": "J049",
+                "alive_moment": {"id": "IMAGE-49", "category": "water"},
+            },
+        )
+        self._deliver(proof, at=proof_time)
+        self._deliver(production, at=self.issue_time)
+
+        restarted_registry = ReleaseRegistry(DATABASE_URL)
+        history = restarted_registry.load_recent_delivery_history(
+            as_of=datetime.now(BRISBANE) + timedelta(hours=1)
+        )
+
+        self.assertEqual(
+            {"https://example.com/production"},
+            history["source_urls"],
+        )
+        self.assertEqual(["J048", "J049"], history["joke_ids"])
+        self.assertEqual(
+            ["IMAGE-48", "IMAGE-49"],
+            [moment["id"] for moment in history["alive_moments"]],
+        )
 
 
 if __name__ == "__main__":

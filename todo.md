@@ -698,7 +698,81 @@
 - [x] Re-fetch the hosted Edition 0049 image and verify it remains a 1,629×1,816 JPEG with exact governed SHA-256 `1b49747f4a2c72a4673c158bef5710c116928dee3ed7e9ba72f552ffc5d41727`
 - [x] Validate Edition 0049 governance, hosted-byte verification and registry simulations through 182 tests across 16 independently bounded modules in both the integration checkout and a fresh detached worktree, with four production-only tests skipped in each general run
 - [x] Execute all four real PostgreSQL registry tests separately in both checkouts against checksum-migrated isolated databases, with zero failures
-- [ ] Commit, fast-forward and deploy the Edition 0049 governed-image record and preflight byte-verification controls while both production activation switches remain disabled
+- [x] Commit and fast-forward the Edition 0049 governed-image record and preflight byte-verification controls as GitHub master `bce4ee3a34e414396f894c9ccd47ede920bf1403` without force-pushing
+- [ ] Build and deploy exact commit `bce4ee3a34e414396f894c9ccd47ede920bf1403` on both contained Render cron services, then align each expected commit while both production activation switches remain disabled
+- [x] Verify the preflight cron still has no successful runs, remains on annual containment schedule `0 0 1 1 *`, and its last deployed commit is `c402f7e`; no bce4ee3 build had started at this checkpoint
+- [x] Build and deploy exact commit `bce4ee3a34e414396f894c9ccd47ede920bf1403` on disabled preflight cron as build `bld-daf3s80u01pc738nsrig`; Render passed 182 tests with four production-only skips and reported `Build succeeded | Latest`
+- [ ] Deploy the same exact commit `bce4ee3` on the contained delivery service and align both service expected-commit guards while keeping preflight and delivery activation switches at `0`
+- [x] Confirm the first delivery-service bce4ee3 build attempt ended at a browser reset before the manual-build control loaded; no build, cron run or subscriber action occurred
+- [x] Build and deploy exact commit `bce4ee3a34e414396f894c9ccd47ede920bf1403` on the contained delivery service as build `bld-daf3t7u7bikc73f0gfk0`; Render passed 182 tests with four production-only skips and reported `Build succeeded | Latest`
+- [x] Align both services to exact deployed commit `bce4ee3a34e414396f894c9ccd47ede920bf1403`: delivery uses its exact-commit dry-run guard, and preflight uses a command-local exact-commit override that safely supersedes the stale service-level value
+- [x] Retain annual preflight containment schedule `0 0 1 1 *`, delivery registry-required `--dry-run`, `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED=0` and `SIGNAL_PRODUCTION_DELIVERY_ENABLED=0`
+- [x] Restore the preflight service's non-sending production-preflight command after diagnostics; no source fetch, subscriber fetch, registry write or provider contact was triggered by restoration
+- [ ] With separate confirmation, run one Edition 0049 proof-scope preflight for 8 September 2026 on the disabled preflight service; it may freeze only Paul and cannot contact subscribers, though a fail-closed operational alert may reach Paul if preparation fails
+- [x] Obtain Fordy's explicit confirmation for one Edition 0049 Paul-only proof preflight
+- [x] Stage and independently verify the active preflight command is exact commit `bce4ee3`, `--prepare-release`, scope `proof`, issue date `2026-09-08`, enhanced daily format and governed image enabled; it has no delivery or send flag
+- [x] Trigger the Edition 0049 non-delivery preflight once and capture its terminal fail-closed result: 156 items scored, 53 above threshold, but only 2 verified AI_ADOPTION Focus sources with numeric evidence versus the governed minimum of 3
+- [x] Start the authorised Edition 0049 proof preflight at 14:55 AEST on exact commit `bce4ee3`; runtime resolved Edition 0049, issue date 8 September 2026 and exactly one Paul recipient before source fetch
+- [x] Confirm the proof preflight reached terminal failure at 15:00:21 AEST before HTML rendering, hosted-image verification or any registry insert; no Edition 0049 release row, checksum, audience lock or proof delivery exists
+- [x] Replace ephemeral `data/history.json` dependence in registry preflight with merged cutover seed plus Postgres-backed recent delivered production source URLs; database/history failure holds before source selection
+- [x] Add a read-only Postgres registry query for recent delivered production source URLs plus all delivered proof/production joke and image identities; no new table or mutable parallel store is introduced
+- [x] Add a source-controlled cutover seed containing the exact ten Edition 0047 delivered source URLs and the approved 0047/0048 governed image records; do not invent joke IDs absent from the catalogue
+- [ ] Prove production preflight excludes recent production-source URLs after restart and across both services before any subscriber activation
+- [x] Replace ephemeral `data/joke_history.json` dependence in registry preflight with recent delivered registry `joke_id` metadata plus the source-controlled cutover seed
+- [x] Persist the full governed REMEMBER THE WORLD record in immutable release metadata and use merged cutover plus delivered registry rows for preflight non-repeat validation
+- [x] Confirm neither `data/joke_history.json` nor `data/alive_moment_history.json` exists in the deployed repository, so the dedicated preflight service currently starts those local histories empty and subscriber activation remains blocked
+- [ ] Add structured non-reader diagnostics for total numeric-eligible, AI-adoption, numeric AI-adoption and industry-impact candidates so future quota holds identify source scarcity versus evidence attrition without changing the approved policy
+- [x] Prove a restarted registry returns recent production source URLs, excludes proof-only source URLs, and retains delivered proof/production joke and image identities through five real PostgreSQL integration tests
+- [x] Pass all 186 tests across 17 independently bounded modules in both the integration checkout and a fresh detached worktree after the durable-history and evidence-attrition changes; each general run skipped only the five production-only database tests
+- [x] Execute all five real PostgreSQL registry tests separately in both checkouts against checksum-migrated isolated databases, with zero failures
+- [x] Add structured non-reader diagnostics for numeric, AI-adoption, numeric AI-adoption, industry-impact and numeric industry-impact pools without changing planner input or reader output
+- [ ] Commit, fast-forward and deploy the durable preflight-history plus Edition 0049 evidence corrections on both contained services before considering another proof preflight
+- [x] Confirm the run remained non-terminal after 47 seconds at the first visible source-feed log; no release-lock, provider call or failure result was reported at that checkpoint
+- [x] Confirm the preflight continued through the configured source inventory for more than 70 seconds, including expected individual feed failures, while remaining non-terminal; no registry lock, proof delivery or subscriber action was reported at that checkpoint
+- [x] Confirm source collection progressed through the complete 111-active-source inventory for more than 90 seconds, with feed-level failures isolated as warnings; no terminal QA, registry or provider result existed at that checkpoint
+- [x] Confirm Stage 1 completed with 156 fetched items, 100 source fetches succeeded and 11 failed or returned empty under feed-level isolation; scoring then began on the deduplicated candidate set
+- [x] Confirm the fail-closed run saved an aborted receipt and sent Paul the operational alert `[ABORTED] DTL Signal 0049 — Not sent`; no subscriber or proof-edition email was sent
+- [x] Confirm scoring completed five ten-item batches through candidate 50, with each model call returning ten scored objects; the preflight remained non-terminal and no registry lock or provider action was yet reported
+- [x] Confirm scoring progressed through candidate 90 with complete ten-object model responses; the preflight remained non-terminal with no registry lock or provider action reported
+- [x] Confirm scoring progressed through candidate 140 with complete ten-object model responses in every visible batch; the proof preflight remained non-terminal at 15:00:03 AEST
+- [x] Open a later fixed log window and capture scoring completion through all 156 candidates plus the terminal governed-quota failure
+- [x] Confirm a later full-log extraction page reset before rendering; no preflight rerun, registry change or provider action occurred, and the source-gap audit moved to saved terminal evidence plus local fetch-only reproduction
+- [x] Stop the local 111-source fetch-only reproduction after it exceeded its 360-second bound; it wrote no audit result, made no registry or provider call, and exposed additional live fetch friction on The Information, VentureBeat and RBA feeds
+- [ ] Replace the unbounded sequential reproduction with a targeted diagnostic of adoption-focused feed health and deterministic evidence attrition before changing any editorial threshold or source list
+- [x] Run a bounded 33-feed adoption audit: 31 feeds succeeded, 2 failed (The Information 403; VentureBeat 429), 17 fresh items were available and three contained eligible-number shapes under the current extractor
+- [x] Identify a valid missing Focus candidate in Inside Retail: Australian retailers already use AI in everyday operations, with source-owned figures of 87 per cent privacy concern and 5 per cent trust; the current code rejected it because an unrelated sentence contained `might` and because the numeric regex recognised `percent` but not Australian/British `per cent`
+- [x] Correct hypothetical-language handling so an unrelated modal sentence cannot veto an independently explicit deployed-adoption sentence, while retaining rejection of purely planned/potential use
+- [x] Extend source-owned Focus-number extraction to recognise `per cent` without converting or inventing figures, and add non-reader counts for numeric, adoption, numeric-adoption and industry-impact pools
+- [x] Pass 77 focused classifier, source-evidence, release-simulation and activation-control tests after the deterministic evidence corrections
+- [x] Rerun the bounded 33-feed audit: numeric-eligible items increased from 3 to 4 and verified numeric AI-adoption candidates increased from 0 to 1, recovering the source-owned Inside Retail evidence without lowering the 3-of-5 section minimum
+- [ ] Do not lower the 3-of-5 Focus AI-adoption minimum; rerun proof preflight only after the deterministic evidence corrections and durable history changes pass complete isolated tests
+- [ ] Stop repetitive live-tail polling and inspect the dedicated run record for a terminal status or newer timestamp before taking any further action
+- [x] Stop repetitive live-tail polling; the run-list page reset before loading, so monitoring moved to a fixed post-scoring log window without changing the job, registry or provider state
+- [x] Load the fixed post-scoring log window and capture the exact terminal Edition 0049 failure before registry creation
+- [ ] Restore the dedicated preflight service’s annual production-preflight command immediately; do not relax the 3-of-5 Focus AI-adoption minimum or fabricate numeric evidence
+- [x] Confirm the first restoration attempt ended at a browser reset before command edit; the Edition 0049 proof command remains active only on the annual containment schedule and no additional run occurred
+- [x] Submit the restored annual production-preflight command with command-local exact `bce4ee3` after the Edition 0049 hold; Render accepted the save action without triggering a run
+- [x] Refresh and independently verify the active command is exact-commit production scope with `--next-issue-date`, the annual schedule remains `0 0 1 1 *`, and no proof-specific command remains active
+- [x] Preserve `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED=0`; the restored annual command cannot create a release until a separate activation decision
+- [x] Confirm the first delivery expected-commit alignment attempt ended at a browser reset before edit mode; the service remained registry-required dry-run and no cron run occurred
+- [x] Verify the contained delivery command now expects exact deployed commit `bce4ee3a34e414396f894c9ccd47ede920bf1403` while remaining registry-required `--dry-run`, with no send or delivery flag
+- [ ] Update the disabled preflight service's `SIGNAL_EXPECTED_GIT_COMMIT` to exact deployed `bce4ee3`, preserve `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED=0`, and independently verify both services share the same commit
+- [x] Confirm the first preflight expected-commit alignment attempt ended at a browser reset before edit mode; the service remained activation-disabled and no cron run occurred
+- [x] Abandon the later malformed unsaved preflight SHA edit by leaving the environment form before save; no environment value, activation switch or cron state changed
+- [x] Verify the preflight environment returned to masked read-only state after abandoning the malformed draft; the service remains activation-disabled with no cron run
+- [x] Atomically replace only `SIGNAL_EXPECTED_GIT_COMMIT` with the exact 40-character `bce4ee3a34e414396f894c9ccd47ede920bf1403`; the form matched exactly and Render accepted `save, rebuild, and apply on next run`
+- [ ] Independently verify the preflight service reads exact expected commit `bce4ee3` while `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED=0`, then confirm both services share the same deployed and expected SHA
+- [x] Treat the masked read-mode DOM check as inconclusive: it returned false for all three non-secret comparisons because Render did not reveal the row values; no environment value was changed by the check
+- [ ] Run a temporary non-sending shell equality probe for expected commit, activation `0` and service ID, then restore the annual preflight command; do not inspect or print any secret value
+- [x] Stage and save a non-sending shell probe that tests only exact expected commit `bce4ee3`, preflight activation `0` and service ID `crn-daf2vgn40ujc739biup0`; it prints no values and cannot fetch sources, subscribers or contact providers
+- [x] Trigger the combined equality probe at 14:45 AEST; it exited status 1 without printing any value, so at least one of expected commit, activation `0` or service ID did not match
+- [x] Run the non-sending per-gate diagnostic at 14:48 AEST: `ACTIVATION_OK` and `SERVICE_ID_OK`; only `COMMIT_MISMATCH` remained, and the run exited successfully without fetching sources, accessing subscribers, writing the registry or contacting a provider
+- [x] Isolate the only preflight environment mismatch as the stale service-level expected commit; activation and service identity remained correct
+- [x] Confirm a clean environment-page retry reset before edit mode and made no setting, registry or provider change
+- [x] Restore and independently verify the annual production-preflight command with command-local exact `SIGNAL_EXPECTED_GIT_COMMIT=bce4ee3a34e414396f894c9ccd47ede920bf1403`, safely overriding the stale service-level value while `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED=0`
+- [x] Verify the preflight cron remains on annual containment schedule `0 0 1 1 *`; no production preflight, source fetch, subscriber fetch, registry write or provider contact was triggered by the command restoration
+- [x] Confirm the first per-gate diagnostic edit attempt ended at a browser reset before edit mode; the combined non-sending probe remained active and no registry or provider action occurred
+- [x] Confirm the first equality-probe attempt ended at a browser reset before command edit; the annual preflight command, activation switch and registry state remained unchanged
 - [x] Confirm the first delivery activation-gate test attempt ended at a browser reset before command edit; no service command, registry state or provider action changed
 - [x] Confirm the first delivery activation-switch edit ended at a browser reset before edit mode; no environment value, command or cron state changed
 - [x] Independently verify Render reports `c402f7e` as the delivery service's latest deployed commit while the active dry-run command still expects `b5044e9`; no cron run occurred under the mismatch
