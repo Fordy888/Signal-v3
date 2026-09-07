@@ -152,6 +152,15 @@ Rollback means setting both registry commands to dry-run and leaving subscriber 
 
 Both production cron definitions are source-controlled on an annual disabled schedule with their activation switches set to `0`. They cannot be enabled merely by deploying code. When Fordy separately approves subscriber reactivation, the prior-evening preflight schedule and 06:00 AEST delivery schedule must be activated deliberately, on the same exact deployed commit, after their service identities and managed database links are verified. Both jobs connect to Postgres through the same-region internal URL. Render cron jobs can initiate private-network connections to Render Postgres but cannot receive inbound private-network traffic.[5]
 
+### Scheduling service options
+
+| Approach | Trade-offs | Cost | Setup complexity |
+|---|---|---|---|
+| Reuse the existing cron as the morning delivery worker and add one dedicated prior-evening preflight cron | Preserves the audited two-stage design, keeps logs and failure alerts separate, and requires no new orchestration runtime. It adds one Render service. | Render bills active cron runtime by the second and applies a **US$1 minimum monthly charge per cron service**.[7] Reusing the current service means one additional service, so the incremental floor is US$1/month plus runtime. | Low |
+| Replace both jobs with a single Render Workflow that chains preflight and delayed delivery | Can place multiple tasks in one workflow service and uses Flex metering, but introduces a new orchestration layer and requires reworking the already-audited cron operating model. | Flex is metered by actual CPU and RAM; task-state retention is US$0.25/GB-month.[8] | Medium-high |
+
+No option is activated by this document. The lighter operational change is the additional preflight cron because it preserves the proven deterministic worker and requires only one new service. The workflow alternative remains viable if reducing the number of cron services later becomes more important than minimising release-path change.
+
 ## Acceptance boundary
 
 No subscriber reactivation occurs until the registry passes source-scarcity, missing-image, checksum-corruption, audience-drift, duplicate-trigger, crash-after-provider-acceptance, late-run and database-unavailable simulations. The one-recipient canary is the proof-scope registry release for the same immutable base HTML; production scope is never partially claimed because doing so would leave the remaining frozen audience resumable.
@@ -168,3 +177,5 @@ The audited registry baseline comprises **175 passing tests across 16 independen
 [4]: https://resend.com/docs/webhooks/introduction "Resend — Managing Webhooks"
 [5]: https://render.com/docs/private-network "Render — Private Network"
 [6]: https://render.com/pricing "Render — Pricing"
+[7]: https://render.com/docs/cronjobs "Render — Cron Jobs"
+[8]: https://render.com/docs/workflows-limits "Render — Workflow Limits and Pricing"

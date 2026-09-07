@@ -656,6 +656,16 @@
 - [x] Do not create a production-scope Edition 0048 release: its 06:00+20-minute window has passed, so any subscriber recovery would require an explicit `LATE_RECOVERY` decision and must not be counted as normal daily operation
 - [x] Add fail-closed `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED` and `SIGNAL_PRODUCTION_DELIVERY_ENABLED` switches that stop before subscriber fetch or registry claim when disabled
 - [x] Pass all 179 tests across 16 independently bounded modules in both the integration checkout and a fresh detached worktree, including four real PostgreSQL registry tests, after adding the production activation controls
+- [x] Commit and fast-forward revision-aware activation controls as GitHub master `b5044e9403b542792f3a6f125032232ad1c609e1` without force-pushing
+- [x] Build and deploy exact commit `b5044e9403b542792f3a6f125032232ad1c609e1` as Render build `bld-daf1phad0e5s73aej3bg`; build passed 179 tests with four production-only skips
+- [x] Align and independently verify the contained registry-required dry-run command's expected commit from `25e018b` to deployed `b5044e9`, without enabling either production activation switch
+- [x] Document two viable production scheduling shapes with official Render pricing: one additional dedicated preflight cron at a US$1/month minimum versus a higher-change Workflow orchestration path
+- [x] Obtain Fordy's explicit approval of Option 1 and the additional US$1/month minimum before creating the dedicated preflight cron
+- [x] Create Render cron `dtl-signal-preflight` (`crn-daf2vgn40ujc739biup0`) in Production/Singapore on exact commit `b5044e9`, annual containment schedule `0 0 1 1 *`, minimum compute, and `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED=0`, with no production secrets attached
+- [x] Confirm first build `bld-daf2vgv40ujc739bj0cg` failed before deployment because two legacy send simulations inherited service-level `SIGNAL_REGISTRY_REQUIRED=1`; no service run, database connection, audience fetch or email action occurred
+- [x] Pass the corrected deployment-environment isolation through the exact Render-style 179-test suite in both the integration checkout and a fresh detached worktree, with four production-only database tests skipped as expected
+- [x] Separately execute all four real PostgreSQL registry tests in both checkouts using checksum-migrated isolated databases
+- [ ] Commit, fast-forward and rebuild the disabled preflight service with the test-isolation correction before linking any managed secret
 - [x] Commit and fast-forward Option B registry, Edition 0048 recovery and containment controls from deployed baseline `5fb530c` to GitHub master commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` without force-pushing
 - [x] Manually build and deploy exact commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` on Render as build `bld-daf074nqj5pc73b5j940`; build ran 169 tests successfully with 3 production-only skips
 - [x] Restore and independently verify the active recurring command after migration: `SIGNAL_REGISTRY_REQUIRED=1`, exact deployed commit `78f4ff2`, `--dry-run`, no `--send`, no `--deliver-release`, and no stale Edition 0047 release variables

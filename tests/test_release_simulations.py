@@ -289,6 +289,13 @@ class ReleaseSimulationTests(unittest.TestCase):
             2026, 8, 28, 6, 0, tzinfo=ZoneInfo("Australia/Brisbane")
         )
         with ExitStack() as stack:
+            stack.enter_context(
+                patch.dict(
+                    os.environ,
+                    {"SIGNAL_REGISTRY_REQUIRED": "0"},
+                    clear=False,
+                )
+            )
             mocked_datetime = stack.enter_context(patch("src.main.datetime"))
             mocked_datetime.now.return_value = friday
             stack.enter_context(patch("src.main.get_next_edition", return_value=42))
