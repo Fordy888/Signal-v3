@@ -212,6 +212,14 @@ class ReleaseSimulationTests(unittest.TestCase):
             patch("src.main.record_source_failures", return_value=[]),
             patch("src.main.save_receipt", return_value=None),
             patch("src.main.send_brief", return_value=True),
+            patch(
+                "src.main.verify_alive_moment_asset",
+                return_value={
+                    "sha256": "f" * 64,
+                    "bytes": 1000,
+                    "content_type": "image/jpeg",
+                },
+            ),
         )
 
     def _run_ai_daily_dry(
@@ -677,6 +685,7 @@ class ReleaseSimulationTests(unittest.TestCase):
         with ExitStack() as stack:
             entered = [stack.enter_context(item) for item in patches]
             send_mock = entered[6]
+            image_asset_mock = entered[7]
             fetch_mock = entered[2]
             score_mock = entered[3]
             evidence_mock = stack.enter_context(
@@ -730,6 +739,7 @@ class ReleaseSimulationTests(unittest.TestCase):
         score_mock.assert_not_called()
         evidence_mock.assert_not_called()
         planner_mock.assert_not_called()
+        image_asset_mock.assert_called_once()
         kwargs = prepare_mock.call_args.kwargs
         self.assertEqual("proof", kwargs["release_scope"])
         self.assertEqual(1, len(kwargs["recipients"]))
@@ -809,6 +819,7 @@ class ReleaseSimulationTests(unittest.TestCase):
             entered = [stack.enter_context(item) for item in patches]
             fetch_subscribers_mock = entered[0]
             send_mock = entered[6]
+            image_asset_mock = entered[7]
             stack.enter_context(
                 patch("src.main.scored_items_to_evidence", return_value=_focus_evidence())
             )
@@ -858,6 +869,7 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertEqual(0, result)
         self.assertEqual(2, fetch_subscribers_mock.call_count)
         send_mock.assert_not_called()
+        image_asset_mock.assert_called_once()
         kwargs = prepare_mock.call_args.kwargs
         self.assertEqual("production", kwargs["release_scope"])
         self.assertEqual(4, len(kwargs["recipients"]))

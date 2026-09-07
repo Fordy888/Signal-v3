@@ -45,7 +45,7 @@ Signal is part of the DTLC.ai product ecosystem. It creates awareness, trust, an
 |-----------|--------|---------|
 | Code repository | GitHub | `Fordy888/Signal-v3` on `master` branch |
 | Deployment | Render | Cron job, auto-deploys from `master` |
-| Schedule | Subscriber delivery hold | The source-controlled production job is proof-only and disabled by date until a deployed canary passes and Paul authorises restoration. |
+| Schedule | Two-stage subscriber delivery hold | Dedicated `dtl-signal-preflight` and existing `dtl-signal` delivery cron remain on annual containment schedules with production activation switches disabled until Paul separately authorises restoration. |
 | Runtime | Python 3.11 | Render Standard plan, Singapore region |
 | Durable release registry | Render Postgres | `dtl-signal-registry`, Singapore; immutable releases, frozen recipient HTML, audience checksums, permanent recipient idempotency keys and append-only events |
 | AI Models | Anthropic Claude | Scoring: `claude-haiku-4-5`, Synthesis: `claude-sonnet-4-6` |
@@ -54,7 +54,7 @@ Signal is part of the DTLC.ai product ecosystem. It creates awareness, trust, an
 | Monitoring | BetterStack | Heartbeat URL pinged on successful completion |
 | Alerts | Email (Resend) | Sent to paul.ford@gmail.com on failure or hold |
 
-The registry separates edition preparation from morning delivery. Preparation may fetch sources, run models, validate the governed image, render HTML and double-verify the live audience. It then stores the complete release and exact recipient-specific HTML in Postgres under `PREPARING` → `LOCKED` → `SCHEDULED`. The delivery worker may only claim the matching `SCHEDULED` release inside its approved window, re-verify its immutable bytes and audience, and deliver those frozen rows. It must not fetch sources, call a model, choose an image, change HTML or fall back to legacy `--send`.
+The registry separates edition preparation from morning delivery. Preparation may fetch sources, run models, validate the governed image record and exact hosted image bytes, render HTML and double-verify the live audience. It then stores the complete release and exact recipient-specific HTML in Postgres under `PREPARING` → `LOCKED` → `SCHEDULED`. The delivery worker may only claim the matching `SCHEDULED` release inside its approved window, re-verify its immutable bytes and audience, and deliver those frozen rows. It must not fetch sources or images, call a model, choose an image, change HTML or fall back to legacy `--send`.
 
 The subscriber service remains in dry-run containment. `SIGNAL_REGISTRY_REQUIRED=1` blocks direct legacy broadcast, including after deployment or dashboard-command drift. Registry proof delivery is Paul-only. Production audience locking, subscriber reactivation and any late recovery require separate explicit approval.
 
@@ -200,7 +200,7 @@ When Paul has approved an exact edition artefact, a source-controlled manifest u
 
 REMEMBER THE WORLD candidates approved from 1 September 2026 onward must record a natural dominant colour family. Brand harmony is a curation preference only: photographs must never be recoloured or artificially tinted, and artistic power, authenticity, rights, provenance, date validity and non-repetition remain the hard gates.
 
-Current daily revisions resolve the governed image record from `SIGNAL_ALIVE_MOMENT_PATH`, normally `data/alive_moments/{date}.json`. The resolved record must match the Brisbane edition date and edition ID and must clear delivered-image identity, location, species and category-frequency checks. A missing, stale, repeated, rights-ineligible or mismatched record is a critical pre-render hold. The pipeline must never silently omit this section or reuse yesterday’s image.
+Current daily revisions resolve the governed image record from `SIGNAL_ALIVE_MOMENT_PATH`, normally `data/alive_moments/{date}.json`. The resolved record must match the Brisbane edition date and edition ID and must clear delivered-image identity, location, species and category-frequency checks. Registry preflight also fetches the approved hosted asset and requires HTTPS, an image content type and exact equality with the record's SHA-256 before any release can be frozen. The deterministic morning worker uses the frozen release and performs no image fetch. A missing, stale, repeated, unavailable, substituted, rights-ineligible or mismatched image is a critical hold. The pipeline must never silently omit this section or reuse yesterday’s image.
 
 ---
 

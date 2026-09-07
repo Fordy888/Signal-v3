@@ -1,9 +1,11 @@
 import copy
+import hashlib
 import json
 import unittest
 from pathlib import Path
+from unittest.mock import Mock
 
-from src.alive_moment import AliveMomentError, resolve_alive_moment_path, validate_alive_moment
+from src.alive_moment import AliveMomentError, resolve_alive_moment_path, validate_alive_moment, verify_alive_moment_asset
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +56,63 @@ class AliveMomentTests(unittest.TestCase):
         self.assertEqual(candidate["licence_type"], "PUBLIC DOMAIN")
         self.assertEqual(candidate["dominant_colour_family"], "neutral")
         self.assertFalse(candidate["is_ai_generated"])
+
+    def test_edition_0049_public_domain_reef_passes_against_recent_images(self):
+        candidate = json.loads(
+            (ROOT / "data" / "alive_moments" / "2026-09-08.json").read_text()
+        )
+        history = [
+            json.loads((ROOT / "data" / "fixtures" / name).read_text())
+            for name in (
+                "alive_moment_0046.json",
+                "alive_moment_0047.json",
+                "alive_moment_0048.json",
+            )
+        ]
+        self.assertEqual(
+            validate_alive_moment(
+                candidate,
+                history,
+                expected_edition_id="0049",
+                expected_date="2026-09-08",
+            ),
+            candidate,
+        )
+        self.assertEqual("PUBLIC DOMAIN", candidate["licence_type"])
+        self.assertEqual("aqua", candidate["dominant_colour_family"])
+        self.assertFalse(candidate["is_ai_generated"])
+
+    def test_hosted_image_bytes_must_match_governed_checksum(self):
+        payload = b"verified-image-bytes"
+        moment = {
+            "image_url": "https://images.example.com/verified.jpg",
+            "image_sha256": hashlib.sha256(payload).hexdigest(),
+        }
+        response = Mock(
+            content=payload,
+            headers={"Content-Type": "image/jpeg"},
+        )
+        response.raise_for_status.return_value = None
+        fetch = Mock(return_value=response)
+        result = verify_alive_moment_asset(moment, fetch=fetch)
+        self.assertEqual(moment["image_sha256"], result["sha256"])
+        self.assertEqual(len(payload), result["bytes"])
+        fetch.assert_called_once_with(moment["image_url"], timeout=20)
+
+    def test_hosted_image_substitution_is_rejected(self):
+        response = Mock(
+            content=b"substituted-image-bytes",
+            headers={"Content-Type": "image/jpeg"},
+        )
+        response.raise_for_status.return_value = None
+        with self.assertRaises(AliveMomentError):
+            verify_alive_moment_asset(
+                {
+                    "image_url": "https://images.example.com/verified.jpg",
+                    "image_sha256": "0" * 64,
+                },
+                fetch=Mock(return_value=response),
+            )
 
     def test_daily_path_template_resolves_by_edition_date(self):
         self.assertEqual(

@@ -1,6 +1,6 @@
 # DTL Signal Durable Release Registry
 
-**Status:** Architecture approved; implementation deployed; production schema applied and verified; proof release pending
+**Status:** Architecture deployed; production schema verified; Edition 0048 proof approved; production scheduling remains contained
 **Decision:** Option B selected by Paul Ford
 **Author:** Manus AI
 **Subscriber state:** Dry-run containment
@@ -159,7 +159,9 @@ Both production cron definitions are source-controlled on an annual disabled sch
 | Reuse the existing cron as the morning delivery worker and add one dedicated prior-evening preflight cron | Preserves the audited two-stage design, keeps logs and failure alerts separate, and requires no new orchestration runtime. It adds one Render service. | Render bills active cron runtime by the second and applies a **US$1 minimum monthly charge per cron service**.[7] Reusing the current service means one additional service, so the incremental floor is US$1/month plus runtime. | Low |
 | Replace both jobs with a single Render Workflow that chains preflight and delayed delivery | Can place multiple tasks in one workflow service and uses Flex metering, but introduces a new orchestration layer and requires reworking the already-audited cron operating model. | Flex is metered by actual CPU and RAM; task-state retention is US$0.25/GB-month.[8] | Medium-high |
 
-No option is activated by this document. The lighter operational change is the additional preflight cron because it preserves the proven deterministic worker and requires only one new service. The workflow alternative remains viable if reducing the number of cron services later becomes more important than minimising release-path change.
+Fordy approved the dedicated-preflight option on 7 September 2026. Render cron `dtl-signal-preflight` (`crn-daf2vgn40ujc739biup0`) was created in the Production environment and Singapore region on minimum compute with annual containment schedule `0 0 1 1 *` and production preflight activation disabled. Its first build exposed a test-isolation defect only: two legacy delivery simulations inherited the service-level registry-required setting and failed before deployment. The fixture was isolated without changing runtime code, complete Render-style 179-test gates passed in the integration and detached checkouts, all four real PostgreSQL tests passed separately in both, and commit `c402f7ecbee6c11cd6f522e7070659f8bd8758a6` deployed successfully as build `bld-daf33k9t0dsc73cbmcb0` with 179 tests passed and four production-only skips. A masked four-key environment group supplies the required API and database credentials without exposing values; service-specific identity and activation settings remain direct overrides. A manual containment run logged `REGISTRY PRODUCTION PREFLIGHT DISABLED` and exited before source fetch, subscriber fetch or registry write. The existing delivery service was aligned to the same exact commit and separately proved `REGISTRY PRODUCTION DELIVERY DISABLED` before any registry claim or provider contact. Both services remain contained.
+
+No production schedule or subscriber delivery is activated by this service creation. The existing `dtl-signal` cron remains the contained future delivery worker; the new preflight cron is a separately deployed but disabled preparation stage. The workflow alternative remains available if reducing the number of services later becomes more important than minimising release-path change.
 
 ## Acceptance boundary
 
@@ -167,7 +169,7 @@ No subscriber reactivation occurs until the registry passes source-scarcity, mis
 
 Edition 0048 proof release `16d582f1-3009-4e09-9197-5ca40d1bf343` completed at 1/1 with exact HTML checksum `e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f`. Resend independently reported the provider record as `opened`; Gmail independently contained the full approved reader copy and the governed Gary steel-plant image before the final Dad Joke. Fordy approved that exact canary. This establishes proof-scope `CANARY VERIFIED`; it does not establish `LIVE` or `SUBSCRIBER VERIFIED`.
 
-The audited registry baseline comprises **175 passing tests across 16 independently bounded modules** in both the integration checkout and a fresh detached worktree, including four real PostgreSQL tests. The production schema is applied and the migration is checksum-tracked and idempotent. These are build and proof-canary facts only; scheduled-time subscriber evidence still requires a new future edition and a separate activation decision.
+The current readiness gate comprises **182 tests across 16 independently bounded modules** in both the integration checkout and a fresh detached worktree, with the four production-only database tests skipped in each general run and then executed successfully against checksum-migrated isolated PostgreSQL databases in both checkouts. Edition 0049 has a date-resolved, public-domain NASA Great Barrier Reef record with hosted bytes locked to SHA-256 `1b49747f4a2c72a4673c158bef5710c116928dee3ed7e9ba72f552ffc5d41727`. Registry preflight now requires the hosted HTTPS asset, image content type and exact byte checksum before freezing; delivery uses the immutable record and performs no image fetch. These are build and proof-readiness facts only; scheduled-time subscriber evidence still requires a new future edition and a separate activation decision.
 
 ## References
 

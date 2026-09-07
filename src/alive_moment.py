@@ -4,7 +4,9 @@ Portable editorial IP: no delivery, database or provider dependencies.
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 from datetime import date, datetime
 from html import escape
 from pathlib import Path
@@ -27,6 +29,42 @@ PROHIBITED_TERMS = {
 
 class AliveMomentError(ValueError):
     """Raised when a proposed moment does not clear the governed threshold."""
+
+
+def verify_alive_moment_asset(
+    moment: dict[str, Any],
+    *,
+    fetch: Any | None = None,
+    timeout: int = 20,
+) -> dict[str, Any]:
+    """Verify the hosted image bytes before a registry release is frozen."""
+    expected_sha256 = str(moment.get("image_sha256") or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
+        raise AliveMomentError("REMEMBER THE WORLD image checksum is missing or invalid")
+    image_url = str(moment.get("image_url") or "").strip()
+    if not image_url.startswith("https://"):
+        raise AliveMomentError("REMEMBER THE WORLD hosted image URL must use HTTPS")
+    if fetch is None:
+        import requests
+
+        fetch = requests.get
+    try:
+        response = fetch(image_url, timeout=timeout)
+        response.raise_for_status()
+    except Exception as exc:
+        raise AliveMomentError(f"REMEMBER THE WORLD hosted image is unavailable: {exc}") from exc
+    content = bytes(response.content)
+    content_type = str(response.headers.get("Content-Type") or "").split(";", 1)[0].lower()
+    if not content or not content_type.startswith("image/"):
+        raise AliveMomentError("REMEMBER THE WORLD hosted asset is not an image")
+    actual_sha256 = hashlib.sha256(content).hexdigest()
+    if actual_sha256 != expected_sha256:
+        raise AliveMomentError("REMEMBER THE WORLD hosted image checksum mismatch")
+    return {
+        "sha256": actual_sha256,
+        "bytes": len(content),
+        "content_type": content_type,
+    }
 
 
 def load_alive_moment(path: Path) -> dict[str, Any]:

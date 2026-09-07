@@ -49,7 +49,7 @@ from .signal_memory import (
 )
 from .enhanced_renderer import render_enhanced_email
 from .human_signal import load_joke_history, load_jokes, record_joke, select_joke
-from .alive_moment import AliveMomentError, load_alive_history, load_alive_moment, record_alive_moment, resolve_alive_moment_path, validate_alive_moment
+from .alive_moment import AliveMomentError, load_alive_history, load_alive_moment, record_alive_moment, resolve_alive_moment_path, validate_alive_moment, verify_alive_moment_asset
 from .edition_counter import edition_for_date, get_next_edition, increment_edition
 from .locked_edition import render_locked_edition
 from .weekly_wrap_qa import validate_weekly_wrap_html
@@ -671,6 +671,14 @@ def main() -> int:
                 edition_number=edition_number,
                 edition_type=edition_type,
                 generated_at=now_brisbane,
+            )
+        if alive_moment and args.prepare_release:
+            asset_identity = verify_alive_moment_asset(alive_moment)
+            log.info(
+                "REMEMBER THE WORLD hosted bytes verified: sha256=%s bytes=%d content_type=%s",
+                asset_identity["sha256"],
+                asset_identity["bytes"],
+                asset_identity["content_type"],
             )
         log.info("Stage 3 complete: %d chars of HTML produced", len(html))
         html_sha256 = hashlib.sha256(html.encode("utf-8")).hexdigest()

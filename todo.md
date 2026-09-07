@@ -665,7 +665,48 @@
 - [x] Confirm first build `bld-daf2vgv40ujc739bj0cg` failed before deployment because two legacy send simulations inherited service-level `SIGNAL_REGISTRY_REQUIRED=1`; no service run, database connection, audience fetch or email action occurred
 - [x] Pass the corrected deployment-environment isolation through the exact Render-style 179-test suite in both the integration checkout and a fresh detached worktree, with four production-only database tests skipped as expected
 - [x] Separately execute all four real PostgreSQL registry tests in both checkouts using checksum-migrated isolated databases
-- [ ] Commit, fast-forward and rebuild the disabled preflight service with the test-isolation correction before linking any managed secret
+- [x] Commit and fast-forward the test-isolation correction as GitHub master `c402f7ecbee6c11cd6f522e7070659f8bd8758a6` without force-pushing
+- [x] Build and deploy exact commit `c402f7ecbee6c11cd6f522e7070659f8bd8758a6` on disabled preflight cron `crn-daf2vgn40ujc739biup0` as build `bld-daf33k9t0dsc73cbmcb0`; build passed 179 tests with four production-only skips
+- [x] Verify the new service settings: exact deployed commit `c402f7e`, branch `master`, command is production preflight only, annual containment schedule `0 0 1 1 *`, minimum compute, and no successful runs
+- [ ] Link only the masked managed registry connection and existing required application secrets without exposing values, while keeping `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED=0`
+- [x] Abandon the first unsaved environment-group draft after Render's reactive row updates removed an unintended key; no environment group was created and no existing service value changed
+- [x] Create masked Render environment group `dtl-signal-common-secrets` containing only four shared keys: `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `SIGNAL_PIPELINE_API_KEY` and `SIGNAL_REGISTRY_DATABASE_URL`; no value was displayed, exported or written locally
+- [x] Link `dtl-signal-common-secrets` to disabled preflight cron `crn-daf2vgn40ujc739biup0` using Render's link-only action; no secret value was displayed or exported and no deploy or run was triggered
+- [x] Verify the linked group exposes exactly four masked key names to the preflight service: `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `SIGNAL_PIPELINE_API_KEY`, `SIGNAL_REGISTRY_DATABASE_URL`
+- [x] Add service-specific `SIGNAL_EXPECTED_RENDER_SERVICE_ID=crn-daf2vgn40ujc739biup0` and explicitly reset `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED=0`
+- [x] Trigger the disabled preflight service once at 13:52 AEST on exact commit `c402f7e`; it logged `REGISTRY PRODUCTION PREFLIGHT DISABLED` and exited status 1 before source fetch, subscriber fetch, registry write or email delivery
+- [x] Add service-specific `PROOF_RECIPIENT_EMAIL=paul.ford@gmail.com` and explicitly preserve `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED=0`; configuration saved without triggering another cron run
+- [ ] If an end-to-end alert email test is required, obtain separate confirmation before triggering it; the production preflight and subscriber paths remain disabled regardless
+- [x] Verify the disabled preflight runtime on commit `c402f7e` exited status 1 at the activation gate before source fetch, subscriber fetch, registry write or provider delivery
+- [x] Deploy exact commit `c402f7ecbee6c11cd6f522e7070659f8bd8758a6` to the contained delivery service as build `bld-daf3bvpt0dsc73ccol90`; Render passed 179 tests with four production-only skips and reported `Build succeeded | Latest`
+- [x] Align and independently verify the contained delivery command's expected commit to exact deployed `c402f7e` while retaining registry-required `--dry-run`, with no `--send` or `--deliver-release`
+- [x] Explicitly add `SIGNAL_PRODUCTION_DELIVERY_ENABLED=0` to the contained delivery service and prove a valid production registry-delivery command fails closed before any claim or provider contact
+- [x] Add and save service-specific `SIGNAL_PRODUCTION_DELIVERY_ENABLED=0` on the contained delivery service without triggering a cron run or changing the active dry-run command
+- [ ] Temporarily run the production registry-delivery mode with alerts disabled for the test and prove the activation gate exits before registry claim or provider contact, then restore exact-commit dry-run containment
+- [x] Stage the production registry-delivery activation-gate test on exact commit `c402f7e` with `SIGNAL_PRODUCTION_DELIVERY_ENABLED=0` and `PROOF_RECIPIENT_EMAIL=`; command cannot alert, claim or deliver while the gate is off
+- [ ] Trigger that activation-off test once, capture the fail-closed log and exit status, then restore exact-commit registry-required dry-run containment immediately
+- [x] Confirm the 14:08 AEST delivery test exited status 2 at argument parsing because `--registry-scope` was used instead of the valid `--release-scope`; no application pipeline, registry claim, alert or provider action began
+- [x] Restore and independently verify exact commit `c402f7e`, registry-required `--dry-run` containment immediately after the parser-only test; no delivery or send flag remains active
+- [x] Repeat the production delivery test at 14:12 AEST on exact commit `c402f7e` using valid `--release-scope production`; it logged `REGISTRY PRODUCTION DELIVERY DISABLED` and exited status 1 before any registry claim or provider contact
+- [x] Restore and independently verify exact-commit registry-required `--dry-run` containment immediately after the conclusive delivery activation-gate test
+- [ ] Audit the next issue date's governed REMEMBER THE WORLD record and all other preflight prerequisites before presenting any subscriber-reactivation decision
+- [x] Confirm the next normal issue is Edition 0049 on Tuesday 8 September 2026 and no governed date-resolved image record currently exists, so production preflight would hold safely
+- [x] Source-verify a fresh Edition 0049 candidate: NASA's true-colour Great Barrier Reef photograph, 1,629×1,816, public domain, aqua/deep-teal palette, non-repeating image/location/category
+- [x] Download the NASA/Wikimedia 1,629×1,816 original, verify its visual integrity and absence of restricted NASA logos, checksum it as `1b49747f4a2c72a4673c158bef5710c116928dee3ed7e9ba72f552ffc5d41727`, and upload unchanged to the stable Signal asset host
+- [x] Create date-resolved Edition 0049 record `data/alive_moments/2026-09-08.json` with verified public-domain provenance, DTL aqua/deep-teal harmony and `APPROVED_FOR_PROOF` status only
+- [x] Add preflight-only hosted-image byte verification: HTTPS, availability, image content type and exact SHA-256 must pass before a registry release can be frozen; deterministic morning delivery performs no image fetch
+- [x] Re-fetch the hosted Edition 0049 image and verify it remains a 1,629×1,816 JPEG with exact governed SHA-256 `1b49747f4a2c72a4673c158bef5710c116928dee3ed7e9ba72f552ffc5d41727`
+- [x] Validate Edition 0049 governance, hosted-byte verification and registry simulations through 182 tests across 16 independently bounded modules in both the integration checkout and a fresh detached worktree, with four production-only tests skipped in each general run
+- [x] Execute all four real PostgreSQL registry tests separately in both checkouts against checksum-migrated isolated databases, with zero failures
+- [ ] Commit, fast-forward and deploy the Edition 0049 governed-image record and preflight byte-verification controls while both production activation switches remain disabled
+- [x] Confirm the first delivery activation-gate test attempt ended at a browser reset before command edit; no service command, registry state or provider action changed
+- [x] Confirm the first delivery activation-switch edit ended at a browser reset before edit mode; no environment value, command or cron state changed
+- [x] Independently verify Render reports `c402f7e` as the delivery service's latest deployed commit while the active dry-run command still expects `b5044e9`; no cron run occurred under the mismatch
+- [x] Verify the submitted delivery command update persisted with exact commit `c402f7e` after refresh
+- [x] Confirm the first delivery-command alignment attempt ended at a browser reset before edit mode; the service remained on the prior registry-required dry-run command and no cron run occurred
+- [x] Confirm no cron run or subscriber action occurred while build `bld-daf3bvpt0dsc73ccol90` remained non-terminal; the existing service stayed on `b5044e9` dry-run containment
+- [x] Confirm the browser monitoring reset before build `bld-daf3bvpt0dsc73ccol90` reached a terminal result; no service command, activation switch or subscriber state changed during the reset
+- [x] Confirm the first alert-recipient configuration attempt ended at a browser reset before edit mode; no service environment value or activation control changed
 - [x] Commit and fast-forward Option B registry, Edition 0048 recovery and containment controls from deployed baseline `5fb530c` to GitHub master commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` without force-pushing
 - [x] Manually build and deploy exact commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` on Render as build `bld-daf074nqj5pc73b5j940`; build ran 169 tests successfully with 3 production-only skips
 - [x] Restore and independently verify the active recurring command after migration: `SIGNAL_REGISTRY_REQUIRED=1`, exact deployed commit `78f4ff2`, `--dry-run`, no `--send`, no `--deliver-release`, and no stale Edition 0047 release variables

@@ -45,9 +45,9 @@ Read this alongside `SIGNAL_CONTEXT.md` before starting any Signal work.
 
 | Field | Value |
 |-------|-------|
-| Service name | `dtl-signal` |
+| Service names | `dtl-signal-preflight` and `dtl-signal` |
 | Service type | Cron job |
-| Schedule | `0 20 * * *` UTC (6:00 AM AEST) |
+| Schedule | Both services remain on annual containment schedules; intended production schedules are prior-evening preflight and 06:00 AEST delivery, subject to separate approval |
 | Runtime | Python 3.11.9 |
 | Region | Singapore |
 | Plan | Standard |
@@ -71,6 +71,9 @@ Read this alongside `SIGNAL_CONTEXT.md` before starting any Signal work.
 | `SIGNAL_ALIVE_MOMENT_PATH` | Date-resolved governed image record, normally `data/alive_moments/{date}.json` | No |
 | `SIGNAL_REGISTRY_DATABASE_URL` | Managed same-region internal connection to `dtl-signal-registry` | Yes |
 | `SIGNAL_REGISTRY_REQUIRED` | Blocks legacy direct `--send`; registry-only production guard | No |
+| `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED` | Explicitly enables production audience preparation; `0` fails before subscriber fetch | No |
+| `SIGNAL_PRODUCTION_DELIVERY_ENABLED` | Explicitly enables production registry claims; `0` fails before recipient claim | No |
+| `SIGNAL_EXPECTED_RENDER_SERVICE_ID` | Binds each role to its approved Render service | No |
 | `TZ` | Timezone (`Australia/Brisbane`) | No |
 
 **Rules:**
@@ -80,6 +83,7 @@ Read this alongside `SIGNAL_CONTEXT.md` before starting any Signal work.
 - The daily image path must resolve to a committed record for the Brisbane edition date; missing or mismatched records hold before rendering.
 - Never print, export, log, persist or commit the Postgres connection value. Verify only the environment key name and database-side schema evidence.
 - No registry failure may fall back to legacy direct send. Keep the recurring command in dry-run containment until the exact deployed commit, schema, proof and canary are independently verified and Paul authorises reactivation.
+- Preflight must verify the hosted REMEMBER THE WORLD bytes against the governed SHA-256 before freezing a release. Morning delivery must not fetch or substitute the image.
 
 ### Render Postgres registry
 
