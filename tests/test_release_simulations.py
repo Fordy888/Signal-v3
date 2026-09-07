@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import logging
@@ -658,7 +659,6 @@ class ReleaseSimulationTests(unittest.TestCase):
         send_mock.assert_not_called()
 
     def test_registry_proof_preparation_freezes_one_recipient_without_delivery(self) -> None:
-        plan = _ai_adoption_majority_plan()
         patches = self._common_patches()
         frozen = SimpleNamespace(
             id="registry-proof-0048",
@@ -670,11 +670,13 @@ class ReleaseSimulationTests(unittest.TestCase):
         with ExitStack() as stack:
             entered = [stack.enter_context(item) for item in patches]
             send_mock = entered[6]
-            stack.enter_context(
-                patch("src.main.scored_items_to_evidence", return_value=_focus_evidence())
+            fetch_mock = entered[2]
+            score_mock = entered[3]
+            evidence_mock = stack.enter_context(
+                patch("src.main.scored_items_to_evidence")
             )
-            stack.enter_context(
-                patch("src.main.generate_judgement_plan", return_value=plan)
+            planner_mock = stack.enter_context(
+                patch("src.main.generate_judgement_plan")
             )
             stack.enter_context(
                 patch(
@@ -703,6 +705,8 @@ class ReleaseSimulationTests(unittest.TestCase):
                         "--release-scope",
                         "proof",
                         "--enhanced",
+                        "--locked-edition",
+                        "48",
                         "--release-date",
                         "2026-09-07",
                         "--as-of",
@@ -715,12 +719,21 @@ class ReleaseSimulationTests(unittest.TestCase):
 
         self.assertEqual(0, result)
         send_mock.assert_not_called()
+        fetch_mock.assert_not_called()
+        score_mock.assert_not_called()
+        evidence_mock.assert_not_called()
+        planner_mock.assert_not_called()
         kwargs = prepare_mock.call_args.kwargs
         self.assertEqual("proof", kwargs["release_scope"])
         self.assertEqual(1, len(kwargs["recipients"]))
         self.assertEqual("paul.ford@gmail.com", kwargs["recipients"][0]["email"])
         self.assertEqual(6, kwargs["issue_time"].hour)
         self.assertEqual(7, kwargs["delivery_time"].hour)
+        self.assertEqual(
+            "e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f",
+            hashlib.sha256(kwargs["html"].encode()).hexdigest(),
+        )
+        self.assertEqual(10, len(kwargs["metadata"]["source_urls"]))
 
     def test_registry_delivery_bypasses_generation_and_uses_locked_release(self) -> None:
         registry_result = {

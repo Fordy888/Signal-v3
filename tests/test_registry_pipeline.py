@@ -1,3 +1,4 @@
+import dataclasses
 import unittest
 from datetime import datetime
 from unittest.mock import patch
@@ -105,6 +106,20 @@ class RegistryPipelineTests(unittest.TestCase):
         self.assertIn("[PROOF] DTL Signal", release.subject)
         self.assertNotIn("{{SUBSCRIBER_HASH}}", release.recipients[0].html_body)
         self.assertIs(registry.frozen, release)
+
+    def test_preflight_fails_if_database_readback_differs(self):
+        registry = FakeRegistry()
+        original_load = registry.load_frozen_release
+
+        def corrupted_load(release_id):
+            release = original_load(release_id)
+            return dataclasses.replace(release, html_sha256="f" * 64)
+
+        registry.load_frozen_release = corrupted_load
+        with self.assertRaisesRegex(
+            RegistryIntegrityError, "persisted release does not match"
+        ):
+            self._prepare(registry)
 
     @patch("src.registry_pipeline.report_send_results")
     @patch("src.registry_pipeline.send_brief")

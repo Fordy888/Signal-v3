@@ -139,7 +139,12 @@ def prepare_release(
         metadata=metadata,
     )
     registry.store_locked_release(frozen)
-    return frozen
+    persisted = registry.load_frozen_release(frozen.id)
+    if persisted != frozen:
+        raise RegistryIntegrityError(
+            "persisted release does not match the immutable preflight candidate"
+        )
+    return persisted
 
 
 def deliver_release(

@@ -492,42 +492,52 @@ def main() -> int:
         )
         return 1
 
-    # 1. Fetch raw items (returns tuple with failed sources AND detailed fetch results)
-    log.info("Stage 1: Fetching sources...")
-    raw_items, failed_sources, fetch_results = fetch_all(
-        sources_config_path,
-        history_urls=history_urls,
-        edition_type=edition_type,
-        reference_time=now_brisbane,
+    locked_preflight = bool(
+        args.prepare_release and use_enhanced and args.locked_edition is not None
     )
-    if not raw_items:
-        log.warning("No items fetched. Proceeding to graceful quiet-day briefs.")
+    if locked_preflight:
+        log.info(
+            "LOCKED PREFLIGHT: bypassing source fetch, scoring and model generation for Edition %04d",
+            args.locked_edition,
+        )
+        raw_items = []
+        failed_sources = []
+        fetch_results = []
+        degraded_sources = []
+        scored = []
+        category_coverage = {}
     else:
-        log.info("Stage 1 complete: %d raw items fetched", len(raw_items))
+        # 1. Fetch raw items (returns tuple with failed sources AND detailed fetch results)
+        log.info("Stage 1: Fetching sources...")
+        raw_items, failed_sources, fetch_results = fetch_all(
+            sources_config_path,
+            history_urls=history_urls,
+            edition_type=edition_type,
+            reference_time=now_brisbane,
+        )
+        if not raw_items:
+            log.warning("No items fetched. Proceeding to graceful quiet-day briefs.")
+        else:
+            log.info("Stage 1 complete: %d raw items fetched", len(raw_items))
 
-    # Log fetch diagnostics
-    sources_succeeded = sum(1 for r in fetch_results if r.success)
-    log.info("Source fetch summary: %d succeeded, %d failed out of %d attempted",
-             sources_succeeded, len(failed_sources), len(fetch_results))
+        sources_succeeded = sum(1 for r in fetch_results if r.success)
+        log.info("Source fetch summary: %d succeeded, %d failed out of %d attempted",
+                 sources_succeeded, len(failed_sources), len(fetch_results))
+        degraded_sources = record_source_failures(
+            root,
+            failed_sources=failed_sources,
+            active_sources=source_counts["active_names"],
+        )
 
-    # Track source health (consecutive failures)
-    degraded_sources = record_source_failures(
-        root,
-        failed_sources=failed_sources,
-        active_sources=source_counts["active_names"],
-    )
-
-    # 2. Score items
-    log.info("Stage 2: Scoring items...")
-    scored = score_items(
-        items=raw_items,
-        scoring_prompt_path=str(root / "prompts" / "scoring_prompt.md"),
-    )
-    log.info("Stage 2 complete: %d items survived scoring", len(scored))
-
-    # Build category coverage for QA gate
-    category_coverage = build_category_coverage(scored)
-    log.info("Category coverage: %s", {k: v for k, v in category_coverage.items() if v > 0})
+        # 2. Score items
+        log.info("Stage 2: Scoring items...")
+        scored = score_items(
+            items=raw_items,
+            scoring_prompt_path=str(root / "prompts" / "scoring_prompt.md"),
+        )
+        log.info("Stage 2 complete: %d items survived scoring", len(scored))
+        category_coverage = build_category_coverage(scored)
+        log.info("Category coverage: %s", {k: v for k, v in category_coverage.items() if v > 0})
 
     # 3. Synthesise brief (one edition for all subscribers — same content)
     log.info("Stage 3: Synthesising brief...")
@@ -563,6 +573,7 @@ def main() -> int:
                 html, enhanced_plan, planner_evidence, selected_joke, alive_moment = (
                     render_locked_edition(root, args.locked_edition)
                 )
+                category_coverage = build_category_coverage(planner_evidence)
                 log.info("Loaded checksum-locked Edition %04d", args.locked_edition)
             else:
                 planner_evidence = scored_items_to_evidence(scored)
@@ -811,18 +822,20 @@ def main() -> int:
         else "send" if args.send or preparing_production
         else mode
     )
+    qa_evidence = planner_evidence if locked_preflight else scored
     should_send, qa_results = run_pre_send_qa(
         edition_number=edition_number,
         html=html,
-        scored_count=len(scored),
+        scored_count=len(qa_evidence),
         recipient_count=len(recipients),
         sources_failed=len(failed_sources),
         sources_active=source_counts["active"],
         mode=qa_mode,
         root=root,
-        scored_items=scored,
+        scored_items=qa_evidence,
         fetch_results=fetch_results,
         as_of=now_brisbane,
+        locked_evidence=planner_evidence if locked_preflight else None,
     )
     identity_mode = "send" if args.release_canary or preparing_production else mode
     release_identity_result = check_release_identity(
@@ -903,9 +916,12 @@ def main() -> int:
                 )
 
         source_urls = []
-        for item in scored:
-            raw = item.raw if hasattr(item, "raw") else None
-            url = getattr(raw, "url", "") if raw is not None else ""
+        for item in qa_evidence:
+            if isinstance(item, dict):
+                url = str(item.get("url") or "")
+            else:
+                raw = item.raw if hasattr(item, "raw") else None
+                url = getattr(raw, "url", "") if raw is not None else ""
             if url:
                 source_urls.append(url)
         editorial_revision = (

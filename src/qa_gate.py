@@ -975,6 +975,36 @@ def check_content_readiness(
     )
 
 
+def check_locked_evidence_readiness(evidence: list[dict]) -> QAResult:
+    """Validate the exact committed evidence set used by a locked edition."""
+    source_ids = [str(item.get("source_id") or "").strip() for item in evidence]
+    source_urls = [str(item.get("url") or "").strip() for item in evidence]
+    issues = []
+    if len(evidence) != 10:
+        issues.append(f"expected exactly 10 evidence rows, got {len(evidence)}")
+    if any(not source_id for source_id in source_ids):
+        issues.append("one or more source IDs are missing")
+    if any(not source_url for source_url in source_urls):
+        issues.append("one or more source URLs are missing")
+    if len(set(source_ids)) != len(source_ids):
+        issues.append("source IDs are not unique")
+    if len(set(source_urls)) != len(source_urls):
+        issues.append("source URLs are not unique")
+    if issues:
+        return QAResult(
+            check_name="Locked Evidence Readiness",
+            passed=False,
+            severity="critical",
+            message="Locked evidence FAILED: " + "; ".join(issues),
+        )
+    return QAResult(
+        check_name="Locked Evidence Readiness",
+        passed=True,
+        severity="info",
+        message="Locked evidence ready: 10 distinct committed source IDs and URLs.",
+    )
+
+
 def check_recipient_count(count: int, mode: str) -> QAResult:
     """Verify recipient count is within expected bounds."""
     if mode == "proof":
@@ -1124,6 +1154,7 @@ def run_pre_send_qa(
     scored_items: list | None = None,
     fetch_results: list | None = None,
     as_of: datetime | None = None,
+    locked_evidence: list[dict] | None = None,
 ) -> tuple[bool, list[QAResult]]:
     """Run all pre-send QA checks.
 
@@ -1137,18 +1168,24 @@ def run_pre_send_qa(
     # Build category coverage from scored items
     category_coverage = build_category_coverage(scored_items or [])
 
-    results = [
-        check_edition_number(edition_number, root, as_of=as_of),
-        check_date_integrity(edition_number, as_of=as_of),
-        check_subject_body_alignment(html, edition_number, as_of=as_of),
-        check_content_minimum(html, scored_count),
-        check_content_readiness(
+    content_readiness = (
+        check_locked_evidence_readiness(locked_evidence)
+        if locked_evidence is not None
+        else check_content_readiness(
             sources_succeeded=sources_succeeded,
             sources_active=sources_active,
             scored_count=scored_count,
             category_coverage=category_coverage,
             fetch_results=fetch_results,
-        ),
+        )
+    )
+
+    results = [
+        check_edition_number(edition_number, root, as_of=as_of),
+        check_date_integrity(edition_number, as_of=as_of),
+        check_subject_body_alignment(html, edition_number, as_of=as_of),
+        check_content_minimum(html, scored_count),
+        content_readiness,
         check_recipient_count(recipient_count, mode),
         check_reply_to(),
     ]

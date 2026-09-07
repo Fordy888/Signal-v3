@@ -610,6 +610,12 @@
 - [x] Distinguish definitive Resend rejection from uncertain transport outcomes so known failures become terminal while ambiguous sends retain the same idempotency key for safe resume
 - [x] Remove the unchecked direct SQL migration bypass and require the checksum-tracked migration runner
 - [x] Add a checksum-locked Edition 0048 manifest that reproduces committed proof `e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f` from committed plan, evidence, joke and date-resolved governed image without model generation
+- [x] Fast-forward the Edition 0048 locked-preflight commit `fd47415cb8a32a2132c7abee6d491cf299a37dcf` to GitHub master without force-pushing
+- [x] Build and deploy exact commit `fd47415cb8a32a2132c7abee6d491cf299a37dcf` as Render build `bld-daf0eu9t0dsc73c19s5g`; build passed 170 tests with three production-only skips
+- [x] Update and independently verify the contained registry-required dry-run command's expected commit from `78f4ff2` to deployed `fd47415`, with no send or delivery flag
+- [x] Make locked registry preflight bypass live source fetching, scoring and model generation; validate the exact ten committed evidence rows and freeze source metadata from those same rows
+- [x] Re-read every stored release and recipient from Postgres immediately after preflight and fail closed unless the persisted immutable release exactly equals the in-memory candidate
+- [x] Pass all 171 tests across 16 independently bounded modules in both the integration checkout and a fresh detached worktree after deterministic locked preflight and persisted-readback controls
 - [x] Commit and fast-forward Option B registry, Edition 0048 recovery and containment controls from deployed baseline `5fb530c` to GitHub master commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` without force-pushing
 - [x] Manually build and deploy exact commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` on Render as build `bld-daf074nqj5pc73b5j940`; build ran 169 tests successfully with 3 production-only skips
 - [x] Restore and independently verify the active recurring command after migration: `SIGNAL_REGISTRY_REQUIRED=1`, exact deployed commit `78f4ff2`, `--dry-run`, no `--send`, no `--deliver-release`, and no stale Edition 0047 release variables
