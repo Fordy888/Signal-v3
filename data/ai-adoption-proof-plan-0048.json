@@ -1,0 +1,145 @@
+{
+  "editorial_revision": "ai-adoption-v1",
+  "founders_note": {
+    "headline": "AI adoption does not pause for the weekend. Neither should your judgement.",
+    "body": "The useful stories today are about operating choices, not model theatre. A council is moving planning applications faster. A bank is putting account enquiries inside Claude. Software buyers are changing how they build a shortlist. The pattern is simple: AI creates value when it changes real work, but every gain creates a new dependency—on data, suppliers, pricing or governance. Ask what moved, what it cost and what happens if the provider changes the rules. — Paul"
+  },
+  "evidence_items": [
+    {
+      "source_ids": ["S01"],
+      "category": "Sales, Marketing & Customer",
+      "action_tag": "WATCH",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "PicPay is using Claude inside live customer account-enquiry work, changing service access and operating efficiency.",
+      "headline": "Your bank account moved into AI",
+      "evidence": "A bank is using Claude AI in customer service so PicPay customers can check balances, bills, investments, cards and transactions through natural-language enquiries."
+    },
+    {
+      "source_ids": ["S02"],
+      "category": "Finance & Capital",
+      "action_tag": "ACT",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Banks and lenders use AI agents in regulated loan-servicing, compliance and recovery workflows.",
+      "headline": "Regulated calls give AI its strongest test",
+      "evidence": "Banks deploy AI across loan service workflows, improving consistency and auditability in regulated customer operations."
+    },
+    {
+      "source_ids": ["S03"],
+      "category": "Operations & Delivery",
+      "action_tag": "OPPORTUNITY",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "PlusAI operates AI-driven freight routes, changing utilisation, driver economics and commercial revenue.",
+      "headline": "Autonomous freight has left the test track",
+      "evidence": "A logistics company is using AI to operate freight routes with Ryder and International Motors, changing utilisation, driver economics and commercial revenue."
+    },
+    {
+      "source_ids": ["S04"],
+      "category": "Technology & Data",
+      "action_tag": "WATCH",
+      "mix_classification": "AI_INDUSTRY_IMPACT",
+      "ai_business_connection": "OpenAI ended a major model-supply relationship, creating direct continuity and concentration risk for business workflows built on external AI.",
+      "headline": "A billion-dollar AI supplier can disappear",
+      "evidence": "OpenAI left a Cursor model-supply relationship worth more than US$1 billion a year after SpaceX’s acquisition, exposing continuity risk for dependent business workflows."
+    },
+    {
+      "source_ids": ["S05"],
+      "category": "Finance & Capital",
+      "action_tag": "WATCH",
+      "mix_classification": "AI_INDUSTRY_IMPACT",
+      "ai_business_connection": "The AI infrastructure investment cycle directly changes capital, energy and procurement risk for ordinary businesses.",
+      "headline": "AI’s US$700 billion power bill needs scrutiny",
+      "evidence": "US hyperscalers plan US$700 billion of AI infrastructure investment in 2026. The scale changes capital, energy and procurement risk before household price effects are clear."
+    }
+  ],
+  "focus_numbers": [
+    {
+      "source_ids": ["S06"],
+      "entity": "Wingecarribee Shire",
+      "number": "89% on-time planning decisions",
+      "meaning": "A government agency uses AI in a planning workflow, improving service speed to 20 percentage points above the NSW average.",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "A council uses AI in a real planning workflow with measured service-speed improvement."
+    },
+    {
+      "source_ids": ["S07"],
+      "entity": "Business software buyers",
+      "number": "More than 80% used AI recommendations",
+      "meaning": "Companies are using AI recommendations in software-buying workflows, changing shortlist speed and sales expectations.",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Companies use AI in the buying process, changing shortlist speed and sales expectations."
+    },
+    {
+      "source_ids": ["S08"],
+      "entity": "Sprinklr customers",
+      "number": "More than 200 AI engagements",
+      "meaning": "Enterprises are using AI in customer-service workflows to improve productivity, while implementation capacity determines whether scale becomes value.",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Enterprises use AI in customer-service work to improve productivity and customer outcomes."
+    },
+    {
+      "source_ids": ["S09"],
+      "entity": "Asana",
+      "number": "US$1.2 million revenue headwind",
+      "meaning": "Customers are adopting AI in work management, while Asana absorbs near-term pricing and margin pressure to build usage first.",
+      "mix_classification": "AI_ADOPTION",
+      "ai_business_connection": "Customer AI use changes work-management processes, pricing, revenue recognition and margins."
+    },
+    {
+      "source_ids": ["S10"],
+      "entity": "NVIDIA and Hugging Face",
+      "number": "US$12.9303 billion acquisition",
+      "meaning": "More than 200,000 companies use the AI platform, so continued model choice and openness now matter to business procurement and continuity.",
+      "mix_classification": "AI_INDUSTRY_IMPACT",
+      "ai_business_connection": "The acquisition directly affects AI supplier choice and deployment confidence for business users."
+    }
+  ],
+  "interpretation_headline": "AI is moving into the workflow—and taking dependencies with it",
+  "interpretation": "Today’s adoption evidence is practical: planning decisions, banking enquiries, loan servicing, freight routes, software buying, customer experience and work management. The gains are real enough to act on. So are the dependencies. Value now rests on permissions, data quality, pricing design, implementation skill and supplier continuity—not access to a model alone.",
+  "what_changed": {
+    "position_id": "ai-value-follows-workflow-change",
+    "classification": "STRENGTHENS",
+    "prior_position": "AI earns attention when it changes a real business process and measurable outcome.",
+    "current_position": "Current evidence strengthens the case for evaluating AI through changed work, operating dependencies and commercial proof.",
+    "explanation": "Ten distinct sources show AI moving into real business processes while supplier, pricing and infrastructure decisions shape the value created.",
+    "confidence": "HIGH"
+  },
+  "counter_signal": {
+    "headline": "A number can be real and still need context",
+    "statement": "Several figures come from company statements, vendor platforms or an early working paper. They identify meaningful operating shifts, but they do not prove that every claimed gain came from AI alone.",
+    "would_change_view_if": "Independent results showed that the same workflow gains disappeared after controlling for staffing, process redesign and customer mix.",
+    "confidence_effect": "That evidence would weaken the case that AI itself is producing the reported gains and strengthen the case for judging the surrounding operating redesign instead."
+  },
+  "executive_actions": [
+    {
+      "action_tag": "ACT",
+      "headline": "Map the dependency beside the gain",
+      "instruction": "For every AI workflow, name the data, permission, supplier and person it cannot operate without."
+    },
+    {
+      "action_tag": "WATCH",
+      "headline": "Faster buying still needs easier selling",
+      "instruction": "If customers use AI to shortlist you, remove quote, approval and implementation friction before demand reaches the hand-off."
+    },
+    {
+      "action_tag": "OPPORTUNITY",
+      "headline": "Borrow the council test",
+      "instruction": "Pick one service process and compare its speed with a credible external benchmark, not with your own activity count."
+    }
+  ],
+  "executive_read": {
+    "dtl_view": "AI adoption is becoming ordinary business work. The advantage belongs to leaders who improve the process while keeping control of the dependencies that improvement creates.",
+    "watch_headline": "Watch what sits behind the headline number",
+    "watch_items": [
+      "Whether AI-enabled service improvements hold when demand, exceptions and complaints rise.",
+      "Whether software sellers redesign the purchase path as quickly as buyers redesign research.",
+      "Whether major AI-platform deals preserve genuine model choice after the announcement."
+    ]
+  },
+  "memory_update": {
+    "position_id": "ai-value-follows-workflow-change",
+    "theme": "AI adoption and operating dependencies",
+    "statement": "DTL Signal should judge AI through changed work, measurable consequence and the dependencies created by adoption.",
+    "confidence": "HIGH",
+    "supporting_source_ids": ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10"]
+  }
+}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import sys
@@ -19,15 +20,40 @@ from src.judgement_plan import (
     validate_judgement_plan,
 )
 
-PLAN_PATH = ROOT / "data" / "ai-adoption-proof-plan-0047.json"
-EVIDENCE_PATH = ROOT / "data" / "ai-adoption-proof-evidence-0047.json"
-OUTPUT_PATH = ROOT / "data" / "ai-adoption-proof-0047.html"
-ALIVE_PATH = ROOT / "data" / "fixtures" / "alive_moment_0047.json"
+PROOF_CONFIG = {
+    "0047": {
+        "date": "2026-09-04",
+        "joke": {
+            "setup": "Why did the workflow bring a ruler to the meeting?",
+            "punchline": "It wanted to measure the impact before scaling.",
+        },
+    },
+    "0048": {
+        "date": "2026-09-07",
+        "joke": {
+            "setup": "Why did the robot take a welding class?",
+            "punchline": "It wanted to make stronger connections.",
+        },
+    },
+}
 
 
 def main() -> int:
-    plan = json.loads(PLAN_PATH.read_text())
-    evidence = json.loads(EVIDENCE_PATH.read_text())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--edition", choices=sorted(PROOF_CONFIG), default="0047")
+    args = parser.parse_args()
+    edition_id = args.edition
+    edition_number = int(edition_id)
+    config = PROOF_CONFIG[edition_id]
+    proof_date = datetime.strptime(config["date"], "%Y-%m-%d").replace(
+        hour=6, tzinfo=ZoneInfo("Australia/Brisbane")
+    )
+    plan_path = ROOT / "data" / f"ai-adoption-proof-plan-{edition_id}.json"
+    evidence_path = ROOT / "data" / f"ai-adoption-proof-evidence-{edition_id}.json"
+    output_path = ROOT / "data" / f"ai-adoption-proof-{edition_id}.html"
+    alive_path = ROOT / "data" / "fixtures" / f"alive_moment_{edition_id}.json"
+    plan = json.loads(plan_path.read_text())
+    evidence = json.loads(evidence_path.read_text())
     prepared, focus_eligible = prepare_focus_number_evidence(evidence)
     prepared, verified_mix = prepare_ai_adoption_evidence(prepared)
     allocated = {
@@ -54,29 +80,24 @@ def main() -> int:
         allocated,
     )
     alive_moment = validate_alive_moment(
-        load_alive_moment(ALIVE_PATH),
+        load_alive_moment(alive_path),
         history=[],
-        expected_edition_id="0047",
-        expected_date="2026-09-04",
+        expected_edition_id=edition_id,
+        expected_date=config["date"],
     )
     html = render_enhanced_email(
         plan=validated,
         sources=prepared,
-        joke={
-            "setup": "Why did the workflow bring a ruler to the meeting?",
-            "punchline": "It wanted to measure the impact before scaling.",
-        },
-        edition_number=47,
-        generated_at=datetime(
-            2026, 9, 4, 6, 0, tzinfo=ZoneInfo("Australia/Brisbane")
-        ),
+        joke=config["joke"],
+        edition_number=edition_number,
+        generated_at=proof_date,
         alive_moment=alive_moment,
     )
-    OUTPUT_PATH.write_text(html)
+    output_path.write_text(html)
     selected_ids = allocated["newsroom"] + allocated["focus_numbers"]
     selected_classes = [verified_mix[source_id] for source_id in selected_ids]
-    digest = hashlib.sha256(OUTPUT_PATH.read_bytes()).hexdigest()
-    print(f"proof={OUTPUT_PATH}")
+    digest = hashlib.sha256(output_path.read_bytes()).hexdigest()
+    print(f"proof={output_path}")
     print(f"sha256={digest}")
     print(f"newsroom={','.join(allocated['newsroom'])}")
     print(f"focus={','.join(allocated['focus_numbers'])}")

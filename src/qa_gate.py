@@ -77,7 +77,7 @@ def load_release_manifest() -> dict[str, Any]:
         "major_business_items_per_section": 2,
         "source_overlap_allowed": False,
     }
-    ai_adoption_editorial_contract = {
+    frozen_ai_adoption_editorial_contract = {
         "editorial_revision": "ai-adoption-v1",
         "newsroom_items": 5,
         "focus_number_items": 5,
@@ -86,10 +86,21 @@ def load_release_manifest() -> dict[str, Any]:
         "maximum_ai_industry_impact_items": 2,
         "source_overlap_allowed": False,
     }
+    current_ai_adoption_editorial_contract = {
+        "editorial_revision": "ai-adoption-v1",
+        "newsroom_items": 5,
+        "focus_number_items": 5,
+        "all_core_items_ai": True,
+        "minimum_ai_adoption_items": 6,
+        "minimum_ai_adoption_items_per_section": 3,
+        "maximum_ai_industry_impact_items": 4,
+        "source_overlap_allowed": False,
+    }
     canonical_editorial_contract = json.dumps(editorial_contract, sort_keys=True)
     if canonical_editorial_contract not in {
         json.dumps(historical_editorial_contract, sort_keys=True),
-        json.dumps(ai_adoption_editorial_contract, sort_keys=True),
+        json.dumps(frozen_ai_adoption_editorial_contract, sort_keys=True),
+        json.dumps(current_ai_adoption_editorial_contract, sort_keys=True),
     }:
         raise ValueError(
             "release manifest editorial contract must match either the frozen exact 3 "

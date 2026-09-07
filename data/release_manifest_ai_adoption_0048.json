@@ -1,0 +1,47 @@
+{
+  "release_id": "ai-adoption-v1-proof-0048",
+  "status": "PROPOSED",
+  "approved_proof_path": "data/ai-adoption-proof-0048.html",
+  "approved_proof_sha256": "e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f",
+  "expected_renderer": "enhanced-v4-focus-numbers",
+  "approved_image_required_on": "2026-09-07",
+  "approved_image_identity": "REMEMBER-0048-GARY-PLANT-WELDERS",
+  "approved_image_path": "data/fixtures/alive_moment_0048.json",
+  "required_markers": [
+    "FOUNDER'S NOTE",
+    "DTL SIGNAL NEWSROOM — READ THIS",
+    "FOCUS ON THE NUMBERS",
+    "WHY IT MATTERS",
+    "WHAT TO DO NOW",
+    "THE OTHER SIDE",
+    "WATCH FOR THIS",
+    "REMEMBER THE WORLD",
+    "DAD JOKE OF THE DAY"
+  ],
+  "forbidden_markers": [
+    "THE ONE THING",
+    "THE EVIDENCE",
+    "THE SHIFT",
+    "WHAT CHANGED",
+    "AI_BUSINESS",
+    "MAJOR_BUSINESS",
+    "AI_ADOPTION",
+    "AI_INDUSTRY_IMPACT"
+  ],
+  "editorial_contract": {
+    "editorial_revision": "ai-adoption-v1",
+    "newsroom_items": 5,
+    "focus_number_items": 5,
+    "all_core_items_ai": true,
+    "minimum_ai_adoption_items": 6,
+    "minimum_ai_adoption_items_per_section": 3,
+    "maximum_ai_industry_impact_items": 4,
+    "source_overlap_allowed": false
+  },
+  "proof_scope": {
+    "recipient": "paul.ford@gmail.com",
+    "subscriber_delivery_allowed": false,
+    "remember_the_world_included": true,
+    "remember_the_world_identity": "REMEMBER-0048-GARY-PLANT-WELDERS"
+  }
+}

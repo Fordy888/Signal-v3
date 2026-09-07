@@ -511,8 +511,8 @@
 - [x] Send the new checksum-locked proof only to `paul.ford@gmail.com` and obtain fresh editorial approval
 - [x] Deliver the checksum-locked all-AI proof only to `paul.ford@gmail.com` and independently verify its actual Gmail body
 - [x] Commit, push and deploy the exact approved candidate while keeping Render proof-only
-- [ ] Verify the deployed SHA, release contract, one-recipient Gmail canary and provider receipt before CANARY VERIFIED
-- [ ] Restore the scheduled subscriber command only after CANARY VERIFIED; do not resend Editions 0045 or 0046
+- [x] Verify the deployed SHA, release contract, one-recipient Gmail canary and provider receipt before CANARY VERIFIED
+- [x] Restore the scheduled subscriber command only after CANARY VERIFIED; do not resend Editions 0045 or 0046
 - [x] Restore mandatory `REMEMBER THE WORLD` to the all-AI Edition 0047 proof without changing the approved editorial copy
 - [x] Select or confirm a real, rights-cleared, date-valid and non-repeating image with complete creator, source and licence provenance
 - [x] Render `REMEMBER THE WORLD` immediately before the Dad Joke and verify the image, caption, credit and link in actual Gmail
@@ -525,10 +525,10 @@
 - [x] Prove the corrected daily image path in a no-send simulation and actual one-recipient Gmail copy before deployment approval
 - [x] Verify the exact approved commit `132be3af8cf0dcd0096d72b7e50f800b6da01a61` is the Render deployed SHA while the command remains proof-only
 - [x] Achieve CANARY VERIFIED from a one-recipient Render run with matching receipt, Gmail body and REMEMBER THE WORLD image contract
-- [ ] Revalidate tomorrow's Weekly Wrap end-to-end: Saturday edition clock, locked format, five stories, links, source health, subject/body alignment and no subscriber delivery during testing
-- [ ] Confirm the restored `0 20 * * *` UTC schedule will execute the verified Weekly Wrap path at 06:00 AEST tomorrow
-- [ ] After CANARY VERIFIED, complete one controlled subscriber release of Edition 0047 today using the live subscriber API; never resend Editions 0045 or 0046
-- [ ] Independently verify Edition 0047 subscriber delivery count, release identity, provider status and at least one actual subscriber Gmail copy
+- [x] Revalidate tomorrow's Weekly Wrap end-to-end: Saturday edition clock, locked format, five stories, links, source health, subject/body alignment and no subscriber delivery during testing
+- [x] Confirm the restored `0 20 * * *` UTC schedule will execute the verified Weekly Wrap path at 06:00 AEST tomorrow
+- [x] After CANARY VERIFIED, complete one controlled subscriber release of Edition 0047 today using the live subscriber API; never resend Editions 0045 or 0046
+- [x] Independently verify Edition 0047 subscriber delivery count, release identity, provider status and at least one actual subscriber Gmail copy
 - [x] Repair the production evidence path so `ai-adoption-v1` can produce at least four pre-verified AI-adoption numeric sources for Focus after real fetch/scoring attrition, without admitting weak or general-business filler
 - [x] Add a regression using realistic source-score evidence attrition that reproduces the Render canary's `received 2` Focus pool failure
 - [x] Re-run the complete isolated gate, deploy a new exact commit, and repeat the one-recipient Render canary; do not reuse the failed run as evidence
@@ -537,10 +537,75 @@
 - [x] Pass all 121 tests in both the integration checkout and a fresh detached worktree after the canary repair
 - [x] Bind the Render expected-image identity to `REMEMBER-0047-NORDERNEY-MARIENHOEHE` and make a fresh canary receipt report approved image = configured image
 - [x] Reject `CANARY VERIFIED` when the receipt reports the expected configured image as omitted, even if Gmail visibly contains the image
-- [ ] Treat the whole-base Edition 0047 send as authorised but blocked until both the fully matching canary and the no-send Weekly Wrap readiness gate pass
-- [ ] Do not switch Render to the subscriber command or trigger Edition 0047 until tomorrow's Weekly Wrap path is explicitly evidenced as ready
+- [x] Treat the whole-base Edition 0047 send as authorised but blocked until both the fully matching canary and the no-send Weekly Wrap readiness gate pass
+- [x] Do not switch Render to the subscriber command or trigger Edition 0047 until tomorrow's Weekly Wrap path is explicitly evidenced as ready
 - [x] Capture the exact failure from the deployed 5 September Weekly Wrap dry-run; no subscriber email was sent
 - [x] Repair the Weekly Wrap blocker without weakening its five-story, source-link, no-gauge or Saturday-date gates
-- [ ] Add a regression reproducing the deployed Weekly Wrap failure, rerun the complete isolated suite, deploy, and repeat the no-send Saturday validation
+- [x] Add a regression reproducing the deployed Weekly Wrap failure, rerun the complete isolated suite, deploy, and repeat the no-send Saturday validation
 - [x] Make Weekly Wrap synthesis metadata use the governed Brisbane runtime rather than the real process clock so header, subject and footer remain aligned in proof, dry-run and scheduled execution
 - [x] Pass all 123 tests in both the integration checkout and a fresh detached worktree after the Weekly Wrap clock repair
+- [x] Build Weekly Wrap repair commit 5fb530c on Render with all 123 tests passing (build bld-dad7jmgae00c7396gis0)
+- [x] Extract the attached Edition 0048 abort receipt and bind it to the exact Render run, deployed SHA and active recurring command
+- [x] Determine whether Edition 0048 was correctly held by the date-bound daily release/image contract or exposed a new Weekly Wrap scheduling defect
+- [x] Confirm no subscriber email was sent and never resend Editions 0045, 0046 or the already delivered Edition 0047
+- [x] If repair is required, reproduce the hold in a regression and pass the complete isolated suite before any proof-only deployment
+- [ ] Report Target, Current state, Evidence, Not yet true, Blocker and Next safe action for Edition 0048
+- [x] Classify Friday Edition 0047 as `LATE RECOVERY`, not normal scheduled success, because delivery occurred at approximately 18:35 AEST
+- [ ] Retrieve Saturday's actual Weekly Wrap and receipt to prove the customer-visible renderer and format rather than relying on the dry-run
+- [ ] Inventory every divergent release contract: daily renderer, Weekly Wrap renderer, proof manifest, dated image record, runtime clock and Render dashboard override
+- [x] Move the recurring subscriber schedule to proof-only containment before the next scheduled execution unless and until both formats are approved end-to-end
+- [ ] Define scheduled-window success semantics so an afternoon manual recovery cannot satisfy the daily 06:00 AEST delivery commitment
+- [ ] Require separate one-recipient approval artefacts for the all-AI daily edition and the migrated Weekly Wrap before subscriber reactivation
+- [x] Treat Monday Edition 0048 recovery as the sole active priority; pause Saturday Weekly Wrap format migration until the daily failure is resolved
+- [x] Reproduce the 4-of-10 adoption shortfall using Monday’s exact source window and deployed evidence-retention code
+- [x] Prove whether the missing 7 September image record would have caused a second independent hold after synthesis
+- [ ] Do not resend Edition 0047 or broadcast a reconstructed Edition 0048 without a new one-recipient proof and explicit approval
+- [x] Replace `main.py`'s remaining 8/2 reader-visible gate with at least 6 adoption items overall and at least 3 in each five-item section
+- [x] Version the Edition 0048 release manifest with the 6/4 adoption-majority contract while preserving Edition 0047's approved 8/2 manifest unchanged
+- [x] Add a proof-specific regression for Edition 0048's 7 adoption / 3 industry allocation, ten distinct links, mandatory image, reader sequence and immutable checksum
+- [ ] Freeze the exact approved-morning Edition 0048 proof only after Paul reviews it; do not create a production lock from an unapproved artefact
+- [ ] Deliver checksum `e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f` only to `paul.ford@gmail.com` and obtain explicit approval before any commit or deployment
+- [x] Define durable edition states for the permanent path: `PREPARING`, `HELD`, `LOCKED`, `SCHEDULED`, `DELIVERING`, `DELIVERED`, `LATE_RECOVERY`, `FAILED` and `EXPIRED`
+- [ ] Run source collection, AI allocation, image validation, rendering, checksum and audience checks before the morning delivery window rather than during it
+- [x] Ensure the delivery stage can consume only one date-matched checksum-locked artefact and cannot regenerate content, change sources or substitute an image
+- [x] Add an idempotency key that prevents a second schedule or send for the same edition and recipient even after retries or dashboard triggers
+- [x] Require a real provider message ID and preserve uncertain transport outcomes for safe same-key resume rather than immediate duplicate-prone retry
+- [x] Compare the full immutable release identity before reusing an existing locked registry row
+- [x] Expire a resumed delivery that falls outside its approved morning window instead of continuing late
+- [x] Guard recipient delivery-state transitions in PostgreSQL and prevent terminal rows from being reset for another send
+- [x] Keep confirmed provider delivery terminal when DTL PL attribution reporting fails after the send
+- [x] Define the Postgres release and recipient rows as the durable hand-off between preflight and delivery, independent of Render's ephemeral filesystem
+- [ ] Alert Paul before the delivery window when source supply, image readiness, release identity or audience checks fail; do not wait until 06:00 to discover the hold
+- [ ] Mark any delivery outside the approved morning window as `LATE_RECOVERY`, never normal success
+- [x] Keep the recurring subscriber path in dry-run containment while the new preflight-to-locked-delivery architecture passes failure, retry and database-trigger simulations
+- [x] Superseded by Fordy's Option B decision: do not introduce a new database or replace the ten-week scheduler as part of the Edition 0048 incident repair
+- [ ] Identify the last known stable pre-v4 commit, exact recurring command, schedule and reader-visible format from source and incident evidence
+- [ ] Compare the stable baseline with current v4 changes so restoration can exclude only the regressions rather than discard unrelated improvements
+- [x] Present Fordy with a precise choice: restore the proven baseline for subscribers while v4 runs shadowed, or keep all subscriber delivery paused until v4 completes its observation window
+- [ ] Require three consecutive unattended scheduled-time v4 shadow successes, including a Monday daily and a Weekly Wrap, before any future v4 subscriber cutover
+- [x] Record Fordy's decision to implement Option B: a durable release registry rather than relying on Render command state and email receipts as the release source of truth
+- [x] Select the durable registry and artefact store already compatible with the Signal runtime; document credentials, ownership, backup and rollback boundaries before coding
+- [x] Provision and verify available Render Postgres service `dtl-signal-registry` in Singapore on `0.1c-256mb` with 1 GB storage at US$6.30/month
+- [x] Define immutable release identity fields: edition, issue date, edition type, renderer, commit, release ID, HTML checksum, image identity, audience checksum and scheduled window
+- [x] Correct registry uniqueness for the existing calendar model: daily and Saturday Weekly Wrap may share an edition number, so uniqueness is `(edition_number, edition_type)`
+- [x] Require exact recipient-specific HTML to be frozen and checksummed before delivery rather than personalised at 06:00
+- [x] Add `proof` versus `production` release scope to registry uniqueness and recipient idempotency so a canary cannot collide with the subscriber release
+- [x] Define guarded release states and legal transitions: `PREPARING`, `HELD`, `LOCKED`, `SCHEDULED`, `DELIVERING`, `DELIVERED`, `LATE_RECOVERY`, `FAILED`, `EXPIRED`
+- [x] Store HTML artefacts outside Render's ephemeral filesystem and verify retrieved bytes against the registry checksum before delivery
+- [x] Store one recipient-delivery row per edition with a permanent uniqueness constraint on edition plus recipient identity
+- [x] Define rollback so registry/schema failure returns delivery to fail-closed dry-run containment without altering the last known production artefact
+- [ ] Preserve Edition 0048 as an unapproved candidate until the registry path can lock and retrieve its exact checksum without byte drift
+- [x] Add a 30-minute database claim lease so concurrent scheduled and manual triggers cannot run parallel delivery loops
+- [x] Fail closed when an uncertain provider send is 23 hours old so retry cannot outlive Resend's 24-hour idempotency protection
+- [x] Retry uncertain provider sends only inside a 23-hour safe idempotency window; fail closed after it rather than risk a duplicate
+- [x] Link `dtl-signal-registry` to the contained cron through masked key `SIGNAL_REGISTRY_DATABASE_URL` using the managed same-region internal datastore reference
+- [ ] Apply and verify additive migration `001_release_registry.sql` before inserting any release
+- [x] Add an idempotent checksum-tracked migration runner that verifies all registry tables and triggers without printing the database URL
+- [x] Rotate the registry database's initial default credential after it was exposed by the dashboard automation response
+- [x] Verify the initial credential is deleted or invalidated before linking the replacement to Signal
+- [x] Confirm no Signal service, schema or subscriber data used the initial credential
+- [x] Rotate the replacement credential after Render rendered it during the managed-reference attempt, delete `signal_registry_v2` at zero connections, and verify only unexposed default `signal_registry_v3` remains
+- [x] Rehearse migration `001_release_registry` twice on isolated PostgreSQL: first application verified all tables, triggers, functions, indexes and constraints; second application was a no-op with matching checksum
+- [x] Pass all 168 tests across 15 independently bounded modules in both the integration checkout and a fresh detached worktree, including real PostgreSQL transition, immutability, duplicate-claim and append-only event checks
+- [x] Distinguish definitive Resend rejection from uncertain transport outcomes so known failures become terminal while ambiguous sends retain the same idempotency key for safe resume
+- [x] Remove the unchecked direct SQL migration bypass and require the checksum-tracked migration runner

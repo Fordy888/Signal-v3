@@ -15,14 +15,14 @@ The daily edition will retain the four-colour `THINK. DECIDE. LOOK UP. SMILE.` s
 | 5 | **WHAT TO DO NOW** | One to three active, individually headlined responses. |
 | 6 | **THE OTHER SIDE** | Credible constraint or counter-position. |
 | 7 | **WATCH FOR THIS** | Observable proof points. |
-| 8 | **REMEMBER THE WORLD** | Optional governed photograph; naturally brand-harmonious when an exceptional qualifying image allows it. |
+| 8 | **REMEMBER THE WORLD** | Mandatory governed photograph; real, rights-cleared, edition-date-valid and non-repeating. |
 | 9 | **DAD JOKE OF THE DAY** | Mandatory final content beat before the minimal footer. |
 
 `THE ONE THING` and reader-facing `WHAT CHANGED` are removed completely. Position movement remains an internal Signal Memory input and must never be rendered as a reader section.
 
 The ten Newsroom and Focus items must use ten distinct source records. The earlier `focus-on-the-numbers-v1` proof used exactly three `AI_BUSINESS` and two `MAJOR_BUSINESS` items per section; that 60/40 artefact remains frozen historical evidence and is not the current selection rule.
 
-The current `ai-adoption-v1` contract requires every one of the ten core items to be about AI. Real-world `AI_ADOPTION` must dominate; `AI_INDUSTRY_IMPACT` is secondary and qualifies only when an industry development creates a direct practical business consequence. General business-only stories, passing AI mentions, hypothetical adoption, model gossip and technical theatre are excluded. The implementation currently requires at least eight adoption items and no more than two industry-impact items, with at least four adoption items in each section. That threshold is a conservative implementation interpretation to be tested in the fresh proof, not a claim of separate quota approval.
+The current `ai-adoption-v1` contract requires every one of the ten core items to be about AI. Real-world `AI_ADOPTION` must dominate; `AI_INDUSTRY_IMPACT` is secondary and qualifies only when an industry development creates a direct practical business consequence. General business-only stories, passing AI mentions, hypothetical adoption, model gossip and technical theatre are excluded. The operating floor is six adoption items and no more than four industry-impact items, with at least three adoption items in each section. When eight qualifying adoption sources exist, deterministic allocation retains the stronger four-per-section mix used by the approved Edition 0047 proof. The earlier hard 8/2 rule was an unapproved implementation interpretation and is preserved only as historical release evidence.
 
 Newsroom `category` remains internal planning metadata. Machine keys such as `venture_capital`, `opportunity_radar` and `ai_market_signals` must never be shown to readers. A quiet action lead-in may be followed by a human editorial label, but machine-style underscore keys are omitted.
 

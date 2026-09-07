@@ -9,6 +9,7 @@ import unittest
 from contextlib import ExitStack, redirect_stdout
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
@@ -111,6 +112,15 @@ def _ai_adoption_plan() -> dict:
     return plan
 
 
+def _ai_adoption_majority_plan() -> dict:
+    plan = _ai_adoption_plan()
+    item = plan["evidence_items"][3]
+    item["mix_classification"] = "AI_INDUSTRY_IMPACT"
+    item["headline"] = "AI infrastructure prices change procurement"
+    item["evidence"] = "The AI change reduces software costs for business customers."
+    return plan
+
+
 def _focus_evidence() -> list[dict]:
     evidence = json.loads(
         (ROOT / "data" / "fixtures" / "edition0042_evidence.json").read_text()
@@ -209,6 +219,7 @@ class ReleaseSimulationTests(unittest.TestCase):
         as_of: str,
         moment_path: str,
         alive_history: list[dict] | None = None,
+        plan: dict | None = None,
     ) -> tuple[int, object, str]:
         output = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
         output.close()
@@ -216,11 +227,15 @@ class ReleaseSimulationTests(unittest.TestCase):
         with ExitStack() as stack:
             entered = [stack.enter_context(item) for item in patches]
             send_mock = entered[6]
+            self.last_fetch_mock = entered[2]
             stack.enter_context(
                 patch("src.main.scored_items_to_evidence", return_value=_focus_evidence())
             )
             stack.enter_context(
-                patch("src.main.generate_judgement_plan", return_value=_ai_adoption_plan())
+                patch(
+                    "src.main.generate_judgement_plan",
+                    return_value=plan or _ai_adoption_plan(),
+                )
             )
             stack.enter_context(
                 patch(
@@ -392,6 +407,28 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertLess(html.index("REMEMBER THE WORLD"), html.index("DAD JOKE OF THE DAY"))
         self.assertIn("DAD JOKE OF THE DAY", html)
         self.assertIn("PF::SIGNAL-0047 // 04.09.2026 // 06:00 AEST", html)
+
+    def test_monday_0048_majority_uses_weekend_window_and_renders_fresh_image(self) -> None:
+        result, send_mock, html = self._run_ai_daily_dry(
+            as_of="2026-09-07T06:00:00+10:00",
+            moment_path="data/alive_moments/{date}.json",
+            plan=_ai_adoption_majority_plan(),
+        )
+
+        self.assertEqual(result, 0)
+        send_mock.assert_not_called()
+        self.last_fetch_mock.assert_called_once()
+        self.assertEqual(self.last_fetch_mock.call_args.kwargs["edition_type"], "daily")
+        self.assertEqual(
+            self.last_fetch_mock.call_args.kwargs["reference_time"].weekday(),
+            0,
+        )
+        self.assertIn("Edition 0048", html)
+        self.assertIn("Monday 07 September 2026", html)
+        self.assertIn("Gary, United States", html)
+        self.assertIn("M. Marshall", html)
+        self.assertLess(html.index("REMEMBER THE WORLD"), html.index("DAD JOKE OF THE DAY"))
+        self.assertIn("PF::SIGNAL-0048 // 07.09.2026 // 06:00 AEST", html)
 
     def test_all_ai_release_canary_holds_against_historical_sixty_forty_manifest(self) -> None:
         plan = _ai_adoption_plan()
@@ -619,6 +656,210 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertEqual(result, 1)
         alert_mock.assert_called_once()
         send_mock.assert_not_called()
+
+    def test_registry_proof_preparation_freezes_one_recipient_without_delivery(self) -> None:
+        plan = _ai_adoption_majority_plan()
+        patches = self._common_patches()
+        frozen = SimpleNamespace(
+            id="registry-proof-0048",
+            edition_number=48,
+            release_scope="proof",
+            html_sha256="e" * 64,
+            audience_count=1,
+        )
+        with ExitStack() as stack:
+            entered = [stack.enter_context(item) for item in patches]
+            send_mock = entered[6]
+            stack.enter_context(
+                patch("src.main.scored_items_to_evidence", return_value=_focus_evidence())
+            )
+            stack.enter_context(
+                patch("src.main.generate_judgement_plan", return_value=plan)
+            )
+            stack.enter_context(
+                patch(
+                    "src.main.load_signal_memory",
+                    return_value={"version": 1, "positions": [], "events": []},
+                )
+            )
+            stack.enter_context(patch("src.main.load_alive_history", return_value=[]))
+            stack.enter_context(patch("src.main.ReleaseRegistry.from_env", return_value=object()))
+            prepare_mock = stack.enter_context(
+                patch("src.main.prepare_registry_release", return_value=frozen)
+            )
+            stack.enter_context(
+                patch.dict(
+                    os.environ,
+                    {"SIGNAL_ALIVE_MOMENT_PATH": "data/alive_moments/{date}.json"},
+                    clear=False,
+                )
+            )
+            stack.enter_context(
+                patch(
+                    "sys.argv",
+                    [
+                        "signal",
+                        "--prepare-release",
+                        "--release-scope",
+                        "proof",
+                        "--enhanced",
+                        "--release-date",
+                        "2026-09-07",
+                        "--as-of",
+                        "2026-09-07T07:00:00+10:00",
+                    ],
+                )
+            )
+            with redirect_stdout(io.StringIO()):
+                result = main()
+
+        self.assertEqual(0, result)
+        send_mock.assert_not_called()
+        kwargs = prepare_mock.call_args.kwargs
+        self.assertEqual("proof", kwargs["release_scope"])
+        self.assertEqual(1, len(kwargs["recipients"]))
+        self.assertEqual("paul.ford@gmail.com", kwargs["recipients"][0]["email"])
+        self.assertEqual(6, kwargs["issue_time"].hour)
+        self.assertEqual(7, kwargs["delivery_time"].hour)
+
+    def test_registry_delivery_bypasses_generation_and_uses_locked_release(self) -> None:
+        registry_result = {
+            "release_id": "registry-proof-0048",
+            "edition_number": 48,
+            "scope": "proof",
+            "state": "DELIVERED",
+            "sent": 1,
+            "failed": 0,
+            "total": 1,
+            "html_sha256": "e" * 64,
+            "audience_sha256": "a" * 64,
+        }
+        with patch("src.main.ReleaseRegistry.from_env", return_value=object()), patch(
+            "src.main.deliver_registry_release", return_value=registry_result
+        ) as deliver_mock, patch("src.main.fetch_all") as fetch_mock, patch(
+            "src.main.ping_heartbeat"
+        ) as heartbeat_mock, patch(
+            "sys.argv",
+            [
+                "signal",
+                "--deliver-release",
+                "--release-scope",
+                "proof",
+                "--release-date",
+                "2026-09-07",
+                "--force-type",
+                "daily",
+                "--as-of",
+                "2026-09-07T07:05:00+10:00",
+            ],
+        ):
+            result = main()
+
+        self.assertEqual(0, result)
+        fetch_mock.assert_not_called()
+        heartbeat_mock.assert_called_once()
+        self.assertEqual("proof", deliver_mock.call_args.kwargs["release_scope"])
+
+    def test_registry_production_preparation_revalidates_audience_without_delivery(self) -> None:
+        plan = _ai_adoption_majority_plan()
+        patches = self._common_patches()
+        frozen = SimpleNamespace(
+            id="registry-production-0048",
+            edition_number=48,
+            release_scope="production",
+            html_sha256="e" * 64,
+            audience_count=4,
+        )
+        release_env = {
+            "RENDER": "true",
+            "RENDER_GIT_BRANCH": "master",
+            "RENDER_GIT_COMMIT": "abcdef1234567890abcdef1234567890abcdef12",
+            "RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
+            "SIGNAL_EXPECTED_DAILY_RENDERER": "enhanced-v4-focus-numbers",
+            "SIGNAL_EXPECTED_GIT_BRANCH": "master",
+            "SIGNAL_EXPECTED_GIT_COMMIT": "abcdef1234567890abcdef1234567890abcdef12",
+            "SIGNAL_EXPECTED_RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
+            "SIGNAL_TARGET_RELEASE_ID": "ai-adoption-v1-proof-0048",
+            "SIGNAL_EXPECTED_APPROVED_PROOF_SHA256": "e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f",
+            "SIGNAL_RELEASE_MANIFEST_PATH": "data/release_manifest_ai_adoption_0048.json",
+            "SIGNAL_ALIVE_MOMENT_PATH": "data/alive_moments/{date}.json",
+        }
+        with ExitStack() as stack:
+            stack.enter_context(patch.dict(os.environ, release_env, clear=False))
+            entered = [stack.enter_context(item) for item in patches]
+            fetch_subscribers_mock = entered[0]
+            send_mock = entered[6]
+            stack.enter_context(
+                patch("src.main.scored_items_to_evidence", return_value=_focus_evidence())
+            )
+            stack.enter_context(
+                patch("src.main.generate_judgement_plan", return_value=plan)
+            )
+            stack.enter_context(
+                patch(
+                    "src.main.load_signal_memory",
+                    return_value={"version": 1, "positions": [], "events": []},
+                )
+            )
+            stack.enter_context(patch("src.main.load_alive_history", return_value=[]))
+            stack.enter_context(patch("src.main.ReleaseRegistry.from_env", return_value=object()))
+            stack.enter_context(
+                patch(
+                    "src.main.check_release_identity",
+                    return_value=SimpleNamespace(
+                        passed=True,
+                        severity="info",
+                        check_name="Release Identity",
+                        message="approved test release",
+                    ),
+                )
+            )
+            prepare_mock = stack.enter_context(
+                patch("src.main.prepare_registry_release", return_value=frozen)
+            )
+            stack.enter_context(
+                patch(
+                    "sys.argv",
+                    [
+                        "signal",
+                        "--prepare-release",
+                        "--release-scope",
+                        "production",
+                        "--enhanced",
+                        "--release-date",
+                        "2026-09-07",
+                        "--as-of",
+                        "2026-09-06T18:00:00+10:00",
+                    ],
+                )
+            )
+            with redirect_stdout(io.StringIO()):
+                result = main()
+
+        self.assertEqual(0, result)
+        self.assertEqual(2, fetch_subscribers_mock.call_count)
+        send_mock.assert_not_called()
+        kwargs = prepare_mock.call_args.kwargs
+        self.assertEqual("production", kwargs["release_scope"])
+        self.assertEqual(4, len(kwargs["recipients"]))
+        self.assertEqual(6, kwargs["issue_time"].hour)
+        self.assertEqual(6, kwargs["delivery_time"].hour)
+        self.assertEqual(0, kwargs["delivery_time"].minute)
+
+    def test_registry_required_blocks_legacy_direct_send_before_audience_fetch(self) -> None:
+        with patch.dict(
+            os.environ, {"SIGNAL_REGISTRY_REQUIRED": "1"}, clear=False
+        ), patch("src.main.fetch_subscribers") as fetch_mock, patch(
+            "src.main.send_brief"
+        ) as send_mock, patch("src.main.send_alert") as alert_mock, patch(
+            "sys.argv", ["signal", "--send"]
+        ):
+            result = main()
+
+        self.assertEqual(1, result)
+        fetch_mock.assert_not_called()
+        send_mock.assert_not_called()
+        alert_mock.assert_called_once()
 
     def test_all_provider_failures_return_delivery_error_without_memory_write(self) -> None:
         result, send_mock, save_memory_mock, receipt_mock = self._run_locked_send(

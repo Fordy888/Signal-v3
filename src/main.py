@@ -14,7 +14,7 @@ import os
 import re
 import sys
 import time
-from datetime import datetime
+from datetime import date, datetime, time as datetime_time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -30,7 +30,13 @@ from .founders_note import generate_founders_note, inject_founders_note
 from .signal_gauge import is_gauge_enabled, inject_gauge_into_html, personalise_gauge_for_subscriber
 from .share_block import inject_share_block, personalise_share_for_subscriber
 from .history import load_history, record_edition
-from .judgement_plan import generate_judgement_plan, scored_items_to_evidence
+from .judgement_plan import (
+    MAX_AI_INDUSTRY_IMPACT_ITEMS,
+    MIN_AI_ADOPTION_ITEMS,
+    MIN_AI_ADOPTION_ITEMS_PER_SECTION,
+    generate_judgement_plan,
+    scored_items_to_evidence,
+)
 from .signal_memory import (
     alive_history_from_memory,
     apply_alive_moment_update,
@@ -48,6 +54,9 @@ from .edition_counter import edition_for_date, get_next_edition, increment_editi
 from .locked_edition import render_locked_edition
 from .weekly_wrap_qa import validate_weekly_wrap_html
 from .subscribers import fetch_subscribers
+from .release_registry import ReleaseRegistry, RegistryError
+from .registry_pipeline import deliver_release as deliver_registry_release
+from .registry_pipeline import prepare_release as prepare_registry_release
 from .qa_gate import (
     run_pre_send_qa,
     create_receipt,
@@ -178,6 +187,16 @@ def main() -> int:
                             help="Send mode: broadcast to all active subscribers from website API")
     mode_group.add_argument("--dry-run", action="store_true",
                             help="Dry run: pipeline runs but no email sent")
+    mode_group.add_argument("--prepare-release", action="store_true",
+                            help="Build, validate and store an immutable registry release without sending")
+    mode_group.add_argument("--deliver-release", action="store_true",
+                            help="Deliver only a previously locked registry release")
+    parser.add_argument("--release-scope", choices=["proof", "production"], default=None,
+                        help="Registry release scope; required by --prepare-release and --deliver-release")
+    parser.add_argument("--release-date", type=str, default=None,
+                        help="Registry edition date in YYYY-MM-DD; preparation renders that date, delivery selects it")
+    parser.add_argument("--deliver-prepared-proof", action="store_true",
+                        help="After locking a proof-scope release, deliver it immediately through the registry")
     parser.add_argument("--save-html", type=str, default=None,
                         help="Also save the brief to this file path")
     parser.add_argument("--force-type", type=str, choices=["daily", "weekly_wrap"],
@@ -204,6 +223,18 @@ def main() -> int:
         parser.error("--release-canary requires --proof")
     if args.release_canary and not args.enhanced:
         parser.error("--release-canary requires --enhanced")
+    if (args.prepare_release or args.deliver_release) and not args.release_scope:
+        parser.error("--release-scope is required for registry preparation and delivery")
+    if args.prepare_release and not args.enhanced:
+        parser.error("--prepare-release currently requires --enhanced")
+    if args.deliver_release and (
+        args.enhanced or args.alive_moment or args.locked_edition is not None
+    ):
+        parser.error("--deliver-release consumes the locked registry artefact and accepts no render flags")
+    if args.deliver_prepared_proof and not (
+        args.prepare_release and args.release_scope == "proof"
+    ):
+        parser.error("--deliver-prepared-proof requires --prepare-release --release-scope proof")
 
     # Locate project root (parent of src/)
     root = Path(__file__).resolve().parent.parent
@@ -218,7 +249,13 @@ def main() -> int:
     log = logging.getLogger("dtl_signal")
 
     start_time = time.time()
-    mode = "proof" if args.proof else "send" if args.send else "dry-run"
+    mode = (
+        "proof" if args.proof
+        else "send" if args.send
+        else "prepare-release" if args.prepare_release
+        else "deliver-release" if args.deliver_release
+        else "dry-run"
+    )
     if args.as_of:
         runtime_now = datetime.fromisoformat(args.as_of)
         if runtime_now.tzinfo is None:
@@ -226,6 +263,17 @@ def main() -> int:
         runtime_now = runtime_now.astimezone(BRISBANE)
     else:
         runtime_now = datetime.now(BRISBANE)
+    release_date = None
+    if args.release_date:
+        try:
+            release_date = date.fromisoformat(args.release_date)
+        except ValueError:
+            parser.error("--release-date must be YYYY-MM-DD")
+    content_now = (
+        datetime.combine(release_date, datetime_time(6, 0), tzinfo=BRISBANE)
+        if args.prepare_release and release_date
+        else runtime_now
+    )
     log.info("DTL Signal v3 starting (mode=%s) at %s",
              mode, runtime_now.strftime("%Y-%m-%d %H:%M AEST"))
 
@@ -235,7 +283,7 @@ def main() -> int:
         try:
             import subprocess
             code_version = subprocess.check_output(
-                ["git", "rev-parse", "--short=12", "HEAD"],
+                ["git", "rev-parse", "HEAD"],
                 cwd=str(root), stderr=subprocess.DEVNULL
             ).decode().strip()
         except Exception:
@@ -243,8 +291,9 @@ def main() -> int:
     log.info("Code version: %s", code_version)
 
     # ─── DAY-OF-WEEK ROUTING ──────────────────────────────────────────
-    now_brisbane = runtime_now
-    day_of_week = now_brisbane.weekday()  # 0=Mon, 5=Sat, 6=Sun
+    now_brisbane = content_now
+    routing_date = release_date or now_brisbane.date()
+    day_of_week = routing_date.weekday()  # 0=Mon, 5=Sat, 6=Sun
 
     if args.force_type:
         edition_type = args.force_type
@@ -267,6 +316,54 @@ def main() -> int:
     if args.enhanced and not use_enhanced:
         log.info("Enhanced daily format not applied to %s; using its approved route", edition_type)
 
+    if args.deliver_release:
+        try:
+            registry_result = deliver_registry_release(
+                registry=ReleaseRegistry.from_env(),
+                issue_time=runtime_now,
+                release_issue_date=release_date,
+                edition_type=edition_type,
+                release_scope=args.release_scope,
+                actual_git_commit=code_version,
+            )
+        except RegistryError as exc:
+            log.error("REGISTRY DELIVERY HELD: %s", exc)
+            send_alert("Registry delivery held — edition NOT sent", str(exc))
+            return 1
+        except Exception as exc:
+            log.exception("REGISTRY DELIVERY FAILED CLOSED")
+            send_alert(
+                "Registry delivery unavailable — edition NOT sent",
+                f"The locked-release worker failed before a safe completion: {str(exc)[:500]}",
+            )
+            return 1
+        log.info(
+            "Registry delivery complete: edition=%04d scope=%s state=%s sent=%d/%d failed=%d",
+            registry_result["edition_number"],
+            registry_result["scope"],
+            registry_result["state"],
+            registry_result["sent"],
+            registry_result["total"],
+            registry_result["failed"],
+        )
+        if registry_result["state"] != "DELIVERED":
+            send_alert(
+                "Registry delivery failed",
+                f"Edition {registry_result['edition_number']:04d} ended in "
+                f"{registry_result['state']} with {registry_result['failed']} failure(s).",
+            )
+            return 1
+        ping_heartbeat()
+        return 0
+
+    if args.send and os.environ.get("SIGNAL_REGISTRY_REQUIRED") == "1":
+        log.error("DIRECT SEND DISABLED: SIGNAL_REGISTRY_REQUIRED=1")
+        send_alert(
+            "Direct send blocked — edition NOT sent",
+            "The registry is required. Use --deliver-release with a locked release.",
+        )
+        return 1
+
     if not os.environ.get("ANTHROPIC_API_KEY"):
         log.error("ANTHROPIC_API_KEY not set. Configure .env or environment.")
         return 1
@@ -278,7 +375,10 @@ def main() -> int:
              source_counts["active"], source_counts["disabled"], source_counts["probation"])
 
     # ─── Resolve recipient list based on mode ───────────────────────────
-    if args.proof:
+    preparing_proof = args.prepare_release and args.release_scope == "proof"
+    preparing_production = args.prepare_release and args.release_scope == "production"
+
+    if args.proof or preparing_proof:
         # Proof mode: send to Paul only
         proof_email = load_proof_recipient()
         if not proof_email:
@@ -287,7 +387,7 @@ def main() -> int:
         recipients = [{"email": proof_email, "firstName": "Paul"}]
         log.info("PROOF MODE: sending to %s only", proof_email)
 
-    elif args.send:
+    elif args.send or preparing_production:
         # Send mode: fetch all active subscribers from website API
         log.info("SEND MODE: fetching subscribers from website API...")
         api_subscribers = fetch_subscribers()
@@ -325,7 +425,7 @@ def main() -> int:
         return 1
 
     # ─── FAIL-SAFE: Verify against live subscriber source of truth ──────
-    if args.send:
+    if args.send or preparing_production:
         log.info("FAIL-SAFE: Verifying recipients against live subscriber source of truth...")
         verify_subscribers = fetch_subscribers()
         if verify_subscribers:
@@ -363,7 +463,15 @@ def main() -> int:
 
             log.info("FAIL-SAFE: Source of truth verified — %d subscribers confirmed", api_count)
         else:
-            log.warning("FAIL-SAFE: Verification fetch returned empty — proceeding with original list")
+            if args.send or preparing_production:
+                log.error("FAIL-SAFE ABORT: Subscriber verification fetch returned empty.")
+                send_alert(
+                    "Subscriber verification failed — edition NOT sent",
+                    "The second source-of-truth fetch returned no eligible subscribers. "
+                    "The release was not sent or locked.",
+                )
+                return 1
+            log.warning("FAIL-SAFE: Verification fetch returned empty — proceeding with proof audience")
 
     # ─── Pipeline stages ────────────────────────────────────────────────
 
@@ -372,7 +480,7 @@ def main() -> int:
     log.info("Loaded %d URLs from recent editions for cross-day dedup", len(history_urls))
     edition_number = (
         edition_for_date(now_brisbane.date())
-        if args.as_of
+        if args.as_of or release_date
         else get_next_edition(root)
     )
     log.info("Next edition number: %04d", edition_number)
@@ -386,7 +494,12 @@ def main() -> int:
 
     # 1. Fetch raw items (returns tuple with failed sources AND detailed fetch results)
     log.info("Stage 1: Fetching sources...")
-    raw_items, failed_sources, fetch_results = fetch_all(sources_config_path, history_urls=history_urls)
+    raw_items, failed_sources, fetch_results = fetch_all(
+        sources_config_path,
+        history_urls=history_urls,
+        edition_type=edition_type,
+        reference_time=now_brisbane,
+    )
     if not raw_items:
         log.warning("No items fetched. Proceeding to graceful quiet-day briefs.")
     else:
@@ -443,7 +556,7 @@ def main() -> int:
             log.info("Stage 3: Building structured judgement plan (enhanced mode)...")
             signal_memory = (
                 recover_signal_memory_from_resend()
-                if args.send
+                if args.send or preparing_production
                 else load_signal_memory(memory_path)
             )
             if args.locked_edition is not None:
@@ -482,7 +595,7 @@ def main() -> int:
                     )
                     delivered_alive_history = (
                         alive_history_from_memory(signal_memory)
-                        if args.send
+                        if args.send or preparing_production
                         else load_alive_history(alive_history_path)
                     )
                     if not alive_path.exists():
@@ -623,8 +736,12 @@ def main() -> int:
                         classification in {"AI_ADOPTION", "AI_INDUSTRY_IMPACT"}
                         for classification in complete_mix
                     )
-                    and complete_mix.count("AI_ADOPTION") >= 8
-                    and complete_mix.count("AI_INDUSTRY_IMPACT") <= 2
+                    and complete_mix.count("AI_ADOPTION") >= MIN_AI_ADOPTION_ITEMS
+                    and complete_mix.count("AI_INDUSTRY_IMPACT") <= MAX_AI_INDUSTRY_IMPACT_ITEMS
+                    and newsroom_mix.count("AI_ADOPTION")
+                    >= MIN_AI_ADOPTION_ITEMS_PER_SECTION
+                    and focus_mix.count("AI_ADOPTION")
+                    >= MIN_AI_ADOPTION_ITEMS_PER_SECTION
                 )
                 gate_label = "founder-led all-AI adoption-first reader-visible intelligence sequence"
             else:
@@ -688,6 +805,12 @@ def main() -> int:
 
     # ─── PRE-SEND QA GATE ──────────────────────────────────────────────
     log.info("Running pre-send QA gate...")
+    qa_mode = (
+        "proof"
+        if args.proof or preparing_proof
+        else "send" if args.send or preparing_production
+        else mode
+    )
     should_send, qa_results = run_pre_send_qa(
         edition_number=edition_number,
         html=html,
@@ -695,13 +818,13 @@ def main() -> int:
         recipient_count=len(recipients),
         sources_failed=len(failed_sources),
         sources_active=source_counts["active"],
-        mode=mode,
+        mode=qa_mode,
         root=root,
         scored_items=scored,
         fetch_results=fetch_results,
         as_of=now_brisbane,
     )
-    identity_mode = "send" if args.release_canary else mode
+    identity_mode = "send" if args.release_canary or preparing_production else mode
     release_identity_result = check_release_identity(
         renderer_id=renderer_id,
         edition_type=edition_type,
@@ -748,18 +871,113 @@ def main() -> int:
         save_receipt(root, receipt)
         send_receipt_email(receipt)
         return 1
-    # Save HTML if requested
+
     if args.save_html:
         save_path = Path(args.save_html)
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(save_path, "w") as f:
-            # Personalise gauge with proof subscriber hash for saved HTML
-            proof_html = personalise_gauge_for_subscriber(html, "proof@dtlc.ai")
-            proof_token = hashlib.sha256(b"proof@dtlc.ai").hexdigest()[:12]
-            proof_html = personalise_share_for_subscriber(proof_html, proof_token)
-            f.write(proof_html)
+        proof_html = personalise_gauge_for_subscriber(html, "proof@dtlc.ai")
+        proof_token = hashlib.sha256(b"proof@dtlc.ai").hexdigest()[:12]
+        proof_html = personalise_share_for_subscriber(proof_html, proof_token)
+        save_path.write_text(proof_html, encoding="utf-8")
         log.info("Brief saved to %s", save_path)
 
+    if args.prepare_release:
+        delivery_memory = None
+        if use_enhanced and enhanced_plan and signal_memory is not None:
+            scheduled_delivery = now_brisbane.replace(
+                hour=6, minute=0, second=0, microsecond=0
+            )
+            delivery_memory = apply_memory_update(
+                signal_memory,
+                enhanced_plan["memory_update"],
+                enhanced_plan["what_changed"],
+                edition_number=edition_number,
+                delivered_at=scheduled_delivery.isoformat(),
+            )
+            if alive_moment is not None:
+                delivery_memory = apply_alive_moment_update(
+                    delivery_memory,
+                    alive_moment,
+                    edition_number=edition_number,
+                    delivered_at=scheduled_delivery.isoformat(),
+                )
+
+        source_urls = []
+        for item in scored:
+            raw = item.raw if hasattr(item, "raw") else None
+            url = getattr(raw, "url", "") if raw is not None else ""
+            if url:
+                source_urls.append(url)
+        editorial_revision = (
+            str(enhanced_plan.get("editorial_revision", "")).strip()
+            if enhanced_plan else "legacy"
+        )
+        try:
+            registry = ReleaseRegistry.from_env()
+            frozen = prepare_registry_release(
+                registry=registry,
+                edition_number=edition_number,
+                issue_time=now_brisbane,
+                delivery_time=runtime_now if args.release_scope == "proof" else now_brisbane,
+                edition_type=edition_type,
+                release_scope=args.release_scope,
+                editorial_revision=editorial_revision,
+                renderer=renderer_id,
+                release_id=(
+                    f"{editorial_revision}-registry-{edition_number:04d}-{args.release_scope}"
+                ),
+                git_commit=code_version,
+                html=html,
+                recipients=recipients,
+                image=alive_moment,
+                delivery_memory=delivery_memory,
+                metadata={
+                    "source_urls": sorted(set(source_urls)),
+                    "joke_id": selected_joke.get("id") if selected_joke else None,
+                    "base_html_sha256": html_sha256,
+                },
+            )
+        except Exception as exc:
+            log.exception("REGISTRY PREPARATION FAILED CLOSED")
+            send_alert(
+                "Registry preparation held — no release locked",
+                f"The immutable release could not be stored safely: {str(exc)[:500]}",
+            )
+            return 1
+        log.info(
+            "Registry release locked: id=%s edition=%04d scope=%s html_sha256=%s audience=%d",
+            frozen.id,
+            frozen.edition_number,
+            frozen.release_scope,
+            frozen.html_sha256,
+            frozen.audience_count,
+        )
+        if not args.deliver_prepared_proof:
+            return 0
+        try:
+            registry_result = deliver_registry_release(
+                registry=registry,
+                issue_time=runtime_now,
+                release_issue_date=now_brisbane.date(),
+                edition_type=edition_type,
+                release_scope="proof",
+                actual_git_commit=code_version,
+            )
+        except Exception as exc:
+            log.exception("PREPARED PROOF DELIVERY FAILED CLOSED")
+            send_alert(
+                "Prepared registry proof held — proof NOT sent",
+                f"The proof could not be delivered safely: {str(exc)[:500]}",
+            )
+            return 1
+        log.info(
+            "Prepared proof delivered from registry: state=%s sent=%d/%d failed=%d",
+            registry_result["state"],
+            registry_result["sent"],
+            registry_result["total"],
+            registry_result["failed"],
+        )
+        return 0 if registry_result["state"] == "DELIVERED" else 1
     # ─── Dry-run: print recipient list and exit ─────────────────────────
     if args.dry_run:
         print(f"\n{'=' * 60}")

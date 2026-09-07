@@ -271,7 +271,14 @@ def _entry_source_evidence(entry: Any) -> str:
     return " ".join(parts)[:4000]
 
 
-def _fetch_rss(name: str, url: str, category: str, timeout: int, max_age_hours: int) -> tuple[list[RawItem], SourceFetchResult]:
+def _fetch_rss(
+    name: str,
+    url: str,
+    category: str,
+    timeout: int,
+    max_age_hours: int,
+    reference_time: datetime | None = None,
+) -> tuple[list[RawItem], SourceFetchResult]:
     """Fetch and parse a single RSS feed. Returns items and structured fetch result."""
     start = time.time()
     result = SourceFetchResult(name=name, url=url, category=category, success=False)
@@ -311,7 +318,12 @@ def _fetch_rss(name: str, url: str, category: str, timeout: int, max_age_hours: 
         log.info("RSS %s: empty feed (0 entries)", name)
         return [], result
 
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
+    reference_utc = (
+        reference_time.astimezone(timezone.utc)
+        if reference_time is not None
+        else datetime.now(timezone.utc)
+    )
+    cutoff = reference_utc - timedelta(hours=max_age_hours)
     items: list[RawItem] = []
     for i, entry in enumerate(parsed.entries[:20]):  # cap items per feed
         # Determine published time
@@ -453,7 +465,24 @@ def _fetch_reddit(subreddit: str, max_items: int, category: str, timeout: int) -
     return items, result
 
 
-def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) -> tuple[list[RawItem], list[str], list[SourceFetchResult]]:
+def resolve_max_age_hours(
+    configured_hours: int,
+    edition_type: str,
+    reference_time: datetime | None,
+) -> int:
+    """Use a wider Monday window to bridge the weekend without changing other runs."""
+    if edition_type == "daily" and reference_time is not None and reference_time.weekday() == 0:
+        return max(configured_hours, 96)
+    return configured_hours
+
+
+def fetch_all(
+    sources_config_path: str,
+    history_urls: set[str] | None = None,
+    *,
+    edition_type: str = "",
+    reference_time: datetime | None = None,
+) -> tuple[list[RawItem], list[str], list[SourceFetchResult]]:
     """Top-level: fetch from every configured source. Returns raw items, deduplicated by URL.
 
     Args:
@@ -466,7 +495,18 @@ def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) ->
     config = _load_sources_config(sources_config_path)
     fetch_cfg = config.get("fetch", {})
     timeout = fetch_cfg.get("timeout_seconds", 15)
-    max_age_hours = fetch_cfg.get("max_age_hours", 48)
+    configured_max_age_hours = fetch_cfg.get("max_age_hours", 48)
+    max_age_hours = resolve_max_age_hours(
+        configured_max_age_hours,
+        edition_type,
+        reference_time,
+    )
+    if max_age_hours != configured_max_age_hours:
+        log.info(
+            "Monday daily source window widened from %dh to %dh to bridge weekend publishing",
+            configured_max_age_hours,
+            max_age_hours,
+        )
 
     all_items: list[RawItem] = []
     failed_sources: list[str] = []
@@ -487,6 +527,7 @@ def fetch_all(sources_config_path: str, history_urls: set[str] | None = None) ->
             category=feed["category"],
             timeout=timeout,
             max_age_hours=max_age_hours,
+            reference_time=reference_time,
         )
         all_results.append(fetch_result)
 

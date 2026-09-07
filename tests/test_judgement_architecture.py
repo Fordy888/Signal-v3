@@ -516,14 +516,43 @@ class JudgementArchitectureTests(unittest.TestCase):
 
         allocation = allocate_ai_adoption_content(prepared, focus_eligible, verified)
 
-        self.assertEqual(allocation["focus_numbers"], ["S01", "S02", "S03", "S04", "S05"])
-        self.assertEqual(allocation["newsroom"], ["S06", "S07", "S08", "S09", "S10"])
+        self.assertEqual(
+            allocation,
+            allocate_ai_adoption_content(prepared, focus_eligible, verified),
+        )
+        self.assertEqual(len(allocation["focus_numbers"]), 5)
+        self.assertEqual(len(allocation["newsroom"]), 5)
+        self.assertFalse(set(allocation["focus_numbers"]).intersection(allocation["newsroom"]))
         selected_classes = [
             verified[source_id]
             for source_id in allocation["focus_numbers"] + allocation["newsroom"]
         ]
         self.assertEqual(selected_classes.count("AI_ADOPTION"), 8)
         self.assertEqual(selected_classes.count("AI_INDUSTRY_IMPACT"), 2)
+
+    def test_all_ai_allocation_accepts_six_four_adoption_majority(self) -> None:
+        evidence = ai_adoption_numeric_evidence()
+        for item in evidence:
+            if item["source_id"] in {"S04", "S09"}:
+                item["evidence"] = (
+                    "OpenAI cut enterprise AI prices 20%, reducing software costs for business customers."
+                )
+        prepared, focus_eligible = prepare_focus_number_evidence(evidence)
+        prepared, verified = prepare_ai_adoption_evidence(prepared)
+
+        allocation = allocate_ai_adoption_content(prepared, focus_eligible, verified)
+        selected_classes = [
+            verified[source_id]
+            for source_id in allocation["focus_numbers"] + allocation["newsroom"]
+        ]
+
+        self.assertEqual(selected_classes.count("AI_ADOPTION"), 6)
+        self.assertEqual(selected_classes.count("AI_INDUSTRY_IMPACT"), 4)
+        for section in ("focus_numbers", "newsroom"):
+            self.assertGreaterEqual(
+                sum(verified[source_id] == "AI_ADOPTION" for source_id in allocation[section]),
+                3,
+            )
 
     def test_all_ai_plan_rejects_general_business_and_excess_industry_items(self) -> None:
         plan = ai_adoption_plan()
@@ -534,8 +563,9 @@ class JudgementArchitectureTests(unittest.TestCase):
             validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
 
         plan = ai_adoption_plan()
-        plan["evidence_items"][0]["mix_classification"] = "AI_INDUSTRY_IMPACT"
-        with self.assertRaisesRegex(JudgementPlanError, "at least 8 AI_ADOPTION"):
+        for index in range(3):
+            plan["evidence_items"][index]["mix_classification"] = "AI_INDUSTRY_IMPACT"
+        with self.assertRaisesRegex(JudgementPlanError, "at least 3 AI_ADOPTION per section"):
             validate_judgement_plan(plan, FOCUS_SOURCE_IDS)
 
     def test_ai_adoption_reader_copy_must_name_actual_use_and_work_change(self) -> None:
@@ -601,9 +631,6 @@ class JudgementArchitectureTests(unittest.TestCase):
             )
 
     def test_planner_receives_and_obeys_preallocated_section_sources(self) -> None:
-        plan = ai_adoption_plan()
-        response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
-        client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
         evidence = ai_adoption_numeric_evidence()
         evidence.append({
             "source_id": "S11",
@@ -611,6 +638,36 @@ class JudgementArchitectureTests(unittest.TestCase):
             "evidence": "A bank deployed AI to automate finance workflow, reducing costs 99%.",
             "scoring_reason": "Source-backed AI change with a practical business consequence.",
         })
+        prepared, focus_eligible = prepare_focus_number_evidence(evidence)
+        prepared, verified = prepare_ai_adoption_evidence(prepared)
+        allocation = allocate_ai_adoption_content(prepared, focus_eligible, verified)
+
+        plan = ai_adoption_plan()
+        for item, source_id in zip(plan["evidence_items"], allocation["newsroom"]):
+            item["source_ids"] = [source_id]
+            item["mix_classification"] = verified[source_id]
+            if verified[source_id] == "AI_ADOPTION":
+                item["headline"] = "Banks deploy AI into fraud reviews"
+                item["evidence"] = (
+                    "The automated workflow cut operating costs while improving customer service."
+                )
+            else:
+                item["headline"] = "OpenAI cuts enterprise AI prices"
+                item["evidence"] = "The change reduces software costs for business customers."
+        for item, source_id in zip(plan["focus_numbers"], allocation["focus_numbers"]):
+            item["source_ids"] = [source_id]
+            item["mix_classification"] = verified[source_id]
+            if verified[source_id] == "AI_ADOPTION":
+                item["entity"] = "Retail AI teams"
+                item["meaning"] = (
+                    "The company used AI to automate customer service work and reduce operating costs."
+                )
+            else:
+                item["entity"] = "OpenAI"
+                item["meaning"] = "The AI price cut reduces software costs for business customers."
+
+        response = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(plan))])
+        client = SimpleNamespace(messages=SimpleNamespace(create=Mock(return_value=response)))
 
         with patch("src.judgement_plan.Anthropic", return_value=client), patch.dict(
             "os.environ", {"ANTHROPIC_API_KEY": "test-key"}
@@ -624,16 +681,24 @@ class JudgementArchitectureTests(unittest.TestCase):
         self.assertEqual(client.messages.create.call_count, 1)
         self.assertEqual(
             [item["source_ids"][0] for item in result["evidence_items"]],
-            ["S06", "S07", "S08", "S09", "S10"],
+            allocation["newsroom"],
         )
         self.assertEqual(
             [item["source_ids"][0] for item in result["focus_numbers"]],
-            ["S01", "S02", "S03", "S04", "S05"],
+            allocation["focus_numbers"],
         )
         prompt = client.messages.create.call_args.kwargs["messages"][0]["content"]
-        self.assertIn('Preallocated Newsroom source IDs\n\n["S06", "S07", "S08", "S09", "S10"]', prompt)
-        self.assertIn('Preallocated Focus on the Numbers source IDs\n\n["S01", "S02", "S03", "S04", "S05"]', prompt)
-        self.assertNotIn('"source_id": "S11"', prompt)
+        self.assertIn(
+            f"Preallocated Newsroom source IDs\n\n{json.dumps(allocation['newsroom'])}",
+            prompt,
+        )
+        self.assertIn(
+            f"Preallocated Focus on the Numbers source IDs\n\n{json.dumps(allocation['focus_numbers'])}",
+            prompt,
+        )
+        allocated = set(allocation["newsroom"] + allocation["focus_numbers"])
+        unallocated = ({item["source_id"] for item in evidence} - allocated).pop()
+        self.assertNotIn(f'"source_id": "{unallocated}"', prompt)
 
     def test_planner_labels_cannot_reclassify_independently_verified_source(self) -> None:
         plan = focus_numbers_plan()

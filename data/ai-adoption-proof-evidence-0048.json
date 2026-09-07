@@ -1,0 +1,102 @@
+[
+  {
+    "source_id": "S01",
+    "title": "PicPay puts account enquiries inside Claude",
+    "source": "PYMNTS",
+    "url": "https://www.pymnts.com/news/artificial-intelligence/2026/picpay-launches-anthropic-claude-integration-for-banking-inquiries/",
+    "category": "Sales, Marketing & Customer",
+    "score": 35,
+    "evidence": "PicPay is rolling out Claude for customers to check balances, bills, investments, cards and transactions. The bank had already moved first-level customer service to AI and generated more than 50 billion personalised recommendations last year.",
+    "scoring_reason": "A real bank is using AI in customer-service and account-information workflows, changing service access and operating efficiency."
+  },
+  {
+    "source_id": "S02",
+    "title": "Lenders run AI agents inside regulated servicing work",
+    "source": "CB Insights",
+    "url": "https://www.cbinsights.com/research/executive-interview-salient-ai/",
+    "category": "Finance & Capital",
+    "score": 35,
+    "evidence": "Banks and specialist lenders run Salient AI agents inside loan-servicing, compliance and recovery workflows, where consistent scripts and auditable decisions can reduce regulatory and operating risk.",
+    "scoring_reason": "Actual AI use changes regulated lending operations, compliance evidence and call-centre consistency."
+  },
+  {
+    "source_id": "S03",
+    "title": "PlusAI operates autonomous freight routes in Texas",
+    "source": "The Robot Report",
+    "url": "https://www.therobotreport.com/plusai-takes-autonomous-trucking-public-via-spac-deal/",
+    "category": "Operations & Delivery",
+    "score": 35,
+    "evidence": "PlusAI is operating AI-driven autonomous freight routes with Ryder and International Motors in Texas. Its HyperFoundry software has generated US$25 million in revenue and the company targets US$40–50 million in contracted 2026 revenue.",
+    "scoring_reason": "AI is being used in live freight operations, producing operating data, utilisation gains and commercial revenue."
+  },
+  {
+    "source_id": "S04",
+    "title": "OpenAI exits a billion-dollar Cursor relationship",
+    "source": "WIRED",
+    "url": "https://www.wired.com/story/openai-elon-musk-cursor-billion-revenue/",
+    "category": "Technology & Data",
+    "score": 34,
+    "evidence": "SpaceX’s acquisition of Cursor prompted OpenAI to end a model-supply relationship worth more than US$1 billion in annualised revenue. The change exposes continuity and concentration risk for businesses building workflows on external AI models.",
+    "scoring_reason": "A real AI-supplier change has direct consequences for software continuity, procurement concentration and contingency planning."
+  },
+  {
+    "source_id": "S05",
+    "title": "AI data-centre investment reaches an extraordinary scale",
+    "source": "Marginal Revolution",
+    "url": "https://marginalrevolution.com/marginalrevolution/2026/09/shout-it-from-the-rooftops-of-the-data-centers.html",
+    "category": "Finance & Capital",
+    "score": 34,
+    "evidence": "US hyperscalers are expected to deploy roughly US$700 billion in 2026. A cited 2021–2024 state panel found no statistically significant residential electricity-price effect, but the backward-looking evidence does not guarantee future cost outcomes.",
+    "scoring_reason": "The AI infrastructure cycle directly changes capital allocation, power procurement and cost-risk decisions for business leaders."
+  },
+  {
+    "source_id": "S06",
+    "title": "Council AI supports faster planning decisions",
+    "source": "Government News",
+    "url": "https://www.governmentnews.com.au/bot-boosts-da-processing/",
+    "category": "Operations & Delivery",
+    "score": 35,
+    "evidence": "Wingecarribee Shire Council uses the DAISY AI planning-enquiry tool to support development-application work. In July, 89% of applications were determined within the expected timeframe, 20 percentage points above the NSW average of 69%.",
+    "scoring_reason": "A council is using AI in a real planning workflow with measured service-speed results."
+  },
+  {
+    "source_id": "S07",
+    "title": "AI speeds software shortlists while sellers stay slow",
+    "source": "MarTech",
+    "url": "https://martech.org/software-buyers-are-moving-faster-than-software-sellers/",
+    "category": "Sales, Marketing & Customer",
+    "score": 35,
+    "evidence": "More than 80% of business software buyers used AI chatbots for recommendations. 80% of AI users bought from their initial shortlist in at least three of five purchases, compared with 65% of buyers who did not use AI recommendations.",
+    "scoring_reason": "Companies are using AI in the buying process, changing shortlist speed, sales friction and self-service expectations."
+  },
+  {
+    "source_id": "S08",
+    "title": "Enterprises expand AI across customer-experience work",
+    "source": "CX Today",
+    "url": "https://www.cxtoday.com/customer-analytics-intelligence/sprinklr-ai-driven-cx-strategy-customer-readiness/",
+    "category": "Sales, Marketing & Customer",
+    "score": 35,
+    "evidence": "Sprinklr reported more than 200 customer AI engagements and more than 180 billion customer conversations processed annually. Enterprises are using the AI platform across customer care, contact-centre and insight workflows to improve productivity and customer experience.",
+    "scoring_reason": "Actual enterprise AI adoption changes customer-service workflows, productivity and implementation requirements."
+  },
+  {
+    "source_id": "S09",
+    "title": "Asana seeds AI use and absorbs near-term pricing pressure",
+    "source": "CFO Dive",
+    "url": "https://www.cfodive.com/news/asanas-ai-pricing-shift-brings-near-term-revenue-pressure/829730/",
+    "category": "Finance & Capital",
+    "score": 35,
+    "evidence": "Asana expects a US$1.2 million revenue headwind and 150-basis-point margin pressure while customers adopt consumption-based AI. AI products generated about 25% of net new annual recurring revenue in the quarter.",
+    "scoring_reason": "Customers are using AI in work-management processes, changing adoption, pricing, revenue recognition and margin decisions."
+  },
+  {
+    "source_id": "S10",
+    "title": "NVIDIA agrees to buy the platform behind enterprise model choice",
+    "source": "NVIDIA Blog",
+    "url": "https://blogs.nvidia.com/blog/nvidia-to-acquire-hugging-face/",
+    "category": "Technology & Data",
+    "score": 34,
+    "evidence": "NVIDIA agreed to acquire Hugging Face for US$12.9303 billion. More than 200,000 companies use the platform to discover, evaluate, customise and deploy AI, making continued openness and supplier choice direct business concerns.",
+    "scoring_reason": "A major AI-platform acquisition changes procurement confidence, model choice and deployment options for business users."
+  }
+]

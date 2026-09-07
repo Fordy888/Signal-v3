@@ -9,10 +9,23 @@ from src.judgement_plan import (
     scored_items_to_evidence,
 )
 from src.scoring import ScoredItem
-from src.sources import RawItem, _entry_source_evidence
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from src.sources import RawItem, _entry_source_evidence, resolve_max_age_hours
 
 
 class SourceEvidenceTests(unittest.TestCase):
+    def test_monday_daily_window_bridges_weekend_without_changing_other_runs(self) -> None:
+        brisbane = ZoneInfo("Australia/Brisbane")
+        monday = datetime(2026, 9, 7, 6, 0, tzinfo=brisbane)
+        tuesday = datetime(2026, 9, 8, 6, 0, tzinfo=brisbane)
+        saturday = datetime(2026, 9, 5, 6, 0, tzinfo=brisbane)
+
+        self.assertEqual(resolve_max_age_hours(48, "daily", monday), 96)
+        self.assertEqual(resolve_max_age_hours(48, "daily", tuesday), 48)
+        self.assertEqual(resolve_max_age_hours(48, "weekly_wrap", saturday), 48)
+
     def test_feed_detail_is_cleaned_and_retained_from_same_entry(self) -> None:
         entry = {
             "summary": "<p>A bank deployed AI into fraud review.</p>",
@@ -94,8 +107,9 @@ class SourceEvidenceTests(unittest.TestCase):
         prepared, classes = prepare_ai_adoption_evidence(prepared)
         allocation = allocate_ai_adoption_content(prepared, focus_ids, classes)
 
-        self.assertEqual(allocation["focus_numbers"], ["S01", "S02", "S03", "S04", "S05"])
-        self.assertEqual(allocation["newsroom"], ["S06", "S07", "S08", "S09", "S10"])
+        self.assertEqual(len(allocation["focus_numbers"]), 5)
+        self.assertEqual(len(allocation["newsroom"]), 5)
+        self.assertFalse(set(allocation["focus_numbers"]).intersection(allocation["newsroom"]))
         self.assertEqual(
             sum(
                 source_id in focus_ids and classification == "AI_ADOPTION"

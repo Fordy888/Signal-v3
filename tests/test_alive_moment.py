@@ -33,6 +33,28 @@ class AliveMomentTests(unittest.TestCase):
             candidate,
         )
 
+    def test_edition_0048_public_domain_welders_pass_against_recent_images(self):
+        candidate = json.loads(
+            (ROOT / "data" / "fixtures" / "alive_moment_0048.json").read_text()
+        )
+        history = [
+            json.loads((ROOT / "data" / "fixtures" / name).read_text())
+            for name in ("alive_moment_0046.json", "alive_moment_0047.json")
+        ]
+
+        self.assertEqual(
+            validate_alive_moment(
+                candidate,
+                history,
+                expected_edition_id="0048",
+                expected_date="2026-09-07",
+            ),
+            candidate,
+        )
+        self.assertEqual(candidate["licence_type"], "PUBLIC DOMAIN")
+        self.assertEqual(candidate["dominant_colour_family"], "neutral")
+        self.assertFalse(candidate["is_ai_generated"])
+
     def test_daily_path_template_resolves_by_edition_date(self):
         self.assertEqual(
             resolve_alive_moment_path(

@@ -37,8 +37,9 @@ MIN_AI_BUSINESS_ITEMS = 6
 REQUIRED_AI_BUSINESS_ITEMS = 6
 REQUIRED_AI_BUSINESS_PER_SECTION = 3
 REQUIRED_MAJOR_BUSINESS_PER_SECTION = 2
-MIN_AI_ADOPTION_ITEMS = 8
-MAX_AI_INDUSTRY_IMPACT_ITEMS = 2
+MIN_AI_ADOPTION_ITEMS = 6
+MIN_AI_ADOPTION_ITEMS_PER_SECTION = 3
+MAX_AI_INDUSTRY_IMPACT_ITEMS = 4
 SOURCE_ID_RE = re.compile(r"\bS\d{2,}\b", re.IGNORECASE)
 UNEXPLAINED_READER_TERMS = {
     "CRM", "UI", "API", "LLM", "RAG", "MCP", "GPU", "ERP", "SaaS", "SoR",
@@ -591,7 +592,7 @@ def allocate_ai_adoption_content(
     focus_eligible_source_ids: set[str],
     verified_mix_by_source: dict[str, str],
 ) -> dict[str, list[str]]:
-    """Allocate ten all-AI sources with adoption dominant and industry capped at two."""
+    """Allocate ten all-AI sources with adoption in the majority overall and per section."""
     ordered_source_ids = [
         str(item.get("source_id", "")).strip()
         for item in evidence_items
@@ -614,44 +615,67 @@ def allocate_ai_adoption_content(
             and (not focus_only or source_id in focus_eligible_source_ids)
         ][:count]
 
-    focus_adoption = select("AI_ADOPTION", 4, focus_only=True)
-    if len(focus_adoption) < 4:
+    all_adoption = select("AI_ADOPTION", len(ordered_source_ids))
+    numeric_adoption = select(
+        "AI_ADOPTION", len(ordered_source_ids), focus_only=True
+    )
+    section_adoption_target = (
+        4 if len(all_adoption) >= 8 and len(numeric_adoption) >= 4 else 3
+    )
+
+    focus_adoption = select(
+        "AI_ADOPTION", section_adoption_target, focus_only=True
+    )
+    if len(focus_adoption) < MIN_AI_ADOPTION_ITEMS_PER_SECTION:
         raise JudgementPlanError(
-            "FOCUS ON THE NUMBERS requires at least 4 verified AI_ADOPTION sources "
+            "FOCUS ON THE NUMBERS requires at least 3 verified AI_ADOPTION sources "
             f"with numeric evidence; received {len(focus_adoption)}"
         )
-    focus_industry = select(
-        "AI_INDUSTRY_IMPACT", 1, focus_only=True, excluded=set(focus_adoption)
+    reserved_newsroom_adoption = select(
+        "AI_ADOPTION",
+        section_adoption_target,
+        excluded=set(focus_adoption),
     )
-    if focus_industry:
-        focus_source_ids = focus_adoption + focus_industry
-    else:
-        focus_source_ids = select("AI_ADOPTION", 5, focus_only=True)
-        if len(focus_source_ids) < 5:
-            raise JudgementPlanError(
-                "FOCUS ON THE NUMBERS requires five all-AI numeric sources when no "
-                "AI_INDUSTRY_IMPACT numeric source qualifies"
-            )
+    if len(reserved_newsroom_adoption) < MIN_AI_ADOPTION_ITEMS_PER_SECTION:
+        raise JudgementPlanError(
+            "DTL SIGNAL NEWSROOM requires at least 3 remaining AI_ADOPTION sources; "
+            f"received {len(reserved_newsroom_adoption)}"
+        )
+
+    focus_source_ids = focus_adoption
+    focus_source_ids.extend(
+        select(
+            "AI_INDUSTRY_IMPACT",
+            5 - len(focus_source_ids),
+            focus_only=True,
+            excluded=set(focus_source_ids) | set(reserved_newsroom_adoption),
+        )
+    )
+    if len(focus_source_ids) < 5:
+        raise JudgementPlanError(
+            "FOCUS ON THE NUMBERS requires five all-AI sources with numeric evidence"
+        )
 
     focus_set = set(focus_source_ids)
-    newsroom_adoption = select("AI_ADOPTION", 4, excluded=focus_set)
-    if len(newsroom_adoption) < 4:
-        raise JudgementPlanError(
-            "DTL SIGNAL NEWSROOM requires at least 4 remaining AI_ADOPTION sources; "
-            f"received {len(newsroom_adoption)}"
+    newsroom_source_ids = reserved_newsroom_adoption
+    newsroom_source_ids.extend(
+        select(
+            "AI_ADOPTION",
+            5 - len(newsroom_source_ids),
+            excluded=focus_set | set(newsroom_source_ids),
         )
-    newsroom_industry = select(
-        "AI_INDUSTRY_IMPACT", 1, excluded=focus_set | set(newsroom_adoption)
     )
-    if newsroom_industry:
-        newsroom_source_ids = newsroom_adoption + newsroom_industry
-    else:
-        newsroom_source_ids = select("AI_ADOPTION", 5, excluded=focus_set)
-        if len(newsroom_source_ids) < 5:
-            raise JudgementPlanError(
-                "DTL SIGNAL NEWSROOM requires five all-AI sources when no remaining "
-                "AI_INDUSTRY_IMPACT source qualifies"
-            )
+    newsroom_source_ids.extend(
+        select(
+            "AI_INDUSTRY_IMPACT",
+            5 - len(newsroom_source_ids),
+            excluded=focus_set | set(newsroom_source_ids),
+        )
+    )
+    if len(newsroom_source_ids) < 5:
+        raise JudgementPlanError(
+            "DTL SIGNAL NEWSROOM requires five all-AI sources after reserving the adoption majority"
+        )
 
     selected = newsroom_source_ids + focus_source_ids
     selected_adoption = sum(
@@ -660,7 +684,7 @@ def allocate_ai_adoption_content(
     selected_industry = len(selected) - selected_adoption
     if selected_adoption < MIN_AI_ADOPTION_ITEMS or selected_industry > MAX_AI_INDUSTRY_IMPACT_ITEMS:
         raise JudgementPlanError(
-            "All-AI allocation requires at least 8 AI_ADOPTION items and at most 2 "
+            "All-AI allocation requires at least 6 AI_ADOPTION items and at most 4 "
             "AI_INDUSTRY_IMPACT items"
         )
     return {"newsroom": newsroom_source_ids, "focus_numbers": focus_source_ids}
@@ -1229,10 +1253,17 @@ def validate_judgement_plan(
         if _is_ai_adoption_revision(plan):
             adoption_items = newsroom_ai_adoption_items + focus_ai_adoption_items
             industry_items = 10 - adoption_items
-            if adoption_items < MIN_AI_ADOPTION_ITEMS or industry_items > MAX_AI_INDUSTRY_IMPACT_ITEMS:
+            if (
+                newsroom_ai_adoption_items < MIN_AI_ADOPTION_ITEMS_PER_SECTION
+                or focus_ai_adoption_items < MIN_AI_ADOPTION_ITEMS_PER_SECTION
+                or adoption_items < MIN_AI_ADOPTION_ITEMS
+                or industry_items > MAX_AI_INDUSTRY_IMPACT_ITEMS
+            ):
                 raise JudgementPlanError(
-                    "The all-AI adoption-first mix requires at least 8 AI_ADOPTION and at most "
-                    f"2 AI_INDUSTRY_IMPACT items; received {adoption_items}/{industry_items}"
+                    "The all-AI adoption-first mix requires at least 3 AI_ADOPTION per section, "
+                    "at least 6 overall and at most 4 AI_INDUSTRY_IMPACT items; received "
+                    f"Newsroom {newsroom_ai_adoption_items}/5, Focus {focus_ai_adoption_items}/5, "
+                    f"overall {adoption_items}/{industry_items}"
                 )
         else:
             ai_business_items = newsroom_ai_business_items + focus_ai_business_items
@@ -1350,7 +1381,7 @@ def generate_judgement_plan(
             len(verified_adoption_source_ids) + len(verified_industry_source_ids) < 10
         ):
             raise JudgementPlanError(
-                "The all-AI adoption-first edition requires at least eight verified AI adoption "
+                "The all-AI adoption-first edition requires at least six verified AI adoption "
                 "sources and ten AI sources overall; received "
                 f"{len(verified_adoption_source_ids)} and "
                 f"{len(verified_adoption_source_ids) + len(verified_industry_source_ids)}"

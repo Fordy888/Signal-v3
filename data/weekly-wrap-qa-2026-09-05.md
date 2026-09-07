@@ -30,3 +30,19 @@ The pre-send QA gate held on one critical error: the generated body metadata sai
 The synthesis entry point now accepts the pipeline’s timezone-aware governed runtime. `main.py` passes the same Brisbane clock used for edition type, subject and QA; the prompt metadata, deterministic header replacement and footer stamp derive from that single value. A regression reproduces a Friday model body under a Saturday governed runtime and proves it is rewritten to `Saturday 05 September 2026 | 06:00 AEST` and `PF::SIGNAL-0047 // 05.09.2026 // 06:00 AEST`.
 
 All nine test modules passed independently in the integration checkout and a fresh detached worktree: **123/123 tests** in each environment. Deployment and a second no-send Render dry-run remain required; local results alone do not establish Weekly Wrap readiness.
+
+## Render repair build
+
+Render build `bld-dad7jmgae00c7396gis0` checked out commit `5fb530c199ee460138d35a6c918d28eba5af5546`, ran all **123 tests** successfully, uploaded the build, and reported `Build succeeded`. The active Weekly Wrap dry-run command still requires a fresh settings read and expected-commit update from `4a3794b` to `5fb530c` before the second no-send run.
+
+## Successful deployed readiness run
+
+The saved Render command was independently re-read as commit `5fb530c199ee460138d35a6c918d28eba5af5546` with `--dry-run --enhanced --as-of 2026-09-05T06:00:00+10:00` and no `--send`. Manual run `2026-09-04T07:59:58Z–08:13:46Z` completed successfully in 754.4 seconds.
+
+Production evidence: 101/111 sources succeeded; 198 items were scored; category coverage was 8/8; the live audience resolved to 33 active subscribers for integrity checking; delivery remained 0/0; renderer was `weekly-wrap-current`; artefact prefix was `f23cb9a8d04b`. The deterministic Weekly Wrap validator passed, which enforces all six required section labels, exactly five `What happened:` stories, at least five HTTPS source links, no rating-gauge URL or text, and no forbidden generic phrases. The release QA log separately reported `Subject/Body Alignment: Edition 0047 and date 05 September 2026 present in body.` The cron run finished successfully.
+
+**Readiness conclusion:** tomorrow’s 06:00 AEST Weekly Wrap production path is verified on deployed commit `5fb530c`. No Weekly Wrap email was sent during validation.
+
+## Recurring command restored
+
+After Edition 0047 reached SUBSCRIBER VERIFIED, Render settings were changed without triggering another run. A fresh read-only settings view confirms deployed commit `5fb530c199ee460138d35a6c918d28eba5af5546`, schedule `0 20 * * *` UTC, and the recurring command `python -m src.main --send --enhanced --alive-moment`. The saved command contains no `--locked-edition`, `--as-of`, `--dry-run`, `--proof` or one-time HTML path. The next scheduled execution is Saturday 5 September 2026 at **06:00 AEST** and will route through the deployed Weekly Wrap path proven above.
