@@ -1,7 +1,7 @@
 # Edition 0048 Recovery Proof QA
 
 **Issue date:** Monday 7 September 2026 at 06:00 AEST
-**State:** BUILT and source-controlled; exact locked-edition manifest validated locally; registry proof row not yet created, approved or sent
+**State:** APPROVED after proof-scope canary verification; production scope not created
 **HTML checksum:** `e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f`
 **Editorial revision:** `ai-adoption-v1`
 
@@ -36,8 +36,12 @@ Image identity: `REMEMBER-0048-GARY-PLANT-WELDERS`. The 1943 photograph shows Pe
 
 The production renderer generated the exact Monday 06:00 AEST header and `PF::SIGNAL-0048 // 07.09.2026 // 06:00 AEST` footer. Visual inspection confirms the locked order: Founder’s Note, five Newsroom stories, five Focus figures, interpretation, actions, counter-position, watch list, full-width REMEMBER THE WORLD image and attribution, Dad Joke, minimal footer. No clipping, machine labels or unexplained internal source IDs are visible.
 
-All sixteen test modules passed independently in the integration checkout and a fresh detached worktree: **170/170 tests** in each environment, with three production-only skips in each. Coverage includes the Monday-only 96-hour window, 6-of-10 overall adoption floor, 3-of-5 per-section floor, stronger 8/2-day allocation, Edition 0047 historical manifest compatibility, Edition 0048 proposed manifest, 7/3 reader mix, ten non-repeating links, fresh governed image, exact locked-edition checksum reproduction, registry immutability, duplicate claims, provider uncertainty, append-only events and an end-to-end no-send Monday runtime simulation.
+All sixteen test modules passed independently in the integration checkout and a fresh detached worktree: **175/175 tests** in each environment, including four real PostgreSQL registry tests in each. Coverage includes the Monday-only 96-hour window, 6-of-10 overall adoption floor, 3-of-5 per-section floor, stronger 8/2-day allocation, Edition 0047 historical manifest compatibility, Edition 0048 proposed manifest, 7/3 reader mix, ten non-repeating links, fresh governed image, exact locked-edition checksum reproduction, table-fragment storage and readback, registry immutability, duplicate claims, provider uncertainty, append-only events and an end-to-end no-send Monday runtime simulation.
+
+## Registry proof preflight
+
+On 7 September 2026 at 11:34 AEST, deployed commit `25e018b87b21e25645eca6756ecd9712d4003e8e` stored and re-read proof-scope release `16d582f1-3009-4e09-9197-5ca40d1bf343` with exact HTML checksum `e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f` and audience count one. The locked preflight bypassed source fetching, scoring and model generation, froze the committed ten-source evidence and governed image, and did not invoke Resend. After Fordy's explicit confirmation, the registry-only delivery worker sent the single frozen recipient and reached `DELIVERED` at 11:40 AEST: sent 1/1, failed 0, Resend acceptance ID `8799483a-435a-4d7f-9756-d4fa594f449a`. The recurring command was then restored to exact-commit registry-required `--dry-run` containment.
 
 ## Not yet true
 
-The candidate has not been approved by Paul Ford, inserted as a registry proof release, canaried or delivered. Registry implementation commit `78f4ff2` and migration `001_release_registry` are deployed, while the new deterministic 0048 lock manifest is not yet deployed. The recurring Render command remains registry-required `--dry-run` containment. No production-scope lock may be created from this candidate until Paul receives and approves the exact checksum above.
+Resend independently reports message `8799483a-435a-4d7f-9756-d4fa594f449a` as `opened`, sent from the expected Signal identity to `paul.ford@gmail.com` with the expected proof subject. Gmail independently contains message `1a07985b8729326b` with the full Edition 0048 body. Its reader-visible order is Founder’s Note, five Newsroom stories, five Focus figures, interpretation and actions, REMEMBER THE WORLD, then Dad Joke. The delivered 1200×955 image was visually verified as the intended Gary steel-plant welding photograph, with public-domain attribution visible before the Dad Joke. Paul Ford explicitly approved this exact proof and its designed REMEMBER THE WORLD-to-Dad Joke connection on 7 September 2026. The proof has not been promoted into production scope. The recurring Render command remains registry-required `--dry-run` containment, and no subscriber send is authorised.

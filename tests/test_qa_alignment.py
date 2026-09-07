@@ -14,6 +14,7 @@ import yaml
 from src.qa_gate import (
     check_edition_number,
     check_release_identity,
+    check_registry_preflight_identity,
     check_subject_body_alignment,
     create_receipt,
     load_release_manifest,
@@ -102,6 +103,54 @@ class ReleaseIdentityTests(unittest.TestCase):
         self.assertTrue(result.passed)
         self.assertIn("MATCH", result.message)
         self.assertIn("abcdef123456", result.message)
+
+    def test_registry_preflight_identity_uses_versioned_policy_not_edition_manifest(self):
+        env = {
+            "RENDER": "true",
+            "RENDER_GIT_BRANCH": "master",
+            "RENDER_GIT_COMMIT": "abcdef1234567890",
+            "RENDER_SERVICE_ID": "crn-preflight",
+            "SIGNAL_REGISTRY_REQUIRED": "1",
+            "SIGNAL_PRODUCTION_PREFLIGHT_ENABLED": "1",
+            "SIGNAL_APPROVED_EDITORIAL_REVISION": "ai-adoption-v1",
+            "SIGNAL_EXPECTED_DAILY_RENDERER": "enhanced-v4-focus-numbers",
+            "SIGNAL_EXPECTED_GIT_BRANCH": "master",
+            "SIGNAL_EXPECTED_GIT_COMMIT": "abcdef1234567890",
+            "SIGNAL_EXPECTED_RENDER_SERVICE_ID": "crn-preflight",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            result = check_registry_preflight_identity(
+                renderer_id="enhanced-v4-focus-numbers",
+                editorial_revision="ai-adoption-v1",
+                actual_commit="abcdef1234567890",
+            )
+        self.assertTrue(result.passed)
+        self.assertIn("POLICY MATCH", result.message)
+
+    def test_registry_preflight_identity_holds_revision_or_activation_drift(self):
+        env = {
+            "RENDER": "true",
+            "RENDER_GIT_BRANCH": "master",
+            "RENDER_GIT_COMMIT": "abcdef1234567890",
+            "RENDER_SERVICE_ID": "crn-preflight",
+            "SIGNAL_REGISTRY_REQUIRED": "1",
+            "SIGNAL_PRODUCTION_PREFLIGHT_ENABLED": "0",
+            "SIGNAL_APPROVED_EDITORIAL_REVISION": "ai-adoption-v1",
+            "SIGNAL_EXPECTED_DAILY_RENDERER": "enhanced-v4-focus-numbers",
+            "SIGNAL_EXPECTED_GIT_BRANCH": "master",
+            "SIGNAL_EXPECTED_GIT_COMMIT": "abcdef1234567890",
+            "SIGNAL_EXPECTED_RENDER_SERVICE_ID": "crn-preflight",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            result = check_registry_preflight_identity(
+                renderer_id="enhanced-v4-focus-numbers",
+                editorial_revision="different-revision",
+                actual_commit="abcdef1234567890",
+            )
+        self.assertFalse(result.passed)
+        self.assertEqual("critical", result.severity)
+        self.assertIn("preflight is not enabled", result.message)
+        self.assertIn("different-revision", result.message)
 
     def test_monday_v4_identity_can_be_enforced_inside_proof_canary(self):
         with patch.dict(os.environ, self.production_env, clear=False):

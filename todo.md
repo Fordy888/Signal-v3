@@ -635,7 +635,27 @@
 - [x] Restore and independently verify exact-commit registry-required `--dry-run` containment after the persisted-row verification hold; no `--send` or `--deliver-release` is active
 - [x] Unify the shared frozen-release verifier with the audited substantial closed table-fragment rule and prove an end-to-end table-based release stores, reaches `SCHEDULED` and reloads identically through real PostgreSQL
 - [x] Pass all 175 tests across 16 independently bounded modules in both the integration checkout and a fresh detached worktree, including four real PostgreSQL registry tests in each, after fixing the final shared verifier boundary
-- [ ] Commit, fast-forward and deploy the final shared verifier correction before any further Edition 0048 preflight attempt
+- [x] Commit and fast-forward final shared-verifier correction `25e018b87b21e25645eca6756ecd9712d4003e8e` to GitHub master without force-pushing
+- [x] Build and deploy exact commit `25e018b87b21e25645eca6756ecd9712d4003e8e` as Render build `bld-daf16s8u01pc738d45og`; build passed 175 tests with four production-only skips
+- [x] Align and independently verify the contained registry-required dry-run command's expected commit to deployed `25e018b`, with no `--send` or `--deliver-release`
+- [x] Run the non-sending Edition 0048 preflight on exact deployed commit `25e018b`; Postgres locked and re-read proof release `16d582f1-3009-4e09-9197-5ca40d1bf343` with checksum `e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f` and audience count 1
+- [x] Confirm the locked release is scope `proof`, issue 0048 / 7 September 2026, source/model-free at preflight, and exactly one Paul recipient; no Resend delivery flag or provider call was present
+- [x] Restore and independently verify exact commit `25e018b`, registry-required `--dry-run` containment immediately after the successful preflight; no `--send`, `--deliver-release` or release-specific preparation flag remains active
+- [x] With Fordy's explicit confirmation, deliver proof release `16d582f1-3009-4e09-9197-5ca40d1bf343` through the registry to the single frozen Paul recipient; registry reached `DELIVERED`, sent 1/1, failed 0
+- [x] Capture Resend acceptance ID `8799483a-435a-4d7f-9756-d4fa594f449a` for the one proof recipient at 11:40 AEST on 7 September 2026
+- [x] Restore and independently verify exact commit `25e018b`, registry-required `--dry-run` containment immediately after proof delivery; no delivery or send flag remains active
+- [x] Independently verify Resend message `8799483a-435a-4d7f-9756-d4fa594f449a`: exact Paul recipient, expected proof subject, provider status `opened`, created 01:40:00 UTC
+- [x] Independently verify Gmail message `1a07985b8729326b`: exact proof subject, full Edition 0048 body, Founder’s Note first, five Newsroom stories, five Focus figures, governed REMEMBER THE WORLD photograph, then final Dad Joke
+- [x] Visually verify the Gmail-delivered 1200×955 Gary steel-plant photograph is present and matches the governed 7 September public-domain image rather than a broken, stale or substituted asset
+- [x] Obtain Paul’s explicit approval of the exact Gmail-delivered Edition 0048 proof, including the designed REMEMBER THE WORLD-to-Dad Joke connection and mandatory image-before-joke order
+- [ ] Design and prove a production-scope canary that cannot fan out to the frozen subscriber audience, then present the exact plan for separate approval before any email action
+- [x] Formalise the verified proof-scope registry delivery as the one-recipient canary for the exact immutable artefact; never partially claim a production release because the current worker would resume the remaining audience
+- [x] Replace Edition-specific proof-checksum controls in registry production preflight with an approved versioned editorial policy contract plus runtime branch/service/renderer identity; delivery still requires the frozen preflight commit to equal its deployed commit
+- [x] Add a Brisbane-aware `--next-issue-date` mode for prior-evening production preflight so the cron command never relies on shell date substitution
+- [ ] Deploy separate prior-evening preflight and 06:00 AEST delivery service definitions, each disabled by an explicit activation switch and annual containment schedule, before deciding whether to create the additional Render cron
+- [x] Do not create a production-scope Edition 0048 release: its 06:00+20-minute window has passed, so any subscriber recovery would require an explicit `LATE_RECOVERY` decision and must not be counted as normal daily operation
+- [x] Add fail-closed `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED` and `SIGNAL_PRODUCTION_DELIVERY_ENABLED` switches that stop before subscriber fetch or registry claim when disabled
+- [x] Pass all 179 tests across 16 independently bounded modules in both the integration checkout and a fresh detached worktree, including four real PostgreSQL registry tests, after adding the production activation controls
 - [x] Commit and fast-forward Option B registry, Edition 0048 recovery and containment controls from deployed baseline `5fb530c` to GitHub master commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` without force-pushing
 - [x] Manually build and deploy exact commit `78f4ff2bf6595d47374a050bba6e6ccea0d887f5` on Render as build `bld-daf074nqj5pc73b5j940`; build ran 169 tests successfully with 3 production-only skips
 - [x] Restore and independently verify the active recurring command after migration: `SIGNAL_REGISTRY_REQUIRED=1`, exact deployed commit `78f4ff2`, `--dry-run`, no `--send`, no `--deliver-release`, and no stale Edition 0047 release variables

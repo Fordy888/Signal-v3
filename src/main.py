@@ -14,7 +14,7 @@ import os
 import re
 import sys
 import time
-from datetime import date, datetime, time as datetime_time
+from datetime import date, datetime, time as datetime_time, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -67,6 +67,7 @@ from .qa_gate import (
     build_category_coverage,
     build_failed_source_summary,
     check_release_identity,
+    check_registry_preflight_identity,
 )
 
 BRISBANE = ZoneInfo("Australia/Brisbane")
@@ -195,6 +196,8 @@ def main() -> int:
                         help="Registry release scope; required by --prepare-release and --deliver-release")
     parser.add_argument("--release-date", type=str, default=None,
                         help="Registry edition date in YYYY-MM-DD; preparation renders that date, delivery selects it")
+    parser.add_argument("--next-issue-date", action="store_true",
+                        help="Preparation only: target the next Brisbane calendar date")
     parser.add_argument("--deliver-prepared-proof", action="store_true",
                         help="After locking a proof-scope release, deliver it immediately through the registry")
     parser.add_argument("--save-html", type=str, default=None,
@@ -235,6 +238,10 @@ def main() -> int:
         args.prepare_release and args.release_scope == "proof"
     ):
         parser.error("--deliver-prepared-proof requires --prepare-release --release-scope proof")
+    if args.next_issue_date and args.release_date:
+        parser.error("--next-issue-date cannot be combined with --release-date")
+    if args.next_issue_date and not args.prepare_release:
+        parser.error("--next-issue-date requires --prepare-release")
 
     # Locate project root (parent of src/)
     root = Path(__file__).resolve().parent.parent
@@ -264,7 +271,9 @@ def main() -> int:
     else:
         runtime_now = datetime.now(BRISBANE)
     release_date = None
-    if args.release_date:
+    if args.next_issue_date:
+        release_date = runtime_now.date() + timedelta(days=1)
+    elif args.release_date:
         try:
             release_date = date.fromisoformat(args.release_date)
         except ValueError:
@@ -316,6 +325,18 @@ def main() -> int:
     if args.enhanced and not use_enhanced:
         log.info("Enhanced daily format not applied to %s; using its approved route", edition_type)
 
+    if (
+        args.deliver_release
+        and args.release_scope == "production"
+        and os.environ.get("SIGNAL_PRODUCTION_DELIVERY_ENABLED") != "1"
+    ):
+        log.error("REGISTRY PRODUCTION DELIVERY DISABLED")
+        send_alert(
+            "Registry production delivery disabled — edition NOT sent",
+            "SIGNAL_PRODUCTION_DELIVERY_ENABLED is not 1. No registry release was claimed.",
+        )
+        return 1
+
     if args.deliver_release:
         try:
             registry_result = deliver_registry_release(
@@ -364,6 +385,19 @@ def main() -> int:
         )
         return 1
 
+    preparing_proof = args.prepare_release and args.release_scope == "proof"
+    preparing_production = args.prepare_release and args.release_scope == "production"
+    if (
+        preparing_production
+        and os.environ.get("SIGNAL_PRODUCTION_PREFLIGHT_ENABLED") != "1"
+    ):
+        log.error("REGISTRY PRODUCTION PREFLIGHT DISABLED")
+        send_alert(
+            "Registry production preflight disabled — no release locked",
+            "SIGNAL_PRODUCTION_PREFLIGHT_ENABLED is not 1. No subscriber audience was fetched.",
+        )
+        return 1
+
     if not os.environ.get("ANTHROPIC_API_KEY"):
         log.error("ANTHROPIC_API_KEY not set. Configure .env or environment.")
         return 1
@@ -375,9 +409,6 @@ def main() -> int:
              source_counts["active"], source_counts["disabled"], source_counts["probation"])
 
     # ─── Resolve recipient list based on mode ───────────────────────────
-    preparing_proof = args.prepare_release and args.release_scope == "proof"
-    preparing_production = args.prepare_release and args.release_scope == "production"
-
     if args.proof or preparing_proof:
         # Proof mode: send to Paul only
         proof_email = load_proof_recipient()
@@ -837,18 +868,26 @@ def main() -> int:
         as_of=now_brisbane,
         locked_evidence=planner_evidence if locked_preflight else None,
     )
-    identity_mode = "send" if args.release_canary or preparing_production else mode
-    release_identity_result = check_release_identity(
-        renderer_id=renderer_id,
-        edition_type=edition_type,
-        mode=identity_mode,
-        editorial_revision=(
-            str(enhanced_plan.get("editorial_revision", "")).strip()
-            if enhanced_plan and edition_type == "daily"
-            else None
-        ),
-        as_of=now_brisbane,
+    editorial_revision = (
+        str(enhanced_plan.get("editorial_revision", "")).strip()
+        if enhanced_plan and edition_type == "daily"
+        else None
     )
+    if preparing_production:
+        release_identity_result = check_registry_preflight_identity(
+            renderer_id=renderer_id,
+            editorial_revision=editorial_revision or "",
+            actual_commit=code_version,
+        )
+    else:
+        identity_mode = "send" if args.release_canary else mode
+        release_identity_result = check_release_identity(
+            renderer_id=renderer_id,
+            edition_type=edition_type,
+            mode=identity_mode,
+            editorial_revision=editorial_revision,
+            as_of=now_brisbane,
+        )
     if args.release_canary:
         log.info("RELEASE CANARY: production identity gate enforced within proof-only recipient boundary")
     qa_results.append(release_identity_result)

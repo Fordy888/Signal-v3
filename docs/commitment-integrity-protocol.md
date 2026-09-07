@@ -49,21 +49,23 @@ The system must hold rather than send when the expected commit, renderer or arte
 
 A successful delivery count does not override a release mismatch. `33/33 delivered` can coexist with `RELEASE FAILED` when the wrong version was sent.
 
-## Enforced target-release evidence
+## Enforced registry release evidence
 
-The production identity gate now requires all of the following before a daily subscriber send or explicit release canary can pass:
+The durable registry path requires all of the following before production preflight may freeze an audience and before the morning worker may claim a release:
 
 | Required evidence | Source of truth |
 |---|---|
-| Approved release contract | `data/release_manifest.json` |
-| Approved proof checksum | Manifest plus `SIGNAL_EXPECTED_APPROVED_PROOF_SHA256` |
+| Approved versioned editorial policy | `SIGNAL_APPROVED_EDITORIAL_REVISION` matching the generated plan, currently `ai-adoption-v1` |
+| Approved reader experience | One-recipient proof-scope registry canary with matching registry, Resend and Gmail evidence |
 | Target Git commit | `SIGNAL_EXPECTED_GIT_COMMIT` |
 | Actual deployed Git commit | `RENDER_GIT_COMMIT` |
-| Expected and actual renderer | Manifest/environment plus runtime renderer ID |
+| Expected and actual renderer | `SIGNAL_EXPECTED_DAILY_RENDERER` plus runtime renderer ID |
 | Expected branch and Render service | Source-controlled environment contract plus Render runtime evidence |
-| Edition 0046 image identity | Date-bound manifest identity plus configured governed fixture |
+| Edition-specific content and image identity | Immutable registry HTML, source metadata, image ID/checksum and governed date record |
+| Frozen audience identity | Immutable recipient rows, audience count and audience checksum |
+| Delivery eligibility | Date-matched `SCHEDULED` state, exact frozen commit and open 06:00 AEST delivery window |
 
-The gate holds production when the actual commit differs from the target, even if the profile, branch, renderer, service and delivery counts would otherwise pass. A receipt for a delivered mismatch must use **DELIVERY SUCCEEDED — TARGET RELEASE MISMATCH** and state that the approved release is not proven subscriber-visible. A normal proof must state that deployment is not verified. Only a release canary may use **TARGET RELEASE MATCHED** before subscriber delivery.
+Historical fixed-edition manifests remain evidence for their specific releases but are not recurring production controls. The registry preflight gate holds when the versioned editorial policy, renderer, branch, service or commit differs. The delivery worker then re-verifies the immutable frozen release and refuses any content generation, source fetch, image substitution or audience refresh. Only the verified proof-scope canary may establish `CANARY VERIFIED`; `LIVE` and `SUBSCRIBER VERIFIED` still require an on-time future subscriber edition.
 
 ## Communication rule
 

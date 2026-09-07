@@ -318,6 +318,67 @@ def check_release_identity(
     )
 
 
+def check_registry_preflight_identity(
+    *, renderer_id: str, editorial_revision: str, actual_commit: str
+) -> QAResult:
+    """Validate versioned policy and runtime identity without an edition-specific manifest."""
+    expected_renderer = os.environ.get("SIGNAL_EXPECTED_DAILY_RENDERER", "").strip()
+    expected_revision = os.environ.get("SIGNAL_APPROVED_EDITORIAL_REVISION", "").strip()
+    expected_branch = os.environ.get("SIGNAL_EXPECTED_GIT_BRANCH", "").strip()
+    expected_commit = os.environ.get("SIGNAL_EXPECTED_GIT_COMMIT", "").strip()
+    expected_service = os.environ.get("SIGNAL_EXPECTED_RENDER_SERVICE_ID", "").strip()
+    runtime_branch = os.environ.get("RENDER_GIT_BRANCH", "").strip()
+    runtime_commit = os.environ.get("RENDER_GIT_COMMIT", "").strip()
+    runtime_service = os.environ.get("RENDER_SERVICE_ID", "").strip()
+    issues: list[str] = []
+    if os.environ.get("SIGNAL_REGISTRY_REQUIRED") != "1":
+        issues.append("durable registry is not required")
+    if os.environ.get("SIGNAL_PRODUCTION_PREFLIGHT_ENABLED") != "1":
+        issues.append("production preflight is not enabled")
+    if os.environ.get("RENDER", "").lower() != "true":
+        issues.append("runtime is not verified as Render")
+    if not expected_revision or editorial_revision != expected_revision:
+        issues.append(
+            f"editorial revision is {editorial_revision or 'missing'}, expected "
+            f"{expected_revision or 'missing'}"
+        )
+    if not expected_renderer or renderer_id != expected_renderer:
+        issues.append(
+            f"renderer is {renderer_id or 'missing'}, expected {expected_renderer or 'missing'}"
+        )
+    if not expected_branch or runtime_branch != expected_branch:
+        issues.append(
+            f"branch is {runtime_branch or 'missing'}, expected {expected_branch or 'missing'}"
+        )
+    if not expected_service or runtime_service != expected_service:
+        issues.append(
+            f"service is {runtime_service or 'missing'}, expected {expected_service or 'missing'}"
+        )
+    if not expected_commit:
+        issues.append("expected commit is missing")
+    elif runtime_commit != expected_commit or actual_commit != expected_commit:
+        issues.append(
+            f"runtime commit is {(runtime_commit or 'missing')[:12]}, pipeline commit is "
+            f"{(actual_commit or 'missing')[:12]}, expected {expected_commit[:12]}"
+        )
+    if issues:
+        return QAResult(
+            check_name="Registry Preflight Identity",
+            passed=False,
+            severity="critical",
+            message="; ".join(issues) + ".",
+        )
+    return QAResult(
+        check_name="Registry Preflight Identity",
+        passed=True,
+        severity="info",
+        message=(
+            f"POLICY MATCH — revision {editorial_revision}, renderer {renderer_id}, "
+            f"branch {runtime_branch}, commit {runtime_commit[:12]}, service {runtime_service}."
+        ),
+    )
+
+
 @dataclass
 class RunReceipt:
     """Structured receipt for a pipeline run."""

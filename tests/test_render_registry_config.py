@@ -14,18 +14,42 @@ class RenderRegistryContainmentTests(unittest.TestCase):
         raw = (ROOT / "render.yaml").read_text(encoding="utf-8")
         config = yaml.safe_load(raw)
         services = config["services"]
-        self.assertEqual({"dtl-signal", "dtl-signal-proof"}, {s["name"] for s in services})
+        self.assertEqual(
+            {
+                "dtl-signal",
+                "dtl-signal-proof",
+                "dtl-signal-preflight",
+                "dtl-signal-delivery",
+            },
+            {s["name"] for s in services},
+        )
         self.assertNotIn("0047", raw)
         self.assertNotIn("SIGNAL_TARGET_RELEASE_ID", raw)
         self.assertNotIn("SIGNAL_EXPECTED_APPROVED_PROOF_SHA256", raw)
         for service in services:
             command = service["startCommand"]
-            self.assertIn("--dry-run", command)
             self.assertNotIn("--send", command)
-            self.assertNotIn("--deliver-release", command)
+            self.assertEqual("0 0 1 1 *", service["schedule"])
             env = {row["key"]: row for row in service["envVars"]}
             self.assertEqual("1", env["SIGNAL_REGISTRY_REQUIRED"]["value"])
             self.assertFalse(env["SIGNAL_REGISTRY_DATABASE_URL"]["sync"])
+
+        by_name = {service["name"]: service for service in services}
+        for name in ("dtl-signal", "dtl-signal-proof"):
+            self.assertIn("--dry-run", by_name[name]["startCommand"])
+            self.assertNotIn("--deliver-release", by_name[name]["startCommand"])
+
+        preflight = by_name["dtl-signal-preflight"]
+        self.assertIn("--prepare-release --release-scope production", preflight["startCommand"])
+        self.assertIn("--next-issue-date", preflight["startCommand"])
+        preflight_env = {row["key"]: row for row in preflight["envVars"]}
+        self.assertEqual("0", preflight_env["SIGNAL_PRODUCTION_PREFLIGHT_ENABLED"]["value"])
+        self.assertEqual("ai-adoption-v1", preflight_env["SIGNAL_APPROVED_EDITORIAL_REVISION"]["value"])
+
+        delivery = by_name["dtl-signal-delivery"]
+        self.assertIn("--deliver-release --release-scope production", delivery["startCommand"])
+        delivery_env = {row["key"]: row for row in delivery["envVars"]}
+        self.assertEqual("0", delivery_env["SIGNAL_PRODUCTION_DELIVERY_ENABLED"]["value"])
 
 
 if __name__ == "__main__":

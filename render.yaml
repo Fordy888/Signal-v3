@@ -100,3 +100,99 @@ services:
     plan: standard
     region: singapore
     maxShutdownDelaySeconds: 30
+
+  # Durable production preflight shape. Intentionally annual and disabled until
+  # a separate activation decision; this command cannot deliver email.
+  - type: cron
+    name: dtl-signal-preflight
+    runtime: python
+    schedule: "0 0 1 1 *"
+    buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
+    startCommand: python -m src.main --prepare-release --release-scope production --enhanced --alive-moment --next-issue-date --force-type daily
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: signal@signal.dtlc.ai
+      - key: PROOF_RECIPIENT_EMAIL
+        sync: false
+      - key: WEBSITE_BASE_URL
+        sync: false
+      - key: SIGNAL_PIPELINE_API_KEY
+        sync: false
+      - key: SIGNAL_REGISTRY_DATABASE_URL
+        sync: false
+      - key: SIGNAL_REGISTRY_REQUIRED
+        value: "1"
+      - key: SIGNAL_PRODUCTION_PREFLIGHT_ENABLED
+        value: "0"
+      - key: SIGNAL_APPROVED_EDITORIAL_REVISION
+        value: ai-adoption-v1
+      - key: SIGNAL_EXPECTED_DAILY_RENDERER
+        value: enhanced-v4-focus-numbers
+      - key: SIGNAL_EXPECTED_GIT_BRANCH
+        value: master
+      - key: SIGNAL_EXPECTED_GIT_COMMIT
+        sync: false
+      - key: SIGNAL_EXPECTED_RENDER_SERVICE_ID
+        sync: false
+      - key: SIGNAL_ALIVE_MOMENT_PATH
+        value: data/alive_moments/{date}.json
+      - key: MODEL_SCORING
+        value: claude-haiku-4-5-20251001
+      - key: MODEL_SYNTHESIS
+        value: claude-sonnet-4-6
+      - key: MODEL_FOUNDERS_NOTE
+        value: claude-sonnet-4-6
+      - key: ENABLE_GAUGE
+        value: off
+      - key: TZ
+        value: Australia/Brisbane
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+    plan: standard
+    region: singapore
+    maxShutdownDelaySeconds: 30
+
+  # Deterministic morning worker. Intentionally annual and disabled until the
+  # registry preflight path and an explicit subscriber reactivation both pass.
+  - type: cron
+    name: dtl-signal-delivery
+    runtime: python
+    schedule: "0 0 1 1 *"
+    buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
+    startCommand: python -m src.main --deliver-release --release-scope production --force-type daily
+    envVars:
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: signal@signal.dtlc.ai
+      - key: PROOF_RECIPIENT_EMAIL
+        sync: false
+      - key: WEBSITE_BASE_URL
+        sync: false
+      - key: SIGNAL_PIPELINE_API_KEY
+        sync: false
+      - key: BETTERSTACK_HEARTBEAT_URL
+        sync: false
+      - key: SIGNAL_REGISTRY_DATABASE_URL
+        sync: false
+      - key: SIGNAL_REGISTRY_REQUIRED
+        value: "1"
+      - key: SIGNAL_PRODUCTION_DELIVERY_ENABLED
+        value: "0"
+      - key: SIGNAL_EXPECTED_GIT_BRANCH
+        value: master
+      - key: SIGNAL_EXPECTED_GIT_COMMIT
+        sync: false
+      - key: SIGNAL_EXPECTED_RENDER_SERVICE_ID
+        sync: false
+      - key: TZ
+        value: Australia/Brisbane
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+    plan: standard
+    region: singapore
+    maxShutdownDelaySeconds: 30

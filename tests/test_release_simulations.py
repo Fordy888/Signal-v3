@@ -792,9 +792,9 @@ class ReleaseSimulationTests(unittest.TestCase):
             "SIGNAL_EXPECTED_GIT_BRANCH": "master",
             "SIGNAL_EXPECTED_GIT_COMMIT": "abcdef1234567890abcdef1234567890abcdef12",
             "SIGNAL_EXPECTED_RENDER_SERVICE_ID": "crn-d8ouk0bsq97s73fgc36g",
-            "SIGNAL_TARGET_RELEASE_ID": "ai-adoption-v1-proof-0048",
-            "SIGNAL_EXPECTED_APPROVED_PROOF_SHA256": "e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f",
-            "SIGNAL_RELEASE_MANIFEST_PATH": "data/release_manifest_ai_adoption_0048.json",
+            "SIGNAL_REGISTRY_REQUIRED": "1",
+            "SIGNAL_PRODUCTION_PREFLIGHT_ENABLED": "1",
+            "SIGNAL_APPROVED_EDITORIAL_REVISION": "ai-adoption-v1",
             "SIGNAL_ALIVE_MOMENT_PATH": "data/alive_moments/{date}.json",
         }
         with ExitStack() as stack:
@@ -818,7 +818,7 @@ class ReleaseSimulationTests(unittest.TestCase):
             stack.enter_context(patch("src.main.ReleaseRegistry.from_env", return_value=object()))
             stack.enter_context(
                 patch(
-                    "src.main.check_release_identity",
+                    "src.main.check_registry_preflight_identity",
                     return_value=SimpleNamespace(
                         passed=True,
                         severity="info",
@@ -839,8 +839,7 @@ class ReleaseSimulationTests(unittest.TestCase):
                         "--release-scope",
                         "production",
                         "--enhanced",
-                        "--release-date",
-                        "2026-09-07",
+                        "--next-issue-date",
                         "--as-of",
                         "2026-09-06T18:00:00+10:00",
                     ],
@@ -858,6 +857,56 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertEqual(6, kwargs["issue_time"].hour)
         self.assertEqual(6, kwargs["delivery_time"].hour)
         self.assertEqual(0, kwargs["delivery_time"].minute)
+        self.assertEqual("2026-09-07", kwargs["issue_time"].date().isoformat())
+
+    def test_production_delivery_disabled_before_registry_claim(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"SIGNAL_PRODUCTION_DELIVERY_ENABLED": "0"},
+            clear=False,
+        ), patch("src.main.ReleaseRegistry.from_env") as registry_mock, patch(
+            "src.main.deliver_registry_release"
+        ) as deliver_mock, patch("src.main.send_alert") as alert_mock, patch(
+            "sys.argv",
+            [
+                "signal",
+                "--deliver-release",
+                "--release-scope",
+                "production",
+                "--force-type",
+                "daily",
+            ],
+        ):
+            result = main()
+        self.assertEqual(1, result)
+        registry_mock.assert_not_called()
+        deliver_mock.assert_not_called()
+        alert_mock.assert_called_once()
+
+    def test_production_preflight_disabled_before_subscriber_fetch(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"SIGNAL_PRODUCTION_PREFLIGHT_ENABLED": "0"},
+            clear=False,
+        ), patch("src.main.fetch_subscribers") as fetch_mock, patch(
+            "src.main.send_alert"
+        ) as alert_mock, patch(
+            "sys.argv",
+            [
+                "signal",
+                "--prepare-release",
+                "--release-scope",
+                "production",
+                "--enhanced",
+                "--next-issue-date",
+                "--force-type",
+                "daily",
+            ],
+        ):
+            result = main()
+        self.assertEqual(1, result)
+        fetch_mock.assert_not_called()
+        alert_mock.assert_called_once()
 
     def test_registry_required_blocks_legacy_direct_send_before_audience_fetch(self) -> None:
         with patch.dict(

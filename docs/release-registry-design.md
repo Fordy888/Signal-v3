@@ -146,17 +146,19 @@ Rollback means setting both registry commands to dry-run and leaving subscriber 
 
 | Component | Command | Subscriber effect |
 |---|---|---|
-| Preflight cron | `python -m src.main --prepare-release --release-scope production --release-date YYYY-MM-DD --enhanced --alive-moment --force-type daily` | Never sends subscriber email |
-| Delivery cron | `python -m src.main --deliver-release --release-scope production --release-date YYYY-MM-DD --force-type daily` | Sends only a date-matched `SCHEDULED` registry artefact |
+| Preflight cron | `python -m src.main --prepare-release --release-scope production --next-issue-date --enhanced --alive-moment --force-type daily` | Targets the next Brisbane date without shell interpolation; never sends subscriber email; requires `SIGNAL_PRODUCTION_PREFLIGHT_ENABLED=1` |
+| Delivery cron | `python -m src.main --deliver-release --release-scope production --force-type daily` | Claims only the current Brisbane date’s `SCHEDULED` registry artefact; requires `SIGNAL_PRODUCTION_DELIVERY_ENABLED=1` |
 | Existing direct path | `python -m src.main --dry-run ...` | Contained during migration; not a production fallback |
 
-Both cron jobs connect to Postgres through the same-region internal URL. Render cron jobs can initiate private-network connections to Render Postgres but cannot receive inbound private-network traffic.[5]
+Both production cron definitions are source-controlled on an annual disabled schedule with their activation switches set to `0`. They cannot be enabled merely by deploying code. When Fordy separately approves subscriber reactivation, the prior-evening preflight schedule and 06:00 AEST delivery schedule must be activated deliberately, on the same exact deployed commit, after their service identities and managed database links are verified. Both jobs connect to Postgres through the same-region internal URL. Render cron jobs can initiate private-network connections to Render Postgres but cannot receive inbound private-network traffic.[5]
 
 ## Acceptance boundary
 
-No subscriber reactivation occurs until the registry passes source-scarcity, missing-image, checksum-corruption, audience-drift, duplicate-trigger, crash-after-provider-acceptance, late-run and database-unavailable simulations. It must then produce a scheduled one-recipient canary whose registry state, Resend record, receipt and actual Gmail copy all match.
+No subscriber reactivation occurs until the registry passes source-scarcity, missing-image, checksum-corruption, audience-drift, duplicate-trigger, crash-after-provider-acceptance, late-run and database-unavailable simulations. The one-recipient canary is the proof-scope registry release for the same immutable base HTML; production scope is never partially claimed because doing so would leave the remaining frozen audience resumable.
 
-The local acceptance gate currently comprises **168 passing tests across 15 independently bounded modules** in both the integration checkout and a fresh detached worktree. That gate includes a real PostgreSQL rehearsal of the migration, guarded transitions, locked release and recipient immutability, duplicate claims and append-only events. The migration applied once and then returned an idempotent no-op with the same source checksum. These are build-quality facts only; they are not production-schema, email-delivery or scheduled-time evidence.
+Edition 0048 proof release `16d582f1-3009-4e09-9197-5ca40d1bf343` completed at 1/1 with exact HTML checksum `e77af51c5fe7ef1ab1fdd0d2cd571e0b261a2bf6914bc3e8d333e1dd57d2045f`. Resend independently reported the provider record as `opened`; Gmail independently contained the full approved reader copy and the governed Gary steel-plant image before the final Dad Joke. Fordy approved that exact canary. This establishes proof-scope `CANARY VERIFIED`; it does not establish `LIVE` or `SUBSCRIBER VERIFIED`.
+
+The audited registry baseline comprises **175 passing tests across 16 independently bounded modules** in both the integration checkout and a fresh detached worktree, including four real PostgreSQL tests. The production schema is applied and the migration is checksum-tracked and idempotent. These are build and proof-canary facts only; scheduled-time subscriber evidence still requires a new future edition and a separate activation decision.
 
 ## References
 
