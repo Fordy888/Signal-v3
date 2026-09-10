@@ -119,8 +119,14 @@ After every run, paul.ford@gmail.com receives a receipt. Format:
 
 - **Edition count:** 0013 delivered (0014 next)
 - **Active subscribers:** Fetched live from API (do not hardcode — count changes as subscribers join/leave)
-- **Active sources:** 95 RSS feeds + HackerNews
-- **Disabled sources:** 13 (broken government feeds)
+- **Active sources:** 103 RSS feeds + HackerNews (as at 11 Sep 2026)
+- **Disabled sources:** 33 — 8 disabled 11 Sep 2026 after failing 16/16 consecutive
+  runs (403s, empty feeds, and one persistent 429). See `config/sources.yaml` notes.
+- **On probation:** 3
+- **Known gap:** the consecutive-failure tracker writes to `data/source_health.json`,
+  which does not survive Render's ephemeral cron filesystem — so `degraded_sources`
+  resets every run and can never reach its 3-strike threshold. Source health has to
+  be judged from Render logs across runs until that state is made durable.
 - **Known gaps:** Section 4 (Threat Detection) thin, Sections 3 & 5 have no dedicated sources
 - **Recent fixes:** Rate limiting, TypeError crash, source governance, QA gate, date/day correction, edition counter injection, Executive Actions section
 

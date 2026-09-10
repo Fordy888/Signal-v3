@@ -6,6 +6,14 @@
 #   Fixed URLs: APRA (/rss.xml), Parliament Joint Inquiries (/house/rss/joint_inquiries).
 #   Added: Tech Council of Australia, Government News, The Conversation AU, Parliament House Inquiries.
 #   Applied Source Quality Scoring Criteria (see docs/source-scoring-criteria.md).
+# Updated 11 Sep 2026 — Disabled 8 sources failing every run.
+#   Evidence: 15 consecutive daily dtl-signal runs (4-11 Sep) plus the Edition 0052
+#   proof — 16/16 failures each, no successes. http_403 x5 (RBA Media Releases, RBA
+#   Speeches, Demand Gen Report, B&T, The Robot Report), empty_feed x2 (CB Insights
+#   Research, Parliament House Inquiries), http_429 x1 (VentureBeat).
+#   Left active: The Information and Parliament Joint Committee Inquiries, which
+#   failed intermittently and have since recovered on their own.
+#   Counts after this change: 103 active, 33 disabled, 3 probation.
 #
 # Metadata schema:
 #   category: Primary content category (maps to Signal sections)
@@ -372,7 +380,8 @@ rss_feeds:
     region: global
     topics: [market_research, funding_trends, industry_maps, emerging_tech]
     signal_type: research
-    status: active
+    status: disabled
+    notes: "DISABLED 11 Sep 2026 — Feed returns valid XML with no entries (empty_feed). Failed 16/16 consecutive runs 4-11 Sep 2026 (15 daily dtl-signal runs + Edition 0052 proof). Ongoing, not transient. Re-enable only after the feed is verified returning 200 OK with entries."
 
   - name: Fred Wilson (AVC)
     url: https://avc.com/feed/
@@ -413,8 +422,8 @@ rss_feeds:
     region: us
     topics: [enterprise_ai, funding, product_launches, startups, market_trends]
     signal_type: aggregator
-    status: active
-    notes: Enterprise tech and AI funding coverage.
+    status: disabled
+    notes: "DISABLED 11 Sep 2026 — Rate limited (429) on every request from Render Singapore (http_429). Failed 16/16 consecutive runs 4-11 Sep 2026 (15 daily dtl-signal runs + Edition 0052 proof). Ongoing, not transient. Re-enable only after the feed is verified returning 200 OK with entries."
 
   # ═══════════════════════════════════════════════════
   # OPERATORS & BUILDERS (Section 2: Opportunity Radar)
@@ -711,8 +720,8 @@ rss_feeds:
     region: australia
     topics: [monetary_policy, digital_currency, payments, economic_outlook]
     signal_type: primary_source
-    status: active
-    notes: Monetary policy, CBDC, payments system regulation.
+    status: disabled
+    notes: "DISABLED 11 Sep 2026 — Forbidden (403) — blocks the pipeline's requests (http_403). Failed 16/16 consecutive runs 4-11 Sep 2026 (15 daily dtl-signal runs + Edition 0052 proof). Ongoing, not transient. Re-enable only after the feed is verified returning 200 OK with entries."
 
   - name: RBA — Speeches
     url: https://www.rba.gov.au/rss/rss-cb-speeches.xml
@@ -720,8 +729,8 @@ rss_feeds:
     region: australia
     topics: [fintech, digital_payments, economic_outlook, financial_stability]
     signal_type: primary_source
-    status: active
-    notes: Forward guidance on fintech, digital payments, economic outlook.
+    status: disabled
+    notes: "DISABLED 11 Sep 2026 — Forbidden (403) — blocks the pipeline's requests (http_403). Failed 16/16 consecutive runs 4-11 Sep 2026 (15 daily dtl-signal runs + Edition 0052 proof). Ongoing, not transient. Re-enable only after the feed is verified returning 200 OK with entries."
 
   - name: APRA — Prudential Regulation Authority
     url: https://www.apra.gov.au/rss.xml
@@ -839,8 +848,8 @@ rss_feeds:
     region: australia
     topics: [house_committees, legislation, regulation, business_regulation]
     signal_type: primary_source
-    status: probation
-    notes: "Added 9 Jul 2026. Score: 26/30 Gold. House of Representatives committee inquiries. Complements Senate + Joint inquiry feeds."
+    status: disabled
+    notes: "DISABLED 11 Sep 2026 — Feed returns valid XML with no entries (empty_feed). Failed 16/16 consecutive runs 4-11 Sep 2026 (15 daily dtl-signal runs + Edition 0052 proof). Ongoing, not transient; probation since 9 Jul 2026 resolved against it. Originally scored 26/30 Gold — re-enable only after the feed is verified returning 200 OK with entries. Coverage continues via Parliament — Senate New Inquiries, Senate Reports Tabled and Joint Committee Inquiries."
 
   # ═══════════════════════════════════════════════════
   # DEEP ANALYSIS & AI POLICY
@@ -1063,8 +1072,8 @@ rss_feeds:
     region: us
     topics: [demand_gen, abm, intent_data, predictive_scoring, b2b]
     signal_type: analysis
-    status: active
-    notes: "Added 30 Jul 2026 proof. Score: 24/30 Silver. Pillar 6."
+    status: disabled
+    notes: "DISABLED 11 Sep 2026 — Forbidden (403) — blocks the pipeline's requests (http_403). Failed 16/16 consecutive runs 4-11 Sep 2026 (15 daily dtl-signal runs + Edition 0052 proof). Ongoing, not transient. Re-enable only after the feed is verified returning 200 OK with entries."
 
   - name: CX Today
     url: https://www.cxtoday.com/feed/
@@ -1081,8 +1090,8 @@ rss_feeds:
     region: australia
     topics: [advertising, media, marketing, ai_advertising]
     signal_type: aggregator
-    status: active
-    notes: "Added 30 Jul 2026 proof. Score: 24/30 Silver. Pillar 6, AU."
+    status: disabled
+    notes: "DISABLED 11 Sep 2026 — Forbidden (403) — blocks the pipeline's requests (http_403). Failed 16/16 consecutive runs 4-11 Sep 2026 (15 daily dtl-signal runs + Edition 0052 proof). Ongoing, not transient. Re-enable only after the feed is verified returning 200 OK with entries."
 
   - name: Marketing Mag
     url: https://www.marketingmag.com.au/feed/
@@ -1249,8 +1258,8 @@ rss_feeds:
     region: global
     topics: [robotics, physical_ai, automation, operations]
     signal_type: analysis
-    status: active
-    notes: "Added 30 Jul 2026 proof. Score: 27/30 Gold. Pillar 5. Physical AI in operations."
+    status: disabled
+    notes: "DISABLED 11 Sep 2026 — Forbidden (403) — blocks the pipeline's requests (http_403). Failed 16/16 consecutive runs 4-11 Sep 2026 (15 daily dtl-signal runs + Edition 0052 proof). Ongoing, not transient. Re-enable only after the feed is verified returning 200 OK with entries."
 
   # --- Pillars 1-2: Leadership & Strategy ---
 
