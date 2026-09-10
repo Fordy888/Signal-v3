@@ -42,37 +42,75 @@ Read this alongside `SIGNAL_CONTEXT.md` before starting any Signal work.
 
 ## 2. Render
 
-| Field | Value |
-|-------|-------|
-| Service name | `dtl-signal` |
-| Service type | Cron job |
-| Schedule | `0 20 * * *` UTC (6:00 AM AEST) |
-| Runtime | Python 3.11.9 |
-| Region | Singapore |
-| Plan | Standard |
-| Deploy method | Auto-deploy from GitHub `master` |
+Render hosts Signal as **three cron services**, all defined in `render.yaml` and
+auto-deployed from GitHub `master`. All three share: Python 3.11.9, Singapore
+region, Standard plan, `maxShutdownDelaySeconds: 30`, and
+`TZ=Australia/Brisbane`.
+
+| Service | Schedule (UTC) | Start command | Purpose |
+|---------|----------------|---------------|---------|
+| `dtl-signal` | `0 20 * * *` (6:00 AM AEST daily) | `python -m src.main --send` | **Production.** Daily edition to all subscribers. |
+| `dtl-signal-subscriber-update` | `0 5 14 7 *` (3:00 PM AEST, 14 July) | `python send_subscriber_update.py --send` | One-off subscriber announcement. **Spent — see rules below.** |
+| `dtl-signal-proof` | `0 0 1 1 *` (parked) | `python -m src.main --proof` | Manual trigger only. Sends to Paul alone. |
+
+A schedule of `0 0 1 1 *` is the parked/disabled convention: it means "1 January",
+so the service effectively only ever runs when triggered manually from the Render
+dashboard.
 
 **Permissions available:** Environment variable management, manual deploys, log access, service restart.
 
+**Note on "Connected":** this refers to the *hosting* relationship — GitHub
+`master` pushes auto-deploy to Render. There is **no Render MCP connector
+installed on the Claude side**, so an AI session cannot read Render logs, list
+deploys, or check service status on its own. Log inspection is manual via the
+Render dashboard. The official Render connector exists in the Claude connector
+directory and can be added under claude.ai → Settings → Connectors if that
+changes.
+
 **Environment variables on Render:**
 
-| Variable | Purpose | Sensitive |
-|----------|---------|-----------|
-| `ANTHROPIC_API_KEY` | Claude API access for scoring/synthesis | Yes |
-| `RESEND_API_KEY` | Email delivery authentication | Yes |
-| `RESEND_FROM_EMAIL` | Sender address (`signal@dtlc.ai`) | No |
-| `RECIPIENT_EMAIL` | Legacy fallback (not used when API active) | Yes |
-| `BETTERSTACK_HEARTBEAT_URL` | Monitoring ping endpoint | Yes |
-| `WEBSITE_BASE_URL` | DTLC.ai website for subscriber API | No |
-| `SIGNAL_PIPELINE_API_KEY` | Authentication to subscriber API | Yes |
-| `MODEL_SCORING` | Scoring model identifier | No |
-| `MODEL_SYNTHESIS` | Synthesis model identifier | No |
-| `TZ` | Timezone (`Australia/Brisbane`) | No |
+Sensitive values use `sync: false` (set in the Render dashboard, never committed).
+Non-sensitive values are committed in `render.yaml`.
+
+| Variable | Purpose | Sensitive | Services |
+|----------|---------|-----------|----------|
+| `ANTHROPIC_API_KEY` | Claude API access for scoring/synthesis | Yes | signal, proof |
+| `RESEND_API_KEY` | Email delivery authentication | Yes | all three |
+| `RESEND_FROM_EMAIL` | Sender address (`signal@signal.dtlc.ai`; `paul@signal.dtlc.ai` on subscriber-update) | No | all three |
+| `PROOF_RECIPIENT_EMAIL` | Proof/alert destination (`paul.ford@gmail.com`) | Yes | signal, proof |
+| `BETTERSTACK_HEARTBEAT_URL` | Monitoring ping endpoint | Yes | signal only |
+| `WEBSITE_BASE_URL` | DTLC.ai website for subscriber API | No | all three |
+| `SIGNAL_PIPELINE_API_KEY` | Authentication to subscriber API | Yes | all three |
+| `MODEL_SCORING` | Scoring model identifier | No | signal, proof |
+| `MODEL_SYNTHESIS` | Synthesis model identifier | No | signal, proof |
+| `MODEL_FOUNDERS_NOTE` | Founder's note model identifier | No | signal, proof |
+| `ENABLE_GAUGE` | Signal Strength Gauge mode (`off` in prod, `proof` in proof) | No | signal, proof |
+| `GAUGE_BASE_URL` | Gauge click-through endpoint | No | signal, proof |
+| `TZ` | Timezone (`Australia/Brisbane`) | No | all three |
+| `PYTHON_VERSION` | Runtime pin (`3.11.9`) | No | all three |
+
+**Read by the code but not set in `render.yaml`** (defaults apply — set only if needed):
+
+| Variable | Purpose |
+|----------|---------|
+| `RECIPIENT_EMAIL` | Legacy fallback recipient. `src/main.py` falls back to it when `PROOF_RECIPIENT_EMAIL` is unset; `src/delivery.py` uses it when no explicit recipient is passed. Not used when the subscriber API is active. |
+| `GAUGE_MODE` | Gauge click behaviour (`static` default, or `interactive`) |
+| `GAUGE_EDITIONS` | Comma-separated edition list when `ENABLE_GAUGE=selected` |
+
+**Why `BETTERSTACK_HEARTBEAT_URL` is on one service only:** the heartbeat must
+fire only on a successful production delivery. Proof runs and subscriber updates
+must never ping it, or a missed real edition would go unnoticed. This matches the
+BetterStack rules in section 6 — do not add it to the other two services.
 
 **Rules:**
 - Do not change the cron schedule without Paul's approval.
 - Do not change the region without testing delivery latency.
 - Model selection changes require approval.
+- `dtl-signal-subscriber-update` is a **spent one-off**. It fired on Tue 14 Jul
+  2026 but its schedule was never parked, so it will re-fire on 14 Jul 2027 and
+  re-send the announcement to the live subscriber list. It needs its schedule set
+  to `0 0 1 1 *` or the service removed — **requires Paul's approval**, as it
+  touches subscriber delivery.
 
 ---
 
@@ -108,8 +146,9 @@ Read this alongside `SIGNAL_CONTEXT.md` before starting any Signal work.
 
 | Field | Value |
 |-------|-------|
-| Scoring model | `claude-haiku-4-5-20251001` |
-| Synthesis model | `claude-sonnet-4-6` |
+| Scoring model | `claude-haiku-4-5-20251001` (`MODEL_SCORING`) |
+| Synthesis model | `claude-sonnet-4-6` (`MODEL_SYNTHESIS`) |
+| Founder's note model | `claude-sonnet-4-6` (`MODEL_FOUNDERS_NOTE`) |
 | Role | AI scoring of source items + edition generation |
 | Authentication | API key on Render |
 
