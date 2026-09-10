@@ -4,8 +4,11 @@ services:
     name: dtl-signal
     runtime: python
     schedule: "0 20 * * *"
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m src.main --send
+    buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
+    # SUBSCRIBER DELIVERY IS OFF. The live service runs --dry-run; the blueprint
+    # said --send, so syncing it would silently re-enable broadcasting to every
+    # subscriber. Do not change this back without Paul's explicit approval.
+    startCommand: python -m src.main --dry-run
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -44,7 +47,9 @@ services:
   - type: cron
     name: dtl-signal-subscriber-update
     runtime: python
-    schedule: "0 5 14 7 *"
+    # Spent one-off: it fired on 14 Jul 2026 and is suspended on Render.
+    # Parked here too so a blueprint sync cannot re-arm it for 14 Jul 2027.
+    schedule: "0 0 1 1 *"
     buildCommand: pip install -r requirements.txt
     startCommand: python send_subscriber_update.py --send
     envVars:
@@ -68,8 +73,11 @@ services:
   - type: cron
     name: dtl-signal-proof
     runtime: python
-    schedule: "0 0 1 1 *"
-    buildCommand: pip install -r requirements.txt
+    schedule: "0 0 1 1 *"        # parked — manual trigger only
+    # No build-time patching. The edition counter, gauge label fix and share
+    # block used to be base64 payloads decoded into the source tree during the
+    # build; they are ordinary repo files now.
+    buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
     startCommand: python -m src.main --proof
     envVars:
       - key: ANTHROPIC_API_KEY
