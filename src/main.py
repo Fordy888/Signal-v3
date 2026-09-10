@@ -13,6 +13,7 @@ import os
 import sys
 import time
 from datetime import datetime
+from hashlib import sha256
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -21,11 +22,27 @@ from dotenv import load_dotenv
 
 from .sources import fetch_all, get_source_counts
 from .scoring import score_items
-from .synthesis import synthesise
 from .delivery import send_brief
 from .attribution import report_send_results, resolve_subscriber_ids
-from .founders_note import generate_founders_note, inject_founders_note
 from .signal_gauge import is_gauge_enabled, inject_gauge_into_html, personalise_gauge_for_subscriber
+
+# ─── 0048 editorial layer ───────────────────────────────────────────────────
+# CREATE goes through enhanced_renderer, not the flat synthesis renderer. The
+# Founder's Note is part of the judgement plan and is drawn by the renderer, so
+# there is no separate note-injection stage any more.
+from .judgement_plan import generate_judgement_plan, scored_items_to_evidence, drain_shortfalls
+from .signal_memory import load_signal_memory, memory_context
+from .enhanced_renderer import render_enhanced_email
+from .human_signal import load_joke_history, load_jokes, record_joke, select_joke
+from .alive_moment import (
+    load_alive_history,
+    load_alive_moment,
+    resolve_alive_moment_path,
+    validate_alive_moment,
+)
+from .share_block import inject_share_block, personalise_share_for_subscriber
+from .section_policy import EditionHalt, apply_section_policy, format_omissions
+from . import freeze as freeze_store
 from .history import load_history, record_edition
 from .edition_counter import get_next_edition, increment_edition
 from .subscribers import fetch_subscribers
@@ -147,6 +164,19 @@ def verify_recipient_integrity(recipients: list[dict]) -> bool:
 
     log.info("FAIL-SAFE: Recipient integrity verified — %d unique valid emails", len(recipients))
     return True
+
+
+def annotate_receipt(receipt, omissions: list, frozen_sha: str = "") -> None:
+    """Record graceful omissions and the frozen payload hash on the receipt.
+
+    Omissions use an [OMITTED] prefix so they appear in the receipt detail
+    without being read as warnings or critical failures — an omitted optional
+    section is a normal outcome, not a fault.
+    """
+    for omission in omissions:
+        receipt.qa_issues.append(f"[OMITTED] {omission}")
+    if frozen_sha:
+        receipt.qa_issues.append(f"[FROZEN] Payload SHA-256 {frozen_sha}")
 
 
 def main() -> int:
@@ -353,30 +383,97 @@ def main() -> int:
     category_coverage = build_category_coverage(scored)
     log.info("Category coverage: %s", {k: v for k, v in category_coverage.items() if v > 0})
 
-    # 3. Synthesise brief (one edition for all subscribers — same content)
-    log.info("Stage 3: Synthesising brief...")
-    context_path = str(root / "config" / "context.yaml")
-    if not Path(context_path).exists():
-        log.error("Context file not found: %s", context_path)
-        return 1
+    # 3. CREATE — structured judgement plan, then the 0048 enhanced render.
+    log.info("Stage 3: Building structured judgement plan...")
+    memory_path = root / os.environ.get("SIGNAL_MEMORY_PATH", "data/signal_memory.json")
+    joke_history_path = root / os.environ.get("SIGNAL_JOKE_HISTORY_PATH", "data/joke_history.json")
+    alive_history_path = root / os.environ.get("SIGNAL_ALIVE_HISTORY_PATH", "data/alive_moment_history.json")
 
-    # Select prompt based on edition type
-    if edition_type == "weekly_wrap":
-        synthesis_prompt_path = str(root / "prompts" / "weekly_wrap_prompt.md")
-    else:
-        synthesis_prompt_path = str(root / "prompts" / "synthesis_prompt.md")
+    omissions: list = []
+    selected_joke = None
+    alive_moment = None
 
     try:
-        html = synthesise(
-            scored_items=scored,
-            context_path=context_path,
-            synthesis_prompt_path=synthesis_prompt_path,
+        planner_evidence = scored_items_to_evidence(scored)
+        enhanced_plan = generate_judgement_plan(
+            evidence_items=planner_evidence,
+            prior_memory=memory_context(load_signal_memory(memory_path)),
+            prompt_path=root / "prompts" / "judgement_planner_prompt.md",
+        )
+        for shortfall in drain_shortfalls():
+            log.info("Planner content-mix shortfall: %s", shortfall)
+
+        # Dad Joke — optional. A library problem must not cost us the edition.
+        try:
+            selected_joke = select_joke(
+                load_jokes(root / "data" / "dad_jokes.json"),
+                edition_number=edition_number,
+                recent_ids=load_joke_history(joke_history_path),
+            )
+        except Exception as exc:
+            log.warning("Human Signal unavailable (non-fatal) — %s", exc)
+
+        # Remember the World — optional. Previously this raised AliveMomentError
+        # and failed the whole edition when no record existed for the day.
+        try:
+            alive_path = resolve_alive_moment_path(
+                root,
+                os.environ.get("SIGNAL_ALIVE_MOMENT_PATH", "data/alive_moments/{date}.json"),
+                edition_id=f"{edition_number:04d}",
+                edition_date=now_brisbane.strftime("%Y-%m-%d"),
+            )
+            if alive_path.exists():
+                alive_moment = validate_alive_moment(
+                    load_alive_moment(alive_path),
+                    load_alive_history(alive_history_path),
+                    expected_edition_id=f"{edition_number:04d}",
+                    expected_date=now_brisbane.strftime("%Y-%m-%d"),
+                )
+                log.info("REMEMBER THE WORLD validated: %s", alive_moment["id"])
+            else:
+                log.info("No REMEMBER THE WORLD record at %s", alive_path)
+        except Exception as exc:
+            alive_moment = None
+            log.warning("REMEMBER THE WORLD unavailable (non-fatal) — %s", exc)
+
+        # Graceful omission: mandatory sections halt, optional ones drop out.
+        enhanced_plan, alive_moment, selected_joke, omissions = apply_section_policy(
+            enhanced_plan, alive_moment=alive_moment, joke=selected_joke
+        )
+        log.info(format_omissions(omissions))
+
+        html = render_enhanced_email(
+            plan=enhanced_plan,
+            sources=planner_evidence,
+            joke=selected_joke,
             edition_number=edition_number,
-            edition_type=edition_type,
+            generated_at=now_brisbane,
+            alive_moment=alive_moment,
         )
         log.info("Stage 3 complete: %d chars of HTML produced", len(html))
+    except EditionHalt as e:
+        log.error("Edition halted — %s", e)
+        receipt = create_receipt(
+            edition_number=edition_number,
+            mode=mode,
+            sources_active=source_counts["active"],
+            sources_disabled=source_counts["disabled"],
+            sources_failed=len(failed_sources),
+            items_fetched=len(raw_items),
+            items_scored=len(scored),
+            pipeline_result="held",
+            duration_seconds=time.time() - start_time,
+            code_version=code_version,
+            category_coverage=category_coverage,
+            fetch_results=fetch_results,
+            edition_type=edition_type,
+        )
+        receipt.qa_issues = [f"[CRITICAL] Mandatory section: {e}"]
+        save_receipt(root, receipt)
+        send_receipt_email(receipt)
+        return 1
     except Exception as e:
-        log.error("Synthesis failed: %s", e)
+        log.error("Edition creation failed: %s", e)
         receipt = create_receipt(
             edition_number=edition_number,
             mode=mode,
@@ -392,23 +489,11 @@ def main() -> int:
             fetch_results=fetch_results,
             edition_type=edition_type,
         )
-        receipt.qa_issues = [f"[CRITICAL] Synthesis: Generation failed with error: {e}"]
+        receipt.qa_issues = [f"[CRITICAL] Create: Generation failed with error: {e}"]
         save_receipt(root, receipt)
         send_receipt_email(receipt)
         return 1
 
-    # ─── Stage 3b: Founder's Note ──────────────────────────────────────
-    log.info("Stage 3b: Generating Founder's Note...")
-    try:
-        founders_note = generate_founders_note(scored, edition_number, root)
-        if founders_note:
-            html = inject_founders_note(html, founders_note)
-            log.info("Stage 3b complete: Founder's Note injected ('%s', %d words)",
-                     founders_note.get("headline", ""), founders_note.get("word_count", 0))
-        else:
-            log.warning("Stage 3b: Founder's Note generation returned empty — skipping")
-    except Exception as e:
-        log.warning("Stage 3b: Founder's Note failed (non-fatal) — %s", e)
     # ─── Stage 3c: Signal Strength Gauge ───────────────────────────────
     if is_gauge_enabled(mode, edition_number):
         log.info("Stage 3c: Injecting Signal Strength Gauge...")
@@ -418,13 +503,24 @@ def main() -> int:
         except Exception as e:
             log.warning("Stage 3c: Gauge injection failed (non-fatal) — %s", e)
 
+    # ─── Stage 3d: Share & subscribe block ─────────────────────────────
+    # Previously injected by a base64 payload in the Render build command.
+    try:
+        html = inject_share_block(html, edition_number)
+        log.info("Stage 3d complete: Share block injected for edition %04d", edition_number)
+    except Exception as e:
+        log.warning("Stage 3d: Share block injection failed (non-fatal) — %s", e)
+
     # Quality gate: block delivery if key synthesis section is missing
     if edition_type == "weekly_wrap":
         has_key_section = ("THE PATTERN" in html and "EXECUTIVE TAKEAWAY" in html)
         gate_label = "Weekly Wrap key sections (Traffic Light + EXECUTIVE TAKEAWAY)"
     else:
-        has_key_section = ("EXECUTIVE READ" in html and "What to Watch" in html)
-        gate_label = "Executive Read section"
+        has_key_section = (
+            "WHY IT MATTERS" in html          # ai-adoption / focus layouts
+            or "EXECUTIVE READ" in html       # legacy flat layout
+        )
+        gate_label = "Executive Read section (WHY IT MATTERS / EXECUTIVE READ)"
 
     if not has_key_section:
         log.error("BLOCKED: %s is missing or incomplete.", gate_label)
@@ -490,6 +586,30 @@ def main() -> int:
         save_receipt(root, receipt)
         send_receipt_email(receipt)
         return 1
+
+    # ─── FREEZE ────────────────────────────────────────────────────────
+    # The edition has been rendered exactly once and has passed QA. Freeze the
+    # exact payload bytes now, before any delivery path can touch them. Proof
+    # quotes this hash; approval binds to it; SEND replays these same bytes.
+    # Nothing between here and delivery re-renders or mutates the edition.
+    subject_line = f"DTL Signal — Edition {edition_number:04d}"
+    try:
+        freeze_conn = freeze_store.connect(root)
+        frozen = freeze_store.freeze_edition(
+            freeze_conn, edition_number, subject_line, html
+        )
+        log.info(
+            "Edition %04d frozen: sha256=%s", edition_number, frozen.sha256
+        )
+        print(f"\nFROZEN PAYLOAD SHA-256: {frozen.sha256}")
+    except freeze_store.FreezeError as e:
+        log.error("Freeze failed — %s", e)
+        send_alert("Freeze failed", str(e))
+        return 1
+
+    # Every delivery path from here reads the frozen bytes, never `html`.
+    html = frozen.html
+
     # Save HTML if requested
     if args.save_html:
         save_path = Path(args.save_html)
@@ -535,6 +655,7 @@ def main() -> int:
             fetch_results=fetch_results,
             edition_type=edition_type,
         )
+        annotate_receipt(receipt, omissions, frozen.sha256)
         save_receipt(root, receipt)
         return 0
 
@@ -566,8 +687,24 @@ def main() -> int:
         elif args.proof:
             subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
 
-        # Personalise gauge links for this subscriber
+        # Exactly-once: claim the send-ledger row BEFORE sending, so a crash
+        # mid-send can never become a resend. The claim is unique per
+        # (edition, recipient).
+        try:
+            freeze_store.claim_send(freeze_conn, edition_number, email, frozen.sha256)
+        except freeze_store.AlreadySent:
+            log.warning("  ↷ SKIPPED %s — edition %04d already sent to them",
+                        email, edition_number)
+            continue
+
+        # Personalise the frozen bytes for this subscriber. This substitutes a
+        # placeholder for the subscriber's opaque hash — it is not a re-render,
+        # and the frozen payload itself is never modified.
         personalised_html = personalise_gauge_for_subscriber(html, email)
+        personalised_html = personalise_share_for_subscriber(
+            personalised_html,
+            sha256(email.strip().lower().encode()).hexdigest()[:12],
+        )
         result = send_brief(
             html_body=personalised_html,
             recipient_email=email,
@@ -583,6 +720,8 @@ def main() -> int:
         else:
             fail_count += 1
             failed_recipient_emails.append(email)
+            # Delivery failed, so release the claim and allow a retry.
+            freeze_store.release_send(freeze_conn, edition_number, email)
             log.error("  ✗ FAILED to deliver to %s", email)
 
     # ─── Post-delivery bookkeeping (crash-safe) ─────────────────────────
@@ -603,6 +742,12 @@ def main() -> int:
             record_edition(root, delivered_urls, edition_id=edition_id)
             increment_edition(root)
             log.info("Edition counter incremented. Next edition will be %04d", edition_number + 1)
+
+            # Record the joke so rotation does not repeat it. Only after a real
+            # delivery — a proof or dry run must not consume a joke.
+            if selected_joke:
+                record_joke(joke_history_path, selected_joke["id"])
+                log.info("Human Signal %s recorded in rotation history", selected_joke["id"])
     except Exception as e:
         bookkeeping_error = str(e)
         log.error("Post-delivery bookkeeping failed (non-fatal): %s", e)
@@ -675,6 +820,8 @@ def main() -> int:
             fetch_results=fetch_results,
             edition_type=edition_type,
         )
+
+        annotate_receipt(receipt, omissions, frozen.sha256)
 
         if bookkeeping_error:
             receipt.qa_issues.append(f"[WARNING] Post-delivery bookkeeping error: {bookkeeping_error}")
