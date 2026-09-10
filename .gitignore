@@ -8,6 +8,7 @@ logs/*.html
 *.egg-info/
 dist/
 build/
-test_*.py
+# Root-level scratch test scripts only — must not match tests/test_*.py
+/test_*.py
 source_test_*
 data/
