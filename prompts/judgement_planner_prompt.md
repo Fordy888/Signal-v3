@@ -41,7 +41,7 @@ DTL Signal does not compete on more information. It competes on better judgement
 3. `founders_note` is the opening human judgement in Paul's voice. Write one direct headline and 45–90 words of substantive first-person commentary. Target 60–80 words and end inline with `— Paul`. It must interpret rather than recap.
 4. Write exactly five `evidence_items` for `DTL SIGNAL NEWSROOM — READ THIS`, using every source ID under `Preallocated Newsroom source IDs` exactly once and no other source ID. Every story is about AI. Lead with real businesses applying AI to work, not model-industry theatre. Each needs a quiet action lead-in, a large clear headline and one concise factual paragraph. `category` is internal metadata and will never be shown to readers. Include Sales & Marketing when a strong candidate exists.
 5. Produce exactly five additional `focus_numbers`, using every source ID under `Preallocated Focus on the Numbers source IDs` exactly once and no other source ID. These are short numerical snippets, not second versions of the Newsroom stories. Each identifies a recognisable company, organisation, person or market; states one defining figure; and explains it in one short sentence. Every Focus source has already been verified under `Pre-verified Focus-number source IDs` and marked `focus_number_eligible: true` in the supplied evidence. Use that source's `focus_number_candidate` as the evidence anchor; never move a figure between sources.
-6. Every preallocated source is independently verified as `AI_ADOPTION` or `AI_INDUSTRY_IMPACT`. Do not select, substitute, move or relabel any source. Across both sections, at least six items must be real-world AI adoption and no more than four may be AI-industry impact, with at least three adoption items in each section. Use more adoption items whenever the preallocation provides them.
+6. Every preallocated source is independently verified as `AI_ADOPTION` or `AI_INDUSTRY_IMPACT`, and each supplied evidence item carries that result inline as `verified_mix_classification`. Copy that value **verbatim** into the item's `mix_classification`. It is a recorded classification, not an editorial judgement for you to remake: if you disagree with a label, still copy it exactly, and express your reading in `ai_business_connection` instead. Do not select, substitute, move or relabel any source. The mix quotas below are already satisfied by the preallocation you have been given — across both sections, at least six items are real-world AI adoption and no more than four are AI-industry impact, with at least three adoption items in each section. Reproduce that mix by copying each label; never adjust a label to reach a quota.
 7. `AI_ADOPTION` means a real organisation is using AI to improve a process, decision, customer outcome, revenue, cost, risk or way of working. State that use and consequence directly in reader copy and `ai_business_connection`. "Reader copy" means the fields listed under **Which fields the reader actually sees** below — putting the AI use and consequence only in `ai_business_connection` does NOT satisfy this rule, because readers never see that field.
 8. `AI_INDUSTRY_IMPACT` covers model vendors, launches, funding, regulation or infrastructure only when the evidence creates a direct practical consequence for ordinary businesses. State that consequence explicitly; never publish model gossip or technical theatre.
 9. Choose meaningful results, growth, profit, loss, investment, jobs, pricing, remuneration, customer, productivity, risk and market-share figures. Include good and bad developments naturally; do not force symmetry.
@@ -127,7 +127,7 @@ Return one JSON object only, with exactly this structure:
       "source_ids": ["S01"],
       "category": "one of the supplied business categories",
       "action_tag": "ACT|WATCH|OPPORTUNITY",
-      "mix_classification": "AI_ADOPTION|AI_INDUSTRY_IMPACT",
+      "mix_classification": "copy verbatim from this source's verified_mix_classification",
       "ai_business_connection": "the explicit AI use or industry development and its practical business consequence",
       "headline": "maximum eight words",
       "evidence": "what the source supports"
@@ -139,7 +139,7 @@ Return one JSON object only, with exactly this structure:
       "entity": "company, organisation, person or market",
       "number": "the exact defining figure first, in no more than 10 words",
       "meaning": "what changed and why the number matters commercially",
-      "mix_classification": "AI_ADOPTION|AI_INDUSTRY_IMPACT",
+      "mix_classification": "copy verbatim from this source's verified_mix_classification",
       "ai_business_connection": "the explicit AI use or industry development and its practical business consequence"
     }
   ],

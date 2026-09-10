@@ -1468,6 +1468,39 @@ def validate_judgement_plan(
     return plan
 
 
+def _describe_rejected_mix(candidate: Any) -> str:
+    """Summarise a rejected plan's (source_id, mix_classification) pairs.
+
+    Observability only — this changes nothing about what is accepted. Edition
+    0052 was rejected for "Newsroom source S03 is verified as AI_ADOPTION, not
+    AI_INDUSTRY_IMPACT", and the plan itself was never logged, so the item that
+    caused it could not be identified afterwards. This makes the next such
+    failure diagnosable from the logs alone.
+
+    Never raises: a malformed candidate must not mask the real error.
+    """
+    try:
+        if not isinstance(candidate, dict):
+            return "no plan object"
+        parts: list[str] = []
+        for section in ("evidence_items", "focus_numbers"):
+            items = candidate.get(section)
+            if not isinstance(items, list):
+                continue
+            pairs = []
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                ids = item.get("source_ids") or []
+                ids_text = "+".join(str(i) for i in ids) if isinstance(ids, list) else str(ids)
+                pairs.append(f"{ids_text or '?'}={item.get('mix_classification', '?')}")
+            if pairs:
+                parts.append(f"{section}: " + ", ".join(pairs))
+        return "; ".join(parts) or "no classified items"
+    except Exception:  # pragma: no cover - diagnostics must never fail the run
+        return "unavailable"
+
+
 def _retry_suffix(attempt: int, last_error: Exception | None) -> str:
     """Tell the planner what actually failed last time.
 
@@ -1620,6 +1653,9 @@ def generate_judgement_plan(
     model_id = model or os.environ.get("MODEL_JUDGEMENT", "claude-sonnet-4-6")
     last_error: Exception | None = None
     for attempt in range(3):
+        # Reset per attempt so the rejection diagnostic can never report a
+        # previous attempt's plan when this one failed before parsing.
+        candidate = None
         try:
             response = client.messages.create(
                 model=model_id,
@@ -1663,6 +1699,11 @@ def generate_judgement_plan(
             )
         except Exception as exc:
             last_error = exc
+            log.warning(
+                "Judgement planning attempt %d rejected plan mix — %s",
+                attempt + 1,
+                _describe_rejected_mix(candidate),
+            )
             if attempt < 2:
                 wait = 5 * (2**attempt)
                 log.warning("Judgement planning attempt %d failed; retrying in %ds: %s", attempt + 1, wait, exc)
