@@ -885,6 +885,60 @@ def recover_missing_focus_figures(
     return repaired, repairs
 
 
+def _reader_sentence_from_source(
+    source: dict[str, Any],
+    classification: str,
+    *,
+    word_limit: int,
+) -> str | None:
+    """Pick one sentence from a single source that already meets the copy bar.
+
+    The sentence must itself contain an explicit AI subject AND a concrete
+    business consequence (and, for AI_ADOPTION, real adoption evidence) — both
+    before and after being trimmed to the field's word limit, so trimming can
+    never smuggle through copy that no longer qualifies. Returns None when the
+    source offers no such sentence, which leaves the validator to reject the
+    plan as it always did.
+
+    This does not relax the standard. It only lets the planner reach the
+    standard using wording the cited source already supports.
+    """
+    source_text = " ".join(
+        str(source.get(field, "")).strip()
+        for field in ("title", "evidence", "source_evidence", "scoring_reason")
+        if str(source.get(field, "")).strip()
+    )
+    if not (AI_SUBJECT_RE.search(source_text) and BUSINESS_IMPACT_RE.search(source_text)):
+        return None
+
+    for field in ("evidence", "source_evidence", "title", "scoring_reason"):
+        field_text = str(source.get(field, "")).strip()
+        for sentence in re.split(r"(?<=[.!?])\s+|\s*;\s*", field_text):
+            sentence = " ".join(sentence.split()).strip(" ,;:-—")
+            if not sentence or SOURCE_ID_RE.search(sentence):
+                continue
+            sentence_adoption_ok = (
+                classification != "AI_ADOPTION" or _has_ai_adoption_evidence(sentence)
+            )
+            if not (
+                AI_SUBJECT_RE.search(sentence)
+                and BUSINESS_IMPACT_RE.search(sentence)
+                and sentence_adoption_ok
+            ):
+                continue
+            bounded = _trim_words(sentence, word_limit).strip(" ,;:-—")
+            bounded_adoption_ok = (
+                classification != "AI_ADOPTION" or _has_ai_adoption_evidence(bounded)
+            )
+            if (
+                AI_SUBJECT_RE.search(bounded)
+                and BUSINESS_IMPACT_RE.search(bounded)
+                and bounded_adoption_ok
+            ):
+                return bounded.rstrip(".!?") + "."
+    return None
+
+
 def complete_ai_focus_reader_copy(
     plan: dict[str, Any],
     evidence_items: list[dict[str, Any]],
@@ -936,48 +990,86 @@ def complete_ai_focus_reader_copy(
         if source is None:
             continue
 
-        source_text = " ".join(
-            str(source.get(field, "")).strip()
-            for field in ("title", "evidence", "source_evidence", "scoring_reason")
-            if str(source.get(field, "")).strip()
-        )
-        if not (AI_SUBJECT_RE.search(source_text) and BUSINESS_IMPACT_RE.search(source_text)):
-            continue
-
-        candidate: str | None = None
-        for field in ("evidence", "source_evidence", "title", "scoring_reason"):
-            field_text = str(source.get(field, "")).strip()
-            for sentence in re.split(r"(?<=[.!?])\s+|\s*;\s*", field_text):
-                sentence = " ".join(sentence.split()).strip(" ,;:-—")
-                if not sentence or SOURCE_ID_RE.search(sentence):
-                    continue
-                sentence_adoption_ok = (
-                    classification != "AI_ADOPTION" or _has_ai_adoption_evidence(sentence)
-                )
-                if (
-                    AI_SUBJECT_RE.search(sentence)
-                    and BUSINESS_IMPACT_RE.search(sentence)
-                    and sentence_adoption_ok
-                ):
-                    bounded = _trim_words(sentence, 26).strip(" ,;:-—")
-                    bounded_adoption_ok = (
-                        classification != "AI_ADOPTION" or _has_ai_adoption_evidence(bounded)
-                    )
-                    if (
-                        AI_SUBJECT_RE.search(bounded)
-                        and BUSINESS_IMPACT_RE.search(bounded)
-                        and bounded_adoption_ok
-                    ):
-                        candidate = bounded.rstrip(".!?") + "."
-                        break
-            if candidate is not None:
-                break
+        candidate = _reader_sentence_from_source(source, classification, word_limit=26)
         if candidate is None:
             continue
 
         item["meaning"] = candidate
         item["reader_copy_completed_from_source"] = source_ids[0]
         repairs.append(f"focus_numbers[{index}].meaning")
+    return repaired, repairs
+
+
+def complete_newsroom_reader_copy(
+    plan: dict[str, Any],
+    evidence_items: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[str]]:
+    """Final-attempt reader-copy completion for Top Signals (Newsroom) items.
+
+    The Focus section has had this safety net since 0048; the Newsroom did not,
+    even though Top Signals is the MANDATORY section. Edition 0052 aborted on
+    exactly that asymmetry: "Newsroom AI_ADOPTION reader copy must state an
+    explicit AI subject and concrete business consequence".
+
+    The rules are identical to the Focus repair: final attempt only, the item
+    must cite exactly one source, and the replacement sentence must come from
+    that same source and already satisfy the copy bar on its own. It never
+    changes source IDs, classifications, headlines or MAJOR_BUSINESS copy, and
+    never borrows language from another source.
+
+    Note the reader-visible fields for a Newsroom item are headline + evidence.
+    Only `evidence` is rewritten, so the eight-word headline is left intact and
+    the validator sees the pair it has always checked.
+    """
+    repaired = copy.deepcopy(plan)
+    if not _is_focus_numbers_revision(repaired):
+        return repaired, []
+
+    evidence_by_id: dict[str, dict[str, Any]] = {}
+    duplicate_ids: set[str] = set()
+    for source in evidence_items:
+        source_id = str(source.get("source_id", "")).strip()
+        if not source_id:
+            continue
+        if source_id in evidence_by_id:
+            duplicate_ids.add(source_id)
+        evidence_by_id[source_id] = source
+
+    repairs: list[str] = []
+    items = repaired.get("evidence_items")
+    if not isinstance(items, list):
+        return repaired, repairs
+
+    for index, item in enumerate(items):
+        if not isinstance(item, dict) or item.get("mix_classification") not in {
+            "AI_BUSINESS", "AI_ADOPTION", "AI_INDUSTRY_IMPACT"
+        }:
+            continue
+        # The validator reads headline + evidence together, so test the pair.
+        reader_text = " ".join(
+            str(item.get(field, "")).strip() for field in ("headline", "evidence")
+        )
+        classification = str(item.get("mix_classification"))
+        adoption_ok = classification != "AI_ADOPTION" or _has_ai_adoption_evidence(reader_text)
+        if AI_SUBJECT_RE.search(reader_text) and BUSINESS_IMPACT_RE.search(reader_text) and adoption_ok:
+            continue
+
+        source_ids = [str(source_id) for source_id in item.get("source_ids") or []]
+        if len(source_ids) != 1 or source_ids[0] in duplicate_ids:
+            continue
+        source = evidence_by_id.get(source_ids[0])
+        if source is None:
+            continue
+
+        # evidence is capped at 28 words by normalise_word_bound_fields; 26
+        # leaves headroom so the repair cannot itself breach the bound.
+        candidate = _reader_sentence_from_source(source, classification, word_limit=26)
+        if candidate is None:
+            continue
+
+        item["evidence"] = candidate
+        item["reader_copy_completed_from_source"] = source_ids[0]
+        repairs.append(f"evidence_items[{index}].evidence")
     return repaired, repairs
 
 
@@ -1376,6 +1468,37 @@ def validate_judgement_plan(
     return plan
 
 
+def _retry_suffix(attempt: int, last_error: Exception | None) -> str:
+    """Tell the planner what actually failed last time.
+
+    Retries used to carry only a generic "obey every word limit" nudge, so three
+    attempts were three near-identical rolls of the dice — the validation error
+    was captured and then thrown away. Edition 0052 burned all three attempts on
+    the same unreported problem.
+
+    Quoting the exact validator message back does not relax the standard: the
+    same check still has to pass. It just stops the planner guessing at which
+    rule it broke.
+    """
+    if attempt == 0:
+        return ""
+    suffix = (
+        f"\n\nThis is retry {attempt + 1}. Strictly obey every word limit; "
+        "brevity is a validation requirement."
+    )
+    if last_error is not None:
+        suffix += (
+            "\n\nYour previous attempt was REJECTED by validation with this exact error:\n"
+            f"    {last_error}\n"
+            "Fix precisely that problem. Every other rule in this brief still applies — "
+            "do not relax any of them, and do not drop or shorten a section to avoid the "
+            "error. If the rejection concerns reader copy, remember that the only "
+            "reader-visible fields are the ones named in the error, so the required "
+            "wording must appear in THOSE fields."
+        )
+    return suffix
+
+
 def generate_judgement_plan(
     evidence_items: list[dict[str, Any]],
     prior_memory: dict[str, Any],
@@ -1503,10 +1626,7 @@ def generate_judgement_plan(
                 max_tokens=8000,
                 messages=[{
                     "role": "user",
-                    "content": prompt + (
-                        "\n\nThis is retry %d. Strictly obey every word limit; brevity is a validation requirement."
-                        % (attempt + 1)
-                    ),
+                    "content": prompt + _retry_suffix(attempt, last_error),
                 }],
             )
             text = "\n".join(
@@ -1522,6 +1642,11 @@ def generate_judgement_plan(
                     planner_evidence,
                 )
                 repairs.extend(reader_copy_repairs)
+                candidate, newsroom_repairs = complete_newsroom_reader_copy(
+                    candidate,
+                    planner_evidence,
+                )
+                repairs.extend(newsroom_repairs)
                 candidate, action_repairs = add_final_attempt_action_fallback(candidate)
                 repairs.extend(action_repairs)
                 if repairs:
