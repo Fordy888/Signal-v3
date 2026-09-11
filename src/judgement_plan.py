@@ -817,8 +817,19 @@ def _validate_reader_visible_mix_copy(
         else ("headline", "evidence")
     )
     reader_text = " ".join(str(item.get(field, "")).strip() for field in fields)
+
+    # The reader sees the headline and the copy paragraph as one unit, so the AI
+    # subject may be named in either — checked across the combined text, as
+    # before. For AI_ADOPTION the adoption evidence and the business consequence
+    # must both be explicit in the copy field itself, not inherited from the
+    # headline. That is stricter than checking the combined text, and it frees
+    # the short copy from also having to name the AI: the headline can do that.
+    copy_field = "meaning" if section == "Focus" else "evidence"
+    copy_text = str(item.get(copy_field, "")).strip()
+
     has_ai_subject = bool(AI_SUBJECT_RE.search(reader_text))
-    has_business_impact = bool(BUSINESS_IMPACT_RE.search(reader_text))
+    impact_text = copy_text if classification == "AI_ADOPTION" else reader_text
+    has_business_impact = bool(BUSINESS_IMPACT_RE.search(impact_text))
     if classification in {"AI_BUSINESS", "AI_ADOPTION", "AI_INDUSTRY_IMPACT"} and not (
         has_ai_subject and has_business_impact
     ):
@@ -826,7 +837,7 @@ def _validate_reader_visible_mix_copy(
             f"{section} {classification} reader copy must state an explicit AI subject "
             "and concrete business consequence"
         )
-    if classification == "AI_ADOPTION" and not _has_ai_adoption_evidence(reader_text):
+    if classification == "AI_ADOPTION" and not _has_ai_adoption_evidence(copy_text):
         raise JudgementPlanError(
             f"{section} AI_ADOPTION reader copy must state the real-world use, process "
             "or operating change"
@@ -1518,6 +1529,39 @@ def immutable_violations(before: Any, after: Any) -> list[str]:
     ]
 
 
+# Fields our own repair passes stamp onto a plan for traceability. They are not
+# part of the schema, the validator never reads them and the renderer never
+# shows them — but the repair model saw "reader_copy_completed_from_source" in
+# the JSON, inferred a sibling "reader_copy" field, and wrote its fixes there.
+# Edition 0052's second generation burned its entire repair budget editing a
+# field that does not exist. The repair model now only ever sees real fields.
+#
+# "reader_copy" itself is listed so a phantom introduced by an earlier repair
+# cannot persist into the next one.
+INTERNAL_PLAN_FIELDS = (
+    "reader_copy_completed_from_source",
+    "number_recovered_from_source",
+    "reader_copy",
+)
+
+
+def strip_internal_fields(plan: Any) -> Any:
+    """Return a copy of the plan with internal marker fields removed.
+
+    Only ever applied to the copy shown to the repair model. The working
+    candidate keeps its markers, so traceability is not lost.
+    """
+    if isinstance(plan, dict):
+        return {
+            key: strip_internal_fields(value)
+            for key, value in plan.items()
+            if key not in INTERNAL_PLAN_FIELDS
+        }
+    if isinstance(plan, list):
+        return [strip_internal_fields(value) for value in plan]
+    return plan
+
+
 def build_repair_prompt(rejected: dict[str, Any], defect: Exception) -> str:
     """Ask for the smallest edit that clears one specific validation defect."""
     return (
@@ -1534,9 +1578,12 @@ def build_repair_prompt(rejected: dict[str, Any], defect: Exception) -> str:
         "4. Do not drop, shorten or empty a section to make the error go away.\n"
         "5. Every other editorial rule, word limit and evidence requirement from the "
         "original brief still applies to the field you change.\n"
-        "6. Return the complete JSON object, not a fragment, diff or description.\n\n"
+        "6. Return the complete JSON object, not a fragment, diff or description.\n"
+        "7. Use only the fields that already appear in the plan below. Do not invent "
+        "a new field to hold your fix — a field that is not in the plan is not read "
+        "by anything, so the error would remain.\n\n"
         "REJECTED PLAN:\n"
-        f"{json.dumps(rejected, indent=2)}\n"
+        f"{json.dumps(strip_internal_fields(rejected), indent=2)}\n"
     )
 
 

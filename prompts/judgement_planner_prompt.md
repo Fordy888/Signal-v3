@@ -83,9 +83,20 @@ For `AI_ADOPTION` the reader-visible fields must additionally name the real-worl
 use, process or operating change — not merely that AI was adopted.
 
 A Newsroom `headline` is capped at 8 words, so in practice the `evidence`
-paragraph carries most of this. Write `evidence` so that it alone states the AI
-use and its business consequence; do not rely on the headline to supply either,
-and do not rely on `ai_business_connection` to supply either.
+paragraph carries most of this, and how the three elements may be split differs
+by classification:
+
+- For `AI_ADOPTION` items, the AI subject may be named in EITHER the headline or
+  the copy field — the reader sees them as one unit. But the real-world use and
+  the business consequence must both be explicit in the copy field itself
+  (`evidence` for a Newsroom item, `meaning` for a Focus figure). Use the
+  headline to name the AI so the short copy has room for the use and its
+  consequence.
+- For `AI_BUSINESS` and `AI_INDUSTRY_IMPACT` items, all of it may be spread
+  across the reader-visible fields together, as before.
+
+Never rely on `ai_business_connection` to supply any of it — readers never see
+that field.
 
 For `MAJOR_BUSINESS` items the reverse applies: the reader-visible fields must
 NOT introduce an AI-led angle.
