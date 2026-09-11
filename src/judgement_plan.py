@@ -1468,6 +1468,84 @@ def validate_judgement_plan(
     return plan
 
 
+# ─── Repair-based planning ───────────────────────────────────────────────────
+#
+# Regenerating the whole plan on every rejection re-rolls fields that were
+# already valid, so fixing the reported defect can break a different one. Across
+# three runs that produced four distinct single-rule failures and never the same
+# twice. Repair sends the rejected JSON back with the exact validator message and
+# asks for the minimum change, so valid content survives.
+#
+# Bounded by construction: MAX_GENERATIONS * (MAX_REPAIRS + 1) planner calls,
+# and no path loops without consuming budget.
+MAX_GENERATIONS = 2
+MAX_REPAIRS = 3
+
+# Facts a repair may never move. source_ids and mix_classification are supplied
+# and independently verified; a repair that rewrites them is rejected outright
+# rather than validated, because the verification exists precisely to stop the
+# planner relabelling or re-sourcing an item.
+IMMUTABLE_ITEM_FIELDS = ("source_ids", "mix_classification")
+
+
+def _plan_field_paths(plan: Any, prefix: str = "") -> dict[str, Any]:
+    """Flatten a plan into {path: scalar} so two versions can be diffed."""
+    flat: dict[str, Any] = {}
+    if isinstance(plan, dict):
+        for key, value in plan.items():
+            flat.update(_plan_field_paths(value, f"{prefix}.{key}" if prefix else str(key)))
+    elif isinstance(plan, list):
+        for index, value in enumerate(plan):
+            flat.update(_plan_field_paths(value, f"{prefix}[{index}]"))
+    else:
+        flat[prefix] = plan
+    return flat
+
+
+def diff_plan_fields(before: Any, after: Any) -> list[str]:
+    """Field paths that differ between two plans, for the repair audit log."""
+    a, b = _plan_field_paths(before), _plan_field_paths(after)
+    changed = [path for path in sorted(set(a) | set(b)) if a.get(path) != b.get(path)]
+    return changed
+
+
+def immutable_violations(before: Any, after: Any) -> list[str]:
+    """Changed paths that touch a field a repair is never allowed to move."""
+    return [
+        path
+        for path in diff_plan_fields(before, after)
+        if any(f".{field}" in path or path.endswith(field) for field in IMMUTABLE_ITEM_FIELDS)
+    ]
+
+
+def build_repair_prompt(rejected: dict[str, Any], defect: Exception) -> str:
+    """Ask for the smallest edit that clears one specific validation defect."""
+    return (
+        "The editorial plan below was REJECTED by validation with this exact error:\n\n"
+        f"    {defect}\n\n"
+        "Return the SAME plan as one JSON object, repaired so that this error no "
+        "longer applies.\n\n"
+        "Rules for this repair:\n"
+        "1. Change only the minimum field(s) required to resolve that specific error.\n"
+        "2. Every other field must be returned byte-identical to the plan below. Do "
+        "not reword, re-order, re-trim or 'improve' anything you were not asked to fix.\n"
+        "3. Never change any source_ids or mix_classification value. Those are "
+        "supplied facts, not choices.\n"
+        "4. Do not drop, shorten or empty a section to make the error go away.\n"
+        "5. Every other editorial rule, word limit and evidence requirement from the "
+        "original brief still applies to the field you change.\n"
+        "6. Return the complete JSON object, not a fragment, diff or description.\n\n"
+        "REJECTED PLAN:\n"
+        f"{json.dumps(rejected, indent=2)}\n"
+    )
+
+
+def _extract_text(response: Any) -> str:
+    return "\n".join(
+        block.text for block in response.content if getattr(block, "type", None) == "text"
+    )
+
+
 def _describe_rejected_mix(candidate: Any) -> str:
     """Summarise a rejected plan's (source_id, mix_classification) pairs.
 
@@ -1651,25 +1729,43 @@ def generate_judgement_plan(
 
     client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     model_id = model or os.environ.get("MODEL_JUDGEMENT", "claude-sonnet-4-6")
+
+    def _validate(plan: dict[str, Any]) -> dict[str, Any]:
+        """The full, unmodified validator. Every candidate passes through this."""
+        return validate_judgement_plan(
+            plan,
+            source_ids,
+            focus_eligible_source_ids if _is_focus_numbers_revision(plan) else None,
+            verified_mix_by_source if _is_focus_numbers_revision(plan) else None,
+            allocated_source_ids if _is_focus_numbers_revision(plan) else None,
+        )
+
     last_error: Exception | None = None
-    for attempt in range(3):
-        # Reset per attempt so the rejection diagnostic can never report a
-        # previous attempt's plan when this one failed before parsing.
-        candidate = None
+    calls = 0
+
+    for generation in range(MAX_GENERATIONS):
+        candidate: dict[str, Any] | None = None
         try:
             response = client.messages.create(
                 model=model_id,
                 max_tokens=8000,
                 messages=[{
                     "role": "user",
-                    "content": prompt + _retry_suffix(attempt, last_error),
+                    "content": prompt + _retry_suffix(generation, last_error),
                 }],
             )
-            text = "\n".join(
-                block.text for block in response.content if getattr(block, "type", None) == "text"
-            )
-            candidate = _extract_json_object(text)
-            if attempt == 2:
+            calls += 1
+            candidate = _extract_json_object(_extract_text(response))
+        except Exception as exc:
+            last_error = exc
+            log.warning("Judgement generation %d failed to produce a plan: %s", generation + 1, exc)
+            if generation < MAX_GENERATIONS - 1:
+                time.sleep(5)
+            continue
+
+        # Deterministic repairs stay exactly where they were: final generation only.
+        if generation == MAX_GENERATIONS - 1:
+            try:
                 candidate, repairs = normalise_word_bound_fields(candidate)
                 candidate, figure_repairs = recover_missing_focus_figures(candidate, planner_evidence)
                 repairs.extend(figure_repairs)
@@ -1687,28 +1783,95 @@ def generate_judgement_plan(
                 repairs.extend(action_repairs)
                 if repairs:
                     log.warning(
-                        "Judgement planning final attempt normalised bounded fields: %s",
+                        "Judgement planning final generation normalised bounded fields: %s",
                         ", ".join(repairs),
                     )
-            return validate_judgement_plan(
-                candidate,
-                source_ids,
-                focus_eligible_source_ids if _is_focus_numbers_revision(candidate) else None,
-                verified_mix_by_source if _is_focus_numbers_revision(candidate) else None,
-                allocated_source_ids if _is_focus_numbers_revision(candidate) else None,
-            )
-        except Exception as exc:
-            last_error = exc
-            log.warning(
-                "Judgement planning attempt %d rejected plan mix — %s",
-                attempt + 1,
-                _describe_rejected_mix(candidate),
-            )
-            if attempt < 2:
-                wait = 5 * (2**attempt)
-                log.warning("Judgement planning attempt %d failed; retrying in %ds: %s", attempt + 1, wait, exc)
-                time.sleep(wait)
-    raise JudgementPlanError(f"Judgement planning failed after three attempts: {last_error}")
+            except Exception as exc:  # deterministic repair must not lose the plan
+                log.warning("Deterministic repair pass failed (non-fatal): %s", exc)
+
+        # Validate, then repair the specific defect — never regenerate wholesale.
+        for repair in range(MAX_REPAIRS + 1):
+            try:
+                plan = _validate(candidate)
+                if generation or repair:
+                    log.info(
+                        "Judgement plan accepted after generation %d, %d repair(s), %d planner call(s)",
+                        generation + 1,
+                        repair,
+                        calls,
+                    )
+                return plan
+            except Exception as exc:
+                last_error = exc
+                log.warning(
+                    "Generation %d repair %d — defect: %s | plan mix: %s",
+                    generation + 1,
+                    repair,
+                    exc,
+                    _describe_rejected_mix(candidate),
+                )
+                if repair == MAX_REPAIRS:
+                    log.warning(
+                        "Generation %d exhausted its %d repair attempt(s)",
+                        generation + 1,
+                        MAX_REPAIRS,
+                    )
+                    break
+
+                try:
+                    repair_response = client.messages.create(
+                        model=model_id,
+                        max_tokens=8000,
+                        messages=[{
+                            "role": "user",
+                            "content": build_repair_prompt(candidate, exc),
+                        }],
+                    )
+                    calls += 1
+                    repaired = _extract_json_object(_extract_text(repair_response))
+                except Exception as repair_exc:
+                    log.warning(
+                        "Generation %d repair %d could not be parsed (%s) — keeping prior plan",
+                        generation + 1,
+                        repair + 1,
+                        repair_exc,
+                    )
+                    continue
+
+                violations = immutable_violations(candidate, repaired)
+                if violations:
+                    log.warning(
+                        "Generation %d repair %d REJECTED — it moved protected field(s): %s",
+                        generation + 1,
+                        repair + 1,
+                        ", ".join(violations[:6]),
+                    )
+                    continue
+
+                changed = diff_plan_fields(candidate, repaired)
+                log.info(
+                    "Generation %d repair %d changed %d field(s): %s",
+                    generation + 1,
+                    repair + 1,
+                    len(changed),
+                    ", ".join(changed[:8]) or "nothing",
+                )
+                if not changed:
+                    log.warning(
+                        "Generation %d repair %d returned an identical plan — abandoning this generation",
+                        generation + 1,
+                        repair + 1,
+                    )
+                    break
+                candidate = repaired
+
+        if generation < MAX_GENERATIONS - 1:
+            time.sleep(5)
+
+    raise JudgementPlanError(
+        f"Judgement planning failed after {MAX_GENERATIONS} generation(s) with up to "
+        f"{MAX_REPAIRS} repair(s) each ({calls} planner calls): {last_error}"
+    )
 
 
 def scored_items_to_evidence(scored_items: list[Any]) -> list[dict[str, Any]]:
