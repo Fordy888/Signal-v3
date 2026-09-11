@@ -8,6 +8,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import logging
 import os
 import sys
@@ -26,8 +27,23 @@ from .delivery import send_brief
 from .attribution import report_send_results, resolve_subscriber_ids
 from .founders_note import generate_founders_note, inject_founders_note
 from .signal_gauge import is_gauge_enabled, inject_gauge_into_html, personalise_gauge_for_subscriber
+from .share_block import inject_share_block, personalise_share_for_subscriber
 from .history import load_history, record_edition
-from .edition_counter import get_next_edition, increment_edition
+from .judgement_plan import generate_judgement_plan, scored_items_to_evidence
+from .signal_memory import (
+    apply_memory_update,
+    embed_delivery_memory,
+    load_signal_memory,
+    memory_context,
+    recover_signal_memory_from_resend,
+    save_signal_memory,
+)
+from .enhanced_renderer import render_enhanced_email
+from .human_signal import load_joke_history, load_jokes, record_joke, select_joke
+from .alive_moment import load_alive_history, load_alive_moment, record_alive_moment, validate_alive_moment
+from .edition_counter import edition_for_date, get_next_edition, increment_edition
+from .locked_edition import render_locked_edition
+from .weekly_wrap_qa import validate_weekly_wrap_html
 from .subscribers import fetch_subscribers
 from .qa_gate import (
     run_pre_send_qa,
@@ -38,6 +54,7 @@ from .qa_gate import (
     classify_subscribers,
     build_category_coverage,
     build_failed_source_summary,
+    check_release_identity,
 )
 
 BRISBANE = ZoneInfo("Australia/Brisbane")
@@ -163,7 +180,27 @@ def main() -> int:
     parser.add_argument("--force-type", type=str, choices=["daily", "weekly_wrap"],
                         default=None,
                         help="Override day-of-week detection (for testing)")
+    parser.add_argument("--enhanced", action="store_true",
+                        help="Run Development Thesis V1 judgement architecture (default off; approval comparison only)")
+    parser.add_argument("--alive-moment", action="store_true",
+                        help="Include a pre-approved WE ARE ALIVE candidate (requires --enhanced; default off)")
+    parser.add_argument("--locked-edition", type=int, default=None,
+                        help="Render a checksum-locked approved Enhanced daily edition")
+    parser.add_argument("--as-of", type=str, default=None,
+                        help="ISO timestamp for proof/dry-run route and metadata simulation; never permitted with --send")
+    parser.add_argument("--release-canary", action="store_true",
+                        help="Proof-only mode: enforce the live production release-identity gate")
     args = parser.parse_args()
+    if args.alive_moment and not args.enhanced:
+        parser.error("--alive-moment requires --enhanced")
+    if args.locked_edition is not None and not args.enhanced:
+        parser.error("--locked-edition requires --enhanced")
+    if args.as_of and args.send:
+        parser.error("--as-of is never permitted with --send")
+    if args.release_canary and not args.proof:
+        parser.error("--release-canary requires --proof")
+    if args.release_canary and not args.enhanced:
+        parser.error("--release-canary requires --enhanced")
 
     # Locate project root (parent of src/)
     root = Path(__file__).resolve().parent.parent
@@ -179,22 +216,31 @@ def main() -> int:
 
     start_time = time.time()
     mode = "proof" if args.proof else "send" if args.send else "dry-run"
+    if args.as_of:
+        runtime_now = datetime.fromisoformat(args.as_of)
+        if runtime_now.tzinfo is None:
+            parser.error("--as-of must include a timezone offset")
+        runtime_now = runtime_now.astimezone(BRISBANE)
+    else:
+        runtime_now = datetime.now(BRISBANE)
     log.info("DTL Signal v3 starting (mode=%s) at %s",
-             mode, datetime.now(BRISBANE).strftime("%Y-%m-%d %H:%M AEST"))
+             mode, runtime_now.strftime("%Y-%m-%d %H:%M AEST"))
 
-    # Get code version for traceability in run receipts
-    try:
-        import subprocess
-        code_version = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=str(root), stderr=subprocess.DEVNULL
-        ).decode().strip()
-    except Exception:
-        code_version = "unknown"
+    # Prefer Render's deployed revision; fall back to local Git for development.
+    code_version = os.environ.get("RENDER_GIT_COMMIT", "").strip()
+    if not code_version:
+        try:
+            import subprocess
+            code_version = subprocess.check_output(
+                ["git", "rev-parse", "--short=12", "HEAD"],
+                cwd=str(root), stderr=subprocess.DEVNULL
+            ).decode().strip()
+        except Exception:
+            code_version = "unknown"
     log.info("Code version: %s", code_version)
 
     # ─── DAY-OF-WEEK ROUTING ──────────────────────────────────────────
-    now_brisbane = datetime.now(BRISBANE)
+    now_brisbane = runtime_now
     day_of_week = now_brisbane.weekday()  # 0=Mon, 5=Sat, 6=Sun
 
     if args.force_type:
@@ -209,6 +255,14 @@ def main() -> int:
     else:
         edition_type = "daily"
         log.info("Weekday detected — running Daily Signal")
+    use_enhanced = args.enhanced and edition_type == "daily"
+    renderer_id = (
+        "enhanced-v4"
+        if use_enhanced
+        else "weekly-wrap-current" if edition_type == "weekly_wrap" else "legacy-daily"
+    )
+    if args.enhanced and not use_enhanced:
+        log.info("Enhanced daily format not applied to %s; using its approved route", edition_type)
 
     if not os.environ.get("ANTHROPIC_API_KEY"):
         log.error("ANTHROPIC_API_KEY not set. Configure .env or environment.")
@@ -236,19 +290,14 @@ def main() -> int:
         api_subscribers = fetch_subscribers()
 
         if not api_subscribers:
-            log.warning("Website API returned no subscribers — trying YAML fallback")
-            yaml_subs = load_subscribers_from_yaml(root)
-            if yaml_subs:
-                recipients = [{"email": s["email"], "firstName": s.get("name", "").split()[0]} for s in yaml_subs]
-                log.warning("Using %d subscriber(s) from YAML fallback", len(recipients))
-            else:
-                log.error("ABORT: No subscribers from API or YAML. Cannot send to 0 people.")
-                send_alert(
-                    "Subscriber fetch failed — edition NOT sent",
-                    "The website API returned no subscribers and the YAML fallback is also empty. "
-                    "Today's edition was NOT sent. Please check WEBSITE_BASE_URL and SIGNAL_PIPELINE_API_KEY on Render."
-                )
-                return 1
+            log.error("ABORT: Live subscriber API returned no eligible recipients.")
+            send_alert(
+                "Subscriber fetch failed — edition NOT sent",
+                "The live website API returned no eligible subscribers. "
+                "No static or YAML audience fallback is permitted. Please check WEBSITE_BASE_URL, "
+                "SIGNAL_PIPELINE_API_KEY and the API response on Render."
+            )
+            return 1
         else:
             recipients = api_subscribers
             log.info("Fetched %d active subscriber(s) from website API", len(recipients))
@@ -318,8 +367,19 @@ def main() -> int:
     # 0. Load edition history and get next edition number
     history_urls = load_history(root)
     log.info("Loaded %d URLs from recent editions for cross-day dedup", len(history_urls))
-    edition_number = get_next_edition(root)
+    edition_number = (
+        edition_for_date(now_brisbane.date())
+        if args.as_of
+        else get_next_edition(root)
+    )
     log.info("Next edition number: %04d", edition_number)
+    if use_enhanced and args.locked_edition is not None and edition_number != args.locked_edition:
+        log.error(
+            "LOCKED EDITION HOLD: runtime Edition %04d does not match approved Edition %04d",
+            edition_number,
+            args.locked_edition,
+        )
+        return 1
 
     # 1. Fetch raw items (returns tuple with failed sources AND detailed fetch results)
     log.info("Stage 1: Fetching sources...")
@@ -366,15 +426,66 @@ def main() -> int:
     else:
         synthesis_prompt_path = str(root / "prompts" / "synthesis_prompt.md")
 
+    enhanced_plan = None
+    selected_joke = None
+    signal_memory = None
+    alive_moment = None
+    html_sha256 = ""
+    memory_path = root / os.environ.get("SIGNAL_MEMORY_PATH", "data/signal_memory.json")
+    joke_history_path = root / os.environ.get("SIGNAL_JOKE_HISTORY_PATH", "data/joke_history.json")
+    alive_history_path = root / os.environ.get("SIGNAL_ALIVE_HISTORY_PATH", "data/alive_moment_history.json")
+
     try:
-        html = synthesise(
-            scored_items=scored,
-            context_path=context_path,
-            synthesis_prompt_path=synthesis_prompt_path,
-            edition_number=edition_number,
-            edition_type=edition_type,
-        )
+        if use_enhanced:
+            log.info("Stage 3: Building structured judgement plan (enhanced mode)...")
+            signal_memory = (
+                recover_signal_memory_from_resend()
+                if args.send
+                else load_signal_memory(memory_path)
+            )
+            if args.locked_edition is not None:
+                html, enhanced_plan, planner_evidence, selected_joke, alive_moment = (
+                    render_locked_edition(root, args.locked_edition)
+                )
+                log.info("Loaded checksum-locked Edition %04d", args.locked_edition)
+            else:
+                planner_evidence = scored_items_to_evidence(scored)
+                enhanced_plan = generate_judgement_plan(
+                    evidence_items=planner_evidence,
+                    prior_memory=memory_context(signal_memory),
+                    prompt_path=root / "prompts" / "judgement_planner_prompt.md",
+                )
+                jokes = load_jokes(root / "data" / "dad_jokes.json")
+                selected_joke = select_joke(
+                    jokes,
+                    edition_number=edition_number,
+                    recent_ids=load_joke_history(joke_history_path),
+                )
+                if args.alive_moment:
+                    alive_path = root / os.environ.get("SIGNAL_ALIVE_MOMENT_PATH", "data/alive_moment.json")
+                    alive_moment = validate_alive_moment(
+                        load_alive_moment(alive_path),
+                        load_alive_history(alive_history_path),
+                    )
+                html = render_enhanced_email(
+                    plan=enhanced_plan,
+                    sources=planner_evidence,
+                    joke=selected_joke,
+                    edition_number=edition_number,
+                    generated_at=now_brisbane,
+                    alive_moment=alive_moment,
+                )
+        else:
+            html = synthesise(
+                scored_items=scored,
+                context_path=context_path,
+                synthesis_prompt_path=synthesis_prompt_path,
+                edition_number=edition_number,
+                edition_type=edition_type,
+            )
         log.info("Stage 3 complete: %d chars of HTML produced", len(html))
+        html_sha256 = hashlib.sha256(html.encode("utf-8")).hexdigest()
+        log.info("Release identity: renderer=%s html_sha256=%s", renderer_id, html_sha256)
     except Exception as e:
         log.error("Synthesis failed: %s", e)
         receipt = create_receipt(
@@ -391,6 +502,8 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
             edition_type=edition_type,
+            renderer_id=renderer_id,
+            html_sha256=html_sha256,
         )
         receipt.qa_issues = [f"[CRITICAL] Synthesis: Generation failed with error: {e}"]
         save_receipt(root, receipt)
@@ -398,19 +511,26 @@ def main() -> int:
         return 1
 
     # ─── Stage 3b: Founder's Note ──────────────────────────────────────
-    log.info("Stage 3b: Generating Founder's Note...")
-    try:
-        founders_note = generate_founders_note(scored, edition_number, root)
-        if founders_note:
-            html = inject_founders_note(html, founders_note)
-            log.info("Stage 3b complete: Founder's Note injected ('%s', %d words)",
-                     founders_note.get("headline", ""), founders_note.get("word_count", 0))
-        else:
-            log.warning("Stage 3b: Founder's Note generation returned empty — skipping")
-    except Exception as e:
-        log.warning("Stage 3b: Founder's Note failed (non-fatal) — %s", e)
+    if use_enhanced:
+        log.info("Stage 3b: Enhanced mode uses governed DTL View + Human Signal; standalone Founder's Note skipped")
+    else:
+        log.info("Stage 3b: Generating Founder's Note...")
+        try:
+            founders_note = generate_founders_note(scored, edition_number, root)
+            if founders_note:
+                html = inject_founders_note(html, founders_note)
+                log.info("Stage 3b complete: Founder's Note injected ('%s', %d words)",
+                         founders_note.get("headline", ""), founders_note.get("word_count", 0))
+            else:
+                log.warning("Stage 3b: Founder's Note generation returned empty — skipping")
+        except Exception as e:
+            log.warning("Stage 3b: Founder's Note failed (non-fatal) — %s", e)
     # ─── Stage 3c: Signal Strength Gauge ───────────────────────────────
-    if is_gauge_enabled(mode, edition_number):
+    if (
+        not use_enhanced
+        and edition_type != "weekly_wrap"
+        and is_gauge_enabled(mode, edition_number)
+    ):
         log.info("Stage 3c: Injecting Signal Strength Gauge...")
         try:
             html = inject_gauge_into_html(html, scored, edition_number)
@@ -418,10 +538,27 @@ def main() -> int:
         except Exception as e:
             log.warning("Stage 3c: Gauge injection failed (non-fatal) — %s", e)
 
+    # Source-controlled parity with the live legacy/Weekly Wrap share block.
+    # The locked Enhanced proof intentionally has no unapproved share module.
+    if not use_enhanced:
+        try:
+            html = inject_share_block(html, edition_number)
+            log.info("Stage 3d complete: Share block injected for edition %04d", edition_number)
+        except Exception as e:
+            log.warning("Stage 3d: Share block injection failed (non-fatal) — %s", e)
+
     # Quality gate: block delivery if key synthesis section is missing
     if edition_type == "weekly_wrap":
-        has_key_section = ("THE PATTERN" in html and "EXECUTIVE TAKEAWAY" in html)
-        gate_label = "Weekly Wrap key sections (Traffic Light + EXECUTIVE TAKEAWAY)"
+        has_key_section, weekly_issues = validate_weekly_wrap_html(html)
+        gate_label = "Weekly Wrap structure"
+        if weekly_issues:
+            log.error("Weekly Wrap gate issues: %s", "; ".join(weekly_issues))
+    elif use_enhanced:
+        has_key_section = all(
+            label in html
+            for label in ("THE ONE THING", "THE EVIDENCE", "WHAT CHANGED?", "COUNTER-SIGNAL", "EXECUTIVE READ", "What to Watch")
+        )
+        gate_label = "Development Thesis V1 intelligence sequence"
     else:
         has_key_section = ("EXECUTIVE READ" in html and "What to Watch" in html)
         gate_label = "Executive Read section"
@@ -446,6 +583,8 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
             edition_type=edition_type,
+            renderer_id=renderer_id,
+            html_sha256=html_sha256,
         )
         receipt.qa_issues = [f"[CRITICAL] Content Quality: {gate_label} is missing or incomplete"]
         save_receipt(root, receipt)
@@ -465,7 +604,21 @@ def main() -> int:
         root=root,
         scored_items=scored,
         fetch_results=fetch_results,
+        as_of=now_brisbane,
     )
+    identity_mode = "send" if args.release_canary else mode
+    release_identity_result = check_release_identity(
+        renderer_id=renderer_id,
+        edition_type=edition_type,
+        mode=identity_mode,
+        as_of=now_brisbane,
+    )
+    if args.release_canary:
+        log.info("RELEASE CANARY: production identity gate enforced within proof-only recipient boundary")
+    qa_results.append(release_identity_result)
+    log.info(str(release_identity_result))
+    if not release_identity_result.passed and release_identity_result.severity == "critical":
+        should_send = False
 
     if not should_send:
         log.error("PRE-SEND QA GATE FAILED — Edition HELD. Not sending.")
@@ -486,6 +639,11 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
             edition_type=edition_type,
+            renderer_id=renderer_id,
+            html_sha256=html_sha256,
+            release_identity_status=(
+                "MATCH" if release_identity_result.passed else "MISMATCH"
+            ) if args.release_canary else None,
         )
         save_receipt(root, receipt)
         send_receipt_email(receipt)
@@ -497,6 +655,8 @@ def main() -> int:
         with open(save_path, "w") as f:
             # Personalise gauge with proof subscriber hash for saved HTML
             proof_html = personalise_gauge_for_subscriber(html, "proof@dtlc.ai")
+            proof_token = hashlib.sha256(b"proof@dtlc.ai").hexdigest()[:12]
+            proof_html = personalise_share_for_subscriber(proof_html, proof_token)
             f.write(proof_html)
         log.info("Brief saved to %s", save_path)
 
@@ -534,6 +694,8 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
             edition_type=edition_type,
+            renderer_id=renderer_id,
+            html_sha256=html_sha256,
         )
         save_receipt(root, receipt)
         return 0
@@ -546,6 +708,15 @@ def main() -> int:
     fail_count = 0
     failed_recipient_emails: list[str] = []
     delivery_map: list[tuple[str, str]] = []  # (email, resend_message_id)
+    delivery_memory = None
+    if use_enhanced and enhanced_plan and signal_memory is not None:
+        delivery_memory = apply_memory_update(
+            signal_memory,
+            enhanced_plan["memory_update"],
+            enhanced_plan["what_changed"],
+            edition_number=edition_number,
+            delivered_at=datetime.now(BRISBANE).isoformat(),
+        )
 
     for i, recipient in enumerate(recipients):
         email = recipient["email"]
@@ -558,21 +729,33 @@ def main() -> int:
 
         subject_override = None
         if edition_type == "weekly_wrap":
-            week_ending = datetime.now(BRISBANE).strftime('%d %B %Y')
+            week_ending = runtime_now.strftime('%d %B %Y')
             if args.proof:
                 subject_override = f"[PROOF] DTL Signal Weekly Wrap | Week Ending {week_ending}"
             else:
                 subject_override = f"DTL Signal Weekly Wrap | Week Ending {week_ending}"
         elif args.proof:
-            subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {datetime.now(BRISBANE).strftime('%A %d %B %Y')}"
+            subject_override = f"[PROOF] DTL Signal | Edition {edition_number:04d} | {runtime_now.strftime('%A %d %B %Y')}"
 
         # Personalise gauge links for this subscriber
         personalised_html = personalise_gauge_for_subscriber(html, email)
+        subscriber_token = hashlib.sha256(email.lower().strip().encode()).hexdigest()[:12]
+        personalised_html = personalise_share_for_subscriber(personalised_html, subscriber_token)
+        if delivery_memory is not None:
+            personalised_html = embed_delivery_memory(personalised_html, delivery_memory)
+        delivery_tags = [
+            {"name": "message_type", "value": "signal"},
+            {"name": "edition", "value": f"{edition_number:04d}"},
+            {"name": "edition_type", "value": edition_type},
+            {"name": "format", "value": "enhanced-v4" if use_enhanced else "legacy"},
+            {"name": "delivery_mode", "value": "production" if args.send else "proof"},
+        ]
         result = send_brief(
             html_body=personalised_html,
             recipient_email=email,
             subject_override=subject_override,
             edition_number=edition_number,
+            tags=delivery_tags,
         )
 
         if result:
@@ -602,6 +785,20 @@ def main() -> int:
             edition_id = f"edition_{datetime.now(BRISBANE).strftime('%Y%m%d')}"
             record_edition(root, delivered_urls, edition_id=edition_id)
             increment_edition(root)
+            if use_enhanced and enhanced_plan and selected_joke and signal_memory is not None:
+                delivered_at = datetime.now(BRISBANE).isoformat()
+                updated_memory = apply_memory_update(
+                    signal_memory,
+                    enhanced_plan["memory_update"],
+                    enhanced_plan["what_changed"],
+                    edition_number=edition_number,
+                    delivered_at=delivered_at,
+                )
+                save_signal_memory(memory_path, updated_memory)
+                record_joke(joke_history_path, selected_joke["id"])
+                if alive_moment:
+                    record_alive_moment(alive_history_path, alive_moment, published_at=delivered_at)
+                log.info("Enhanced memory and Human Signal rotation recorded after successful delivery")
             log.info("Edition counter incremented. Next edition will be %04d", edition_number + 1)
     except Exception as e:
         bookkeeping_error = str(e)
@@ -674,6 +871,11 @@ def main() -> int:
             category_coverage=category_coverage,
             fetch_results=fetch_results,
             edition_type=edition_type,
+            renderer_id=renderer_id,
+            html_sha256=html_sha256,
+            release_identity_status=(
+                "MATCH" if release_identity_result.passed else "MISMATCH"
+            ) if args.release_canary else None,
         )
 
         if bookkeeping_error:

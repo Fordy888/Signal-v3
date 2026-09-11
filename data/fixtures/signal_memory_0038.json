@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "positions": [
+    {
+      "position_id": "ai-advantage-operating-system",
+      "theme": "AI commercial advantage",
+      "statement": "Durable AI advantage comes from the operating system around the model — data, governance, process and ownership — rather than the model itself.",
+      "confidence": "MEDIUM",
+      "first_observed": "2026-07-30T22:32:00+10:00",
+      "updated_at": "2026-07-30T22:32:00+10:00",
+      "supporting_evidence": [
+        "Edition 0022: Target said its AI moat was the data, governance and operating discipline around models.",
+        "Edition 0022: Enterprise AI cost waste and agent-governance failures pointed to accountability as the constraint."
+      ]
+    }
+  ],
+  "events": [
+    {
+      "edition_number": 22,
+      "recorded_at": "2026-07-30T22:32:00+10:00",
+      "position_id": "ai-advantage-operating-system",
+      "classification": "CONFIRMS",
+      "explanation": "The edition established a working position that model choice was becoming less differentiating than the systems built around it."
+    }
+  ]
+}

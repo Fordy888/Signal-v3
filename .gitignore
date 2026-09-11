@@ -9,5 +9,20 @@ logs/*.html
 dist/
 build/
 test_*.py
+!tests/test_*.py
 source_test_*
-data/
+data/*
+!data/edition0042-enhanced-plan.json
+!data/fixtures/
+data/fixtures/*
+!data/fixtures/alive_moment_0038.json
+!data/fixtures/alive_moment_0042.json
+!data/fixtures/alive_moment_0043.json
+# The daily WE ARE ALIVE moment ships from the repo so the operating chain is
+# GitHub -> Claude Code -> Render -> Resend, with no external file drop.
+!data/alive_moment.json
+!data/fixtures/edition0038_evidence.json
+!data/fixtures/edition0042_evidence.json
+!data/locked_editions/
+data/locked_editions/*
+!data/locked_editions/0042.json

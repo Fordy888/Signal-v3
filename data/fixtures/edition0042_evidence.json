@@ -1,0 +1,56 @@
+[
+  {
+    "source_id": "S01",
+    "title": "Individual AI productivity is outpacing enterprise profit",
+    "source": "McKinsey Global Survey",
+    "url": "https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai",
+    "category": "Strategy & Business Model",
+    "score": 34,
+    "evidence": "Eighty percent report individual productivity gains from AI, while 37% report positive enterprise EBIT impact and 6% qualify as high performers."
+  },
+  {
+    "source_id": "S02",
+    "title": "Logistics AI strategy is not reaching the P&L",
+    "source": "Boston Consulting Group",
+    "url": "https://www.bcg.com/publications/2026/why-ai-isnt-delivering-roi-logistics",
+    "category": "Operations & Delivery",
+    "score": 33,
+    "evidence": "Among 30 major logistics operators, 97% call AI strategic and 67% have dedicated budgets, but 13% report measurable financial impact."
+  },
+  {
+    "source_id": "S03",
+    "title": "Finance teams adopt AI faster than they measure it",
+    "source": "Protiviti Global Finance Trends Survey",
+    "url": "https://www.prnewswire.com/apac/news-releases/cfos-turn-to-ai-to-better-synchronize-finance-and-enterprise-priorities-report-ai-roi-challenges-protiviti-global-finance-trends-survey-302859850.html",
+    "category": "Finance & Capital",
+    "score": 32,
+    "evidence": "Seventy-seven percent of finance organisations use AI, but 35% measure ROI effectively and only 14% employ it under a defined strategy."
+  },
+  {
+    "source_id": "S04",
+    "title": "Salesforce reports commercial traction for enterprise AI",
+    "source": "Salesforce Investor Relations",
+    "url": "https://investor.salesforce.com/news/news-details/2026/Salesforce-Delivers-Record-Second-Quarter-Fiscal-2027-Results/default.aspx",
+    "category": "Sales, Marketing & Customer",
+    "score": 31,
+    "evidence": "Salesforce reported AI and data ARR near $3.9 billion, up over 210%; premium Sales and Service AI SKU bookings more than doubled quarter-on-quarter."
+  },
+  {
+    "source_id": "S05",
+    "title": "Entry-level hiring carries the first visible labour pressure",
+    "source": "Stanford Digital Economy Lab",
+    "url": "https://digitaleconomy.stanford.edu/publication/canaries-in-the-coal-mine-six-facts-about-the-recent-employment-effects-of-artificial-intelligence/",
+    "category": "People & Culture",
+    "score": 32,
+    "evidence": "Employment for 22–25-year-olds in AI-exposed roles is 19% below the level implied by growth in less-exposed occupations, mainly through reduced hiring; researchers call the evidence descriptive, not causal."
+  },
+  {
+    "source_id": "S06",
+    "title": "AI infrastructure is accumulating physical-world risk",
+    "source": "Allianz Commercial",
+    "url": "https://commercial.allianz.com/news-and-insights/reports/data-center-construction-risks.html",
+    "category": "Technology & Data",
+    "score": 29,
+    "evidence": "Annual data-centre investment may exceed $1 trillion by 2027, while 79% of global capacity sits in areas with elevated natural-catastrophe risk."
+  }
+]

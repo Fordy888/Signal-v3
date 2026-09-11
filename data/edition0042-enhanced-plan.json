@@ -1,0 +1,102 @@
+{
+  "one_thing": {
+    "statement": "The AI divide is no longer adoption. It is economic control.",
+    "business_implication": "Value is concentrating where leaders connect workflows, measure returns, assign ownership and protect the human capability their efficiency gains may quietly erode.",
+    "confidence": "HIGH",
+    "evidence_ids": ["S01", "S02", "S03", "S04", "S05"]
+  },
+  "evidence_items": [
+    {
+      "source_ids": ["S01"],
+      "category": "Strategy & Business Model",
+      "action_tag": "WATCH",
+      "headline": "Productivity is rising faster than profit",
+      "evidence": "Eighty percent report individual productivity gains, while 37% report positive enterprise EBIT impact and 6% qualify as high performers."
+    },
+    {
+      "source_ids": ["S02"],
+      "category": "Operations & Delivery",
+      "action_tag": "ACT",
+      "headline": "Logistics has strategy without financial return",
+      "evidence": "Ninety-seven percent call AI strategic and 67% have dedicated budgets, but only 13% report measurable financial impact."
+    },
+    {
+      "source_ids": ["S03"],
+      "category": "Finance & Capital",
+      "action_tag": "ACT",
+      "headline": "Finance adopts AI without measuring it",
+      "evidence": "Seventy-seven percent use AI, but 35% measure ROI effectively and only 14% employ it under a defined strategy."
+    },
+    {
+      "source_ids": ["S04"],
+      "category": "Sales, Marketing & Customer",
+      "action_tag": "OPPORTUNITY",
+      "headline": "Salesforce proves customers will pay",
+      "evidence": "AI and data ARR neared $3.9 billion, up over 210%; premium Sales and Service AI SKU bookings more than doubled quarter-on-quarter."
+    },
+    {
+      "source_ids": ["S05"],
+      "category": "People & Culture",
+      "action_tag": "ACT",
+      "headline": "Entry-level hiring is the pressure point",
+      "evidence": "Employment for 22–25-year-olds in AI-exposed roles is 19% below the level implied by growth in less-exposed occupations, mainly through reduced hiring; researchers call the evidence descriptive."
+    },
+    {
+      "source_ids": ["S06"],
+      "category": "Technology & Data",
+      "action_tag": "WATCH",
+      "headline": "AI infrastructure carries physical-world risk",
+      "evidence": "Annual investment may exceed $1 trillion by 2027, while 79% of global data-centre capacity faces elevated natural-catastrophe risk."
+    }
+  ],
+  "interpretation": "Adoption is no longer the scarce capability. Economic visibility is. AI is producing personal productivity and vendor revenue, but enterprise returns remain concentrated where leaders redesign workflows, measure cost and value, manage data and keep the workforce pipeline intact.",
+  "founders_note": {
+    "headline": "Stop counting tools. Start counting consequences.",
+    "body": "Most businesses can now point to a list of AI tools. Far fewer can point to the line on the P&L that moved because of them. That is the gap. Productivity is real. Customer demand is real. So are the costs, the broken workflows and the early pressure showing up in entry-level hiring. Adoption was the first chapter. Economic control is the next one. Pick one workflow. Name the owner. Trace the cost. Measure the result. Then ask what capability the business must preserve while the machine takes on more of the work. If you cannot see the consequence, you do not yet have an AI strategy. You have activity. The winners will be the companies that turn activity into accountable advantage. — Paul"
+  },
+  "what_changed": {
+    "position_id": "ai-advantage-operating-system",
+    "classification": "STRENGTHENS",
+    "prior_position": "Edition 0022 established that data, governance, process and ownership were becoming more differentiating than model choice.",
+    "current_position": "Fresh evidence moves that position from architecture into economics: organisations now need cost, return and workforce visibility around AI.",
+    "explanation": "Compared with Edition 0022, the operating-discipline thesis now has financial teeth. Adoption and personal productivity are rising, but measurable returns remain concentrated where workflows, ownership, cost and people are managed together.",
+    "confidence": "HIGH"
+  },
+  "visual_signal": {
+    "eligible": true,
+    "type": "TENSION_MAP",
+    "title": "Where AI value is getting stuck",
+    "subtitle": "Separate 2026 surveys point in the same direction; their samples are not directly comparable.",
+    "rows": [
+      {"label": "Individual productivity", "status": "VISIBLE", "detail": "80% report gains in McKinsey's survey"},
+      {"label": "Enterprise EBIT", "status": "CONCENTRATED", "detail": "37% report positive impact; 6% are high performers"},
+      {"label": "Logistics return", "status": "SCARCE", "detail": "13% report measurable financial impact"},
+      {"label": "Finance ROI measurement", "status": "WEAK", "detail": "35% say they measure AI ROI effectively"}
+    ]
+  },
+  "counter_signal": {
+    "statement": "Salesforce's reported growth is a useful challenge: customers are paying for AI products, and some organisations are already converting adoption into material revenue and productivity.",
+    "would_change_view_if": "Broad-based EBIT improvement, stronger ROI measurement and stable entry-level hiring would show that the operating gap is closing faster than current evidence suggests.",
+    "confidence_effect": "That evidence would shift the conclusion from an operating divide to a temporary measurement lag."
+  },
+  "executive_actions": [
+    "Choose one AI workflow and trace its full cost, owner, baseline and commercial outcome.",
+    "Redesign the end-to-end process before funding another isolated tool or agent.",
+    "Audit entry-level roles to protect apprenticeship, tacit knowledge and future leadership capacity."
+  ],
+  "executive_read": {
+    "dtl_view": "AI capability is spreading faster than commercial control. The strongest organisations are not simply adopting more; they are connecting workflows, assigning ownership, measuring financial impact and protecting the human capability on which future performance depends.",
+    "watch_items": [
+      "Whether enterprise-level EBIT impact rises from the current 37% plateau in the next global survey.",
+      "Whether AI vendors expose workflow-level cost attribution instead of only total usage bills.",
+      "Whether entry-level hiring in highly exposed occupations stabilises as roles are redesigned around augmentation."
+    ]
+  },
+  "memory_update": {
+    "position_id": "ai-advantage-operating-system",
+    "theme": "AI commercial advantage",
+    "statement": "The operating system around AI now includes economic and workforce control: connected workflows, accountable ownership, cost attribution, measurable returns and a protected talent pipeline.",
+    "confidence": "HIGH",
+    "supporting_source_ids": ["S01", "S02", "S03", "S04", "S05"]
+  }
+}
