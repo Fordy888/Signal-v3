@@ -85,7 +85,9 @@ services:
   - type: cron
     name: dtl-signal-proof
     runtime: python
-    schedule: "0 0 1 1 *"
+    # 19:00 UTC = 05:00 Brisbane, one hour before production's 06:00 run, so the
+    # proof lands on the same Brisbane date and validates the identical edition.
+    schedule: "0 19 * * *"
     buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
     startCommand: python -m src.main --proof --enhanced --alive-moment
     envVars:
