@@ -24,6 +24,7 @@ def send_brief(
     subject_override: str | None = None,
     edition_number: int | None = None,
     tags: list[dict[str, str]] | None = None,
+    headers: dict[str, str] | None = None,
 ) -> bool:
     """Send the brief via Resend. Returns True on success, False on failure.
 
@@ -37,6 +38,7 @@ def send_brief(
                           If not set, uses "Signal | Edition XXXX | Day DD Mon".
         edition_number: The edition number to include in the subject line.
         tags: Optional Resend metadata for delivery traceability and recovery.
+        headers: Optional RFC headers (List-Unsubscribe) sent with the message.
     """
     api_key = os.environ.get("RESEND_API_KEY")
     from_email = os.environ.get("RESEND_FROM_EMAIL", "signal@signal.dtlc.ai")
@@ -76,6 +78,8 @@ def send_brief(
     }
     if tags:
         payload["tags"] = tags
+    if headers:
+        payload["headers"] = headers
 
     # Retry loop with exponential backoff for rate limiting
     backoff = INITIAL_BACKOFF_S

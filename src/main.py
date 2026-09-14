@@ -28,6 +28,7 @@ from .attribution import report_send_results, resolve_subscriber_ids
 from .founders_note import generate_founders_note, inject_founders_note
 from .signal_gauge import is_gauge_enabled, inject_gauge_into_html, personalise_gauge_for_subscriber
 from .share_block import inject_share_block, personalise_share_for_subscriber
+from .unsubscribe import apply_unsubscribe
 from .history import load_history, record_edition
 from .judgement_plan import generate_judgement_plan, scored_items_to_evidence
 from .signal_memory import (
@@ -44,7 +45,7 @@ from .alive_moment import load_alive_history, load_alive_moment, record_alive_mo
 from .edition_counter import edition_for_date, get_next_edition, increment_edition
 from .locked_edition import render_locked_edition
 from .weekly_wrap_qa import validate_weekly_wrap_html
-from .subscribers import fetch_subscribers
+from .subscribers import fetch_subscribers, fetch_unsubscribe_token
 from .qa_gate import (
     run_pre_send_qa,
     create_receipt,
@@ -743,6 +744,11 @@ def main() -> int:
         personalised_html = personalise_share_for_subscriber(personalised_html, subscriber_token)
         if delivery_memory is not None:
             personalised_html = embed_delivery_memory(personalised_html, delivery_memory)
+        # Every outbound edition carries a functional unsubscribe. The documented
+        # token URL when available, a mailto: fallback when not — never neither.
+        personalised_html, unsubscribe_headers = apply_unsubscribe(
+            personalised_html, email, fetch_unsubscribe_token(email)
+        )
         delivery_tags = [
             {"name": "message_type", "value": "signal"},
             {"name": "edition", "value": f"{edition_number:04d}"},
@@ -756,6 +762,7 @@ def main() -> int:
             subject_override=subject_override,
             edition_number=edition_number,
             tags=delivery_tags,
+            headers=unsubscribe_headers,
         )
 
         if result:
