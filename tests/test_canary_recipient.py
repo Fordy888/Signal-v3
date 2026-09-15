@@ -85,6 +85,37 @@ class CanaryUsesTheRealSendPath(unittest.TestCase):
         )
 
 
+class CanaryDoesNotTripTheRecipientFloor(unittest.TestCase):
+    """A one-recipient canary must not be held by the <3 recipients rule.
+
+    check_recipient_count treats fewer than 3 recipients in send mode as a
+    CRITICAL failure — it is there to catch a truncated subscriber API. A
+    canary narrows delivery to one address on purpose, so the gate has to
+    judge the audience the API returned, not the narrowed list.
+    """
+
+    def test_qa_gate_is_given_the_fetched_audience_not_the_narrowed_list(self):
+        self.assertIn(
+            "recipient_count=canary_audience_size or len(recipients)", MAIN,
+            "the QA gate must see the pre-narrowing audience size",
+        )
+
+    def test_the_floor_itself_is_unchanged(self):
+        from src.qa_gate import check_recipient_count
+        # Still critical for a genuinely truncated list.
+        self.assertFalse(check_recipient_count(1, "send").passed)
+        self.assertFalse(check_recipient_count(2, "send").passed)
+        self.assertFalse(check_recipient_count(0, "send").passed)
+        self.assertEqual(check_recipient_count(1, "send").severity, "critical")
+        # And passes for a real audience.
+        self.assertTrue(check_recipient_count(33, "send").passed)
+
+    def test_non_canary_runs_are_unaffected(self):
+        # canary_audience_size is None outside a canary, so the expression
+        # falls through to len(recipients) exactly as before.
+        self.assertIn("canary_audience_size = None", MAIN)
+
+
 class CanaryContainment(unittest.TestCase):
     def test_unknown_address_aborts_rather_than_being_invented(self):
         self.assertIn("CANARY ABORT:", MAIN)

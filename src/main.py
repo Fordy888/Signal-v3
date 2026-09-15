@@ -644,7 +644,12 @@ def main() -> int:
         edition_number=edition_number,
         html=html,
         scored_count=len(scored),
-        recipient_count=len(recipients),
+        # The recipient-count fail-safe exists to catch a truncated or broken
+        # subscriber API, so it must judge the audience the API actually
+        # returned — not the one address a canary narrows delivery to.
+        # Otherwise a canary trips "fewer than 3 recipients" and is held,
+        # while a genuinely truncated list would still be caught here.
+        recipient_count=canary_audience_size or len(recipients),
         sources_failed=len(failed_sources),
         sources_active=source_counts["active"],
         mode=mode,
