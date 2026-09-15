@@ -218,7 +218,10 @@ class ReleaseSimulationTests(unittest.TestCase):
         self.assertIn("SMILE.</span>", html)
         self.assertIn("YOUR SIGNAL AT A GLANCE", html)
         self.assertIn("FOUNDER'S NOTE", html)
-        self.assertIn("REMEMBER THE WORLD", html)
+        # REMEMBER THE WORLD is retired as of Edition 0054 — see
+        # tests/test_remember_the_world_retired.py. The locked-edition
+        # replays above still carry it: they reproduce delivered history.
+        self.assertNotIn("REMEMBER THE WORLD", html)
         self.assertIn("DAD JOKE OF THE DAY", html)
         self.assertIn("PF::SIGNAL-0043 // 31.08.2026 // 06:00 AEST", html)
 

@@ -41,7 +41,10 @@ from .signal_memory import (
 )
 from .enhanced_renderer import render_enhanced_email
 from .human_signal import load_joke_history, load_jokes, record_joke, select_joke
-from .alive_moment import load_alive_history, load_alive_moment, record_alive_moment, validate_alive_moment
+# load_alive_moment/validate_alive_moment are no longer used: REMEMBER THE WORLD
+# is retired. The history helpers stay for the --locked-edition reproduction path,
+# which replays already-delivered editions byte-for-byte.
+from .alive_moment import load_alive_history, record_alive_moment
 from .edition_counter import edition_for_date, get_next_edition, increment_edition
 from .locked_edition import render_locked_edition
 from .weekly_wrap_qa import validate_weekly_wrap_html
@@ -463,11 +466,13 @@ def main() -> int:
                     recent_ids=load_joke_history(joke_history_path),
                 )
                 if args.alive_moment:
-                    alive_path = root / os.environ.get("SIGNAL_ALIVE_MOMENT_PATH", "data/alive_moment.json")
-                    alive_moment = validate_alive_moment(
-                        load_alive_moment(alive_path),
-                        load_alive_history(alive_history_path),
-                    )
+                    # REMEMBER THE WORLD is retired as of Edition 0054. The flag is
+                    # still accepted so the live start commands keep working
+                    # unchanged, but no moment is loaded and the section is not
+                    # rendered. This also removes the failure mode that aborted the
+                    # 0054 production run: a stale SIGNAL_ALIVE_MOMENT_PATH can no
+                    # longer stop an edition, because nothing reads it.
+                    log.info("Remember the World is retired — section not rendered")
                 html = render_enhanced_email(
                     plan=enhanced_plan,
                     sources=planner_evidence,
