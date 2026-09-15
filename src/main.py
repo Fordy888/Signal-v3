@@ -194,6 +194,11 @@ def main() -> int:
                         help="ISO timestamp for proof/dry-run route and metadata simulation; never permitted with --send")
     parser.add_argument("--release-canary", action="store_true",
                         help="Proof-only mode: enforce the live production release-identity gate")
+    parser.add_argument("--canary-recipient", type=str, default=None,
+                        help="With --send: run the complete production send path — release "
+                             "identity gate, live subscriber fetch, both fail-safes and the "
+                             "post-delivery writes — but deliver to this one address only. "
+                             "The address must be a live subscriber returned by the API.")
     args = parser.parse_args()
     if args.alive_moment and not args.enhanced:
         parser.error("--alive-moment requires --enhanced")
@@ -205,6 +210,10 @@ def main() -> int:
         parser.error("--release-canary requires --proof")
     if args.release_canary and not args.enhanced:
         parser.error("--release-canary requires --enhanced")
+    if args.canary_recipient and not args.send:
+        parser.error("--canary-recipient requires --send")
+    if args.canary_recipient and "@" not in args.canary_recipient:
+        parser.error("--canary-recipient must be an email address")
 
     # Locate project root (parent of src/)
     root = Path(__file__).resolve().parent.parent
@@ -365,6 +374,38 @@ def main() -> int:
             log.info("FAIL-SAFE: Source of truth verified — %d subscribers confirmed", api_count)
         else:
             log.warning("FAIL-SAFE: Verification fetch returned empty — proceeding with original list")
+
+    # ─── Canary narrowing ───────────────────────────────────────────────
+    # Deliberately placed AFTER every send-mode control has run against the
+    # full audience: the release identity gate is enforced, the live
+    # subscriber list has been fetched, integrity-checked and double-fetch
+    # verified. Only the delivery loop is narrowed, so a canary proves the
+    # real production path rather than a parallel one. The address must
+    # already be a live subscriber — the canary cannot invent a recipient.
+    if args.canary_recipient:
+        wanted = args.canary_recipient.lower().strip()
+        match = [r for r in recipients if r["email"].lower().strip() == wanted]
+        if not match:
+            log.error(
+                "CANARY ABORT: %s is not in the live subscriber list (%d subscribers). "
+                "Edition NOT sent.",
+                args.canary_recipient, len(recipients),
+            )
+            send_alert(
+                "Canary recipient is not a live subscriber — edition NOT sent",
+                f"{args.canary_recipient} was not returned by the subscriber API. "
+                f"The API returned {len(recipients)} subscriber(s). Edition NOT sent.",
+            )
+            return 1
+        log.warning(
+            "CANARY: production send path confirmed against %d subscribers; "
+            "delivery narrowed to %s only",
+            len(recipients), args.canary_recipient,
+        )
+        canary_audience_size = len(recipients)
+        recipients = match[:1]
+    else:
+        canary_audience_size = None
 
     # ─── Pipeline stages ────────────────────────────────────────────────
 
@@ -759,7 +800,10 @@ def main() -> int:
             {"name": "edition", "value": f"{edition_number:04d}"},
             {"name": "edition_type", "value": edition_type},
             {"name": "format", "value": "enhanced-v4" if use_enhanced else "legacy"},
-            {"name": "delivery_mode", "value": "production" if args.send else "proof"},
+            {"name": "delivery_mode", "value": (
+                "production-canary" if args.canary_recipient
+                else "production" if args.send else "proof"
+            )},
         ]
         result = send_brief(
             html_body=personalised_html,
@@ -892,6 +936,16 @@ def main() -> int:
 
         if bookkeeping_error:
             receipt.qa_issues.append(f"[WARNING] Post-delivery bookkeeping error: {bookkeeping_error}")
+
+        if args.canary_recipient:
+            # The receipt must never let a canary read as a full subscriber
+            # send. It states the audience the production path actually
+            # verified and the single address it was narrowed to.
+            receipt.qa_issues.append(
+                f"[CANARY] Production send path verified against "
+                f"{canary_audience_size} live subscriber(s); delivery narrowed to "
+                f"{args.canary_recipient} only. This is NOT a subscriber send."
+            )
 
         save_receipt(root, receipt)
         send_receipt_email(receipt)
